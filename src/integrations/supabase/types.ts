@@ -14,6 +14,126 @@ export type Database = {
   }
   public: {
     Tables: {
+      kanban_columns: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          position: number
+          project_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          position: number
+          project_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          position?: number
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kanban_columns_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_preferences: {
+        Row: {
+          assignment_alerts: boolean | null
+          created_at: string | null
+          deadline_alerts: boolean | null
+          enabled: boolean | null
+          id: string
+          project_id: string | null
+          user_id: string
+        }
+        Insert: {
+          assignment_alerts?: boolean | null
+          created_at?: string | null
+          deadline_alerts?: boolean | null
+          enabled?: boolean | null
+          id?: string
+          project_id?: string | null
+          user_id: string
+        }
+        Update: {
+          assignment_alerts?: boolean | null
+          created_at?: string | null
+          deadline_alerts?: boolean | null
+          enabled?: boolean | null
+          id?: string
+          project_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string | null
+          metadata: Json | null
+          project_id: string | null
+          read: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          project_id?: string | null
+          read?: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          project_id?: string | null
+          read?: boolean | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -21,7 +141,7 @@ export type Database = {
           email: string
           full_name: string
           id: string
-          role: string
+          role: string | null
           updated_at: string
           user_id: string
         }
@@ -31,7 +151,7 @@ export type Database = {
           email: string
           full_name: string
           id?: string
-          role?: string
+          role?: string | null
           updated_at?: string
           user_id: string
         }
@@ -41,7 +161,7 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
-          role?: string
+          role?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -106,6 +226,38 @@ export type Database = {
         }
         Relationships: []
       }
+      subtask_assignees: {
+        Row: {
+          assigned_by: string | null
+          created_at: string | null
+          id: string
+          subtask_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string | null
+          id?: string
+          subtask_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string | null
+          id?: string
+          subtask_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subtask_assignees_subtask_id_fkey"
+            columns: ["subtask_id"]
+            isOneToOne: false
+            referencedRelation: "subtasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subtasks: {
         Row: {
           completed: boolean
@@ -138,9 +290,42 @@ export type Database = {
           },
         ]
       }
+      task_assignees: {
+        Row: {
+          assigned_by: string | null
+          created_at: string | null
+          id: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string | null
+          id?: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string | null
+          id?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_assignees_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assignee_id: string | null
+          column_id: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -154,6 +339,7 @@ export type Database = {
         }
         Insert: {
           assignee_id?: string | null
+          column_id?: string | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -167,6 +353,7 @@ export type Database = {
         }
         Update: {
           assignee_id?: string | null
+          column_id?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
@@ -179,6 +366,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_column_id_fkey"
+            columns: ["column_id"]
+            isOneToOne: false
+            referencedRelation: "kanban_columns"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_project_id_fkey"
             columns: ["project_id"]
