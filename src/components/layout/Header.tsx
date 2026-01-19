@@ -10,8 +10,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LayoutDashboard, LogOut, User } from 'lucide-react';
+import { LayoutDashboard, LogOut } from 'lucide-react';
 import { ActiveTimer } from '@/components/time/ActiveTimer';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 export const Header: React.FC = () => {
   const { profile, signOut } = useAuth();
@@ -37,6 +38,7 @@ export const Header: React.FC = () => {
 
         <div className="flex items-center gap-4">
           <ActiveTimer />
+          <NotificationBell />
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -53,7 +55,6 @@ export const Header: React.FC = () => {
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium">{profile?.full_name}</p>
                   <p className="text-xs text-muted-foreground">{profile?.email}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{profile?.role}</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />

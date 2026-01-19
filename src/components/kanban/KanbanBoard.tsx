@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { useTasks, useUpdateTaskStatus } from '@/hooks/useTasks';
+import { useTasks, useUpdateTaskColumn } from '@/hooks/useTasks';
 import { useProject, useProjectMembers, useAddProjectMember } from '@/hooks/useProjects';
+import { useKanbanColumns } from '@/hooks/useKanbanColumns';
 import { useAuth } from '@/contexts/AuthContext';
-import { Task, TaskStatus } from '@/types/database';
+import { Task } from '@/types/database';
 import { KanbanColumn } from './KanbanColumn';
 import { TaskCard } from './TaskCard';
 import { CreateTaskDialog } from './CreateTaskDialog';
 import { TaskDetailSheet } from './TaskDetailSheet';
+import { ColumnManager } from './ColumnManager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +20,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Plus, UserPlus, Loader2, Users } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { ArrowLeft, Plus, UserPlus, Loader2, Users, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface KanbanBoardProps {
@@ -26,33 +35,31 @@ interface KanbanBoardProps {
   onBack: () => void;
 }
 
-const COLUMNS: { id: TaskStatus; title: string }[] = [
-  { id: 'todo', title: 'To Do' },
-  { id: 'in_progress', title: 'In Progress' },
-  { id: 'done', title: 'Done' },
-];
-
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) => {
-  const { profile, user } = useAuth();
+  const { user } = useAuth();
   const { data: project } = useProject(projectId);
-  const { data: tasks, isLoading } = useTasks(projectId);
+  const { data: tasks, isLoading: tasksLoading } = useTasks(projectId);
   const { data: members } = useProjectMembers(projectId);
-  const updateTaskStatus = useUpdateTaskStatus();
+  const { data: columns, isLoading: columnsLoading } = useKanbanColumns(projectId);
+  const updateTaskColumn = useUpdateTaskColumn();
   const addMember = useAddProjectMember();
   
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [memberDialogOpen, setMemberDialogOpen] = useState(false);
+  const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [newMemberRole, setNewMemberRole] = useState<'admin' | 'member'>('member');
 
   const isOwner = project?.owner_id === user?.id;
-  const canManage = isOwner || profile?.role === 'manager';
+  const currentUserMember = members?.find(m => m.user_id === user?.id);
+  const isAdmin = isOwner || currentUserMember?.role === 'admin';
 
-  const handleDrop = async (taskId: string, newStatus: TaskStatus) => {
+  const handleDrop = async (taskId: string, columnId: string) => {
     try {
-      await updateTaskStatus.mutateAsync({ taskId, status: newStatus, projectId });
+      await updateTaskColumn.mutateAsync({ taskId, columnId, projectId });
     } catch (error) {
-      toast.error('Failed to update task status');
+      toast.error('Failed to update task');
     }
   };
 
@@ -63,19 +70,22 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
       await addMember.mutateAsync({
         projectId,
         email: newMemberEmail,
-        role: 'member',
+        role: newMemberRole,
       });
       toast.success('Member added!');
       setMemberDialogOpen(false);
       setNewMemberEmail('');
+      setNewMemberRole('member');
     } catch (error: any) {
       toast.error(error.message || 'Failed to add member');
     }
   };
 
-  const getTasksByStatus = (status: TaskStatus): Task[] => {
-    return tasks?.filter((task) => task.status === status) || [];
+  const getTasksByColumn = (columnId: string): Task[] => {
+    return tasks?.filter((task) => task.column_id === columnId) || [];
   };
+
+  const isLoading = tasksLoading || columnsLoading;
 
   return (
     <div className="space-y-6">
@@ -99,8 +109,13 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
             </div>
           )}
           
-          {canManage && (
+          {isAdmin && (
             <>
+              <Button variant="outline" size="sm" onClick={() => setColumnManagerOpen(true)}>
+                <Settings className="h-4 w-4 mr-2" />
+                Columns
+              </Button>
+              
               <Dialog open={memberDialogOpen} onOpenChange={setMemberDialogOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm">
@@ -127,6 +142,18 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
                         required
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="member-role">Role</Label>
+                      <Select value={newMemberRole} onValueChange={(v) => setNewMemberRole(v as 'admin' | 'member')}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin (can manage tasks & members)</SelectItem>
+                          <SelectItem value="member">Member (can work on tasks)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <Button type="submit" className="w-full" disabled={addMember.isPending}>
                       {addMember.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Add Member
@@ -149,15 +176,19 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {COLUMNS.map((column) => (
+        <div 
+          className="grid gap-4"
+          style={{ 
+            gridTemplateColumns: `repeat(${columns?.length || 3}, minmax(280px, 1fr))` 
+          }}
+        >
+          {columns?.map((column) => (
             <KanbanColumn
               key={column.id}
-              title={column.title}
-              status={column.id}
+              column={column}
               onDrop={handleDrop}
             >
-              {getTasksByStatus(column.id).map((task) => (
+              {getTasksByColumn(column.id).map((task) => (
                 <TaskCard
                   key={task.id}
                   task={task}
@@ -171,6 +202,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
 
       <CreateTaskDialog
         projectId={projectId}
+        columns={columns}
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         members={members}
@@ -179,7 +211,15 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
       <TaskDetailSheet
         task={selectedTask}
         projectId={projectId}
+        columns={columns}
+        members={members}
         onClose={() => setSelectedTask(null)}
+      />
+
+      <ColumnManager
+        projectId={projectId}
+        open={columnManagerOpen}
+        onOpenChange={setColumnManagerOpen}
       />
     </div>
   );

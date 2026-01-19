@@ -86,9 +86,10 @@ export const useCreateProject = () => {
 
 export const useAddProjectMember = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   return useMutation({
-    mutationFn: async ({ projectId, email, role }: { projectId: string; email: string; role: 'manager' | 'member' }) => {
+    mutationFn: async ({ projectId, email, role }: { projectId: string; email: string; role: 'admin' | 'member' }) => {
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('user_id')
@@ -108,6 +109,19 @@ export const useAddProjectMember = () => {
         .single();
       
       if (error) throw error;
+
+      // Create notification for the added member
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: profile.user_id,
+          project_id: projectId,
+          type: 'project_invite',
+          title: 'You were added to a project',
+          message: `You have been added as a ${role} to a project.`,
+          metadata: { added_by: user?.id },
+        });
+      
       return data;
     },
     onSuccess: (_, variables) => {
