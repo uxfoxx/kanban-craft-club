@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Task, Subtask, TaskStatus, TaskPriority } from '@/types/database';
+import { Task, Subtask, TaskPriority } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
 
@@ -102,14 +102,14 @@ export const useCreateTask = () => {
       title,
       description,
       priority,
-      assigneeId,
+      columnId,
       dueDate,
     }: {
       projectId: string;
       title: string;
       description?: string;
       priority?: TaskPriority;
-      assigneeId?: string;
+      columnId?: string;
       dueDate?: string;
     }) => {
       const { data, error } = await supabase
@@ -119,10 +119,60 @@ export const useCreateTask = () => {
           title,
           description,
           priority: priority || 'medium',
-          assignee_id: assigneeId,
+          column_id: columnId,
           created_by: user!.id,
           due_date: dueDate,
         })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', variables.projectId] });
+    },
+  });
+};
+
+export const useUpdateTask = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      taskId, 
+      updates, 
+      projectId 
+    }: { 
+      taskId: string; 
+      updates: Partial<Task>; 
+      projectId: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .update(updates)
+        .eq('id', taskId)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', variables.projectId] });
+    },
+  });
+};
+
+export const useUpdateTaskColumn = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ taskId, columnId, projectId }: { taskId: string; columnId: string; projectId: string }) => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .update({ column_id: columnId })
+        .eq('id', taskId)
         .select()
         .single();
       
@@ -139,7 +189,7 @@ export const useUpdateTaskStatus = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ taskId, status, projectId }: { taskId: string; status: TaskStatus; projectId: string }) => {
+    mutationFn: async ({ taskId, status, projectId }: { taskId: string; status: string; projectId: string }) => {
       const { data, error } = await supabase
         .from('tasks')
         .update({ status })

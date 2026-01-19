@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
-import { TaskStatus } from '@/types/database';
+import { KanbanColumn as KanbanColumnType } from '@/types/database';
 import { cn } from '@/lib/utils';
 
 interface KanbanColumnProps {
-  title: string;
-  status: TaskStatus;
+  column: KanbanColumnType;
   children: React.ReactNode;
-  onDrop: (taskId: string, status: TaskStatus) => void;
+  onDrop: (taskId: string, columnId: string) => void;
 }
 
 export const KanbanColumn: React.FC<KanbanColumnProps> = ({
-  title,
-  status,
+  column,
   children,
   onDrop,
 }) => {
@@ -31,50 +29,35 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
     setIsDragOver(false);
     const taskId = e.dataTransfer.getData('taskId');
     if (taskId) {
-      onDrop(taskId, status);
+      onDrop(taskId, column.id);
     }
   };
 
-  const getColumnColor = () => {
-    switch (status) {
-      case 'todo':
-        return 'bg-muted/50';
-      case 'in_progress':
-        return 'bg-primary/5';
-      case 'done':
-        return 'bg-chart-5/10';
-      default:
-        return 'bg-muted/50';
-    }
-  };
-
-  const getBadgeColor = () => {
-    switch (status) {
-      case 'todo':
-        return 'bg-muted text-muted-foreground';
-      case 'in_progress':
-        return 'bg-primary/20 text-primary';
-      case 'done':
-        return 'bg-chart-5/20 text-chart-5';
-      default:
-        return 'bg-muted text-muted-foreground';
-    }
-  };
+  // Use column color or fallback to default
+  const columnColor = column.color || '#6366f1';
 
   return (
     <div
       className={cn(
-        'flex flex-col rounded-lg p-4 min-h-96 transition-colors',
-        getColumnColor(),
+        'flex flex-col rounded-lg p-4 min-h-96 transition-colors bg-muted/30',
         isDragOver && 'ring-2 ring-primary ring-offset-2'
       )}
+      style={{
+        borderTop: `3px solid ${columnColor}`,
+      }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-foreground">{title}</h3>
-        <span className={cn('text-xs px-2 py-1 rounded-full font-medium', getBadgeColor())}>
+        <div className="flex items-center gap-2">
+          <div 
+            className="w-3 h-3 rounded-full" 
+            style={{ backgroundColor: columnColor }}
+          />
+          <h3 className="font-semibold text-foreground">{column.name}</h3>
+        </div>
+        <span className="text-xs px-2 py-1 rounded-full font-medium bg-muted text-muted-foreground">
           {React.Children.count(children)}
         </span>
       </div>

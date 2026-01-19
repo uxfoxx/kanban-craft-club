@@ -2,10 +2,9 @@ import React from 'react';
 import { Task } from '@/types/database';
 import { useStartTimeEntry, useActiveTimeEntry } from '@/hooks/useTimeTracking';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Play, Calendar, Flag } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, differenceInHours, isPast } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -48,11 +47,40 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
     }
   };
 
+  // Calculate deadline status for glow effect
+  const getDeadlineStatus = () => {
+    if (!task.due_date || task.status === 'done') return null;
+    
+    const dueDate = new Date(task.due_date);
+    const now = new Date();
+    
+    if (isPast(dueDate)) {
+      return 'overdue';
+    }
+    
+    const hoursUntilDue = differenceInHours(dueDate, now);
+    
+    if (hoursUntilDue <= 24) {
+      return 'urgent'; // Within 24 hours
+    }
+    
+    if (hoursUntilDue <= 48) {
+      return 'warning'; // Within 48 hours
+    }
+    
+    return null;
+  };
+
+  const deadlineStatus = getDeadlineStatus();
+
   return (
     <Card
       className={cn(
         'cursor-grab active:cursor-grabbing transition-all hover:shadow-md bg-card',
-        isTimerActive && 'ring-2 ring-primary'
+        isTimerActive && 'ring-2 ring-primary',
+        deadlineStatus === 'overdue' && 'animate-pulse ring-2 ring-destructive shadow-[0_0_15px_hsl(var(--destructive)/0.5)]',
+        deadlineStatus === 'urgent' && 'animate-pulse ring-2 ring-destructive/70 shadow-[0_0_10px_hsl(var(--destructive)/0.3)]',
+        deadlineStatus === 'warning' && 'ring-2 ring-chart-4 shadow-[0_0_10px_hsl(var(--chart-4)/0.3)]'
       )}
       draggable
       onDragStart={handleDragStart}
@@ -73,7 +101,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {task.due_date && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <div className={cn(
+                'flex items-center gap-1 text-xs',
+                deadlineStatus === 'overdue' && 'text-destructive font-medium',
+                deadlineStatus === 'urgent' && 'text-destructive/80 font-medium',
+                deadlineStatus === 'warning' && 'text-chart-4 font-medium',
+                !deadlineStatus && 'text-muted-foreground'
+              )}>
                 <Calendar className="h-3 w-3" />
                 {format(new Date(task.due_date), 'MMM d')}
               </div>

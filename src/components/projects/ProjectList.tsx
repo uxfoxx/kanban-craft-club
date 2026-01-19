@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useProjects, useCreateProject } from '@/hooks/useProjects';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -24,7 +23,6 @@ interface ProjectListProps {
 
 export const ProjectList: React.FC<ProjectListProps> = ({ onSelectProject }) => {
   const { data: projects, isLoading } = useProjects();
-  const { profile } = useAuth();
   const createProject = useCreateProject();
   
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -61,50 +59,48 @@ export const ProjectList: React.FC<ProjectListProps> = ({ onSelectProject }) => 
           <p className="text-muted-foreground">Manage your projects and tasks</p>
         </div>
         
-        {profile?.role === 'manager' && (
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                New Project
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              New Project
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Project</DialogTitle>
+              <DialogDescription>
+                Add a new project to manage your team's tasks.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreateProject} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="project-name">Project Name</Label>
+                <Input
+                  id="project-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="My Awesome Project"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="project-description">Description</Label>
+                <Textarea
+                  id="project-description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="What's this project about?"
+                  rows={3}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={createProject.isPending}>
+                {createProject.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create Project
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Project</DialogTitle>
-                <DialogDescription>
-                  Add a new project to manage your team's tasks.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleCreateProject} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="project-name">Project Name</Label>
-                  <Input
-                    id="project-name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="My Awesome Project"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="project-description">Description</Label>
-                  <Textarea
-                    id="project-description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="What's this project about?"
-                    rows={3}
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={createProject.isPending}>
-                  {createProject.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create Project
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {projects?.length === 0 ? (
@@ -113,9 +109,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({ onSelectProject }) => 
             <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
             <p className="text-muted-foreground text-center mb-4">
-              {profile?.role === 'manager' 
-                ? 'Create your first project to get started.'
-                : 'Ask a manager to add you to a project.'}
+              Create your first project to get started.
             </p>
           </CardContent>
         </Card>
