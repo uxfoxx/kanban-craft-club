@@ -144,3 +144,42 @@ export const useAddProjectMember = () => {
     },
   });
 };
+
+export const useUpdateMemberRole = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ projectId, memberId, role }: { projectId: string; memberId: string; role: 'admin' | 'member' }) => {
+      const { data, error } = await supabase
+        .from('project_members')
+        .update({ role })
+        .eq('id', memberId)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['project-members', variables.projectId] });
+    },
+  });
+};
+
+export const useRemoveProjectMember = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ projectId, memberId }: { projectId: string; memberId: string }) => {
+      const { error } = await supabase
+        .from('project_members')
+        .delete()
+        .eq('id', memberId);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['project-members', variables.projectId] });
+    },
+  });
+};

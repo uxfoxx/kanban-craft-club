@@ -9,6 +9,7 @@ import { TaskCard } from './TaskCard';
 import { CreateTaskDialog } from './CreateTaskDialog';
 import { TaskDetailSheet } from './TaskDetailSheet';
 import { ColumnManager } from './ColumnManager';
+import { ProjectSettings } from '@/components/projects/ProjectSettings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -48,6 +49,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [memberDialogOpen, setMemberDialogOpen] = useState(false);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newMemberRole, setNewMemberRole] = useState<'admin' | 'member'>('member');
 
@@ -103,10 +105,15 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
         
         <div className="flex items-center gap-2">
           {members && members.length > 0 && (
-            <div className="flex items-center gap-1 text-sm text-muted-foreground mr-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="gap-1 text-muted-foreground"
+              onClick={() => setSettingsOpen(true)}
+            >
               <Users className="h-4 w-4" />
               {members.length + 1} members
-            </div>
+            </Button>
           )}
           
           {isAdmin && (
@@ -221,6 +228,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
         projectId={projectId}
         open={columnManagerOpen}
         onOpenChange={setColumnManagerOpen}
+      />
+
+      <ProjectSettings
+        projectId={projectId}
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
       />
     </div>
   );
