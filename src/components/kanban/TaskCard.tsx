@@ -10,10 +10,11 @@ import { cn } from '@/lib/utils';
 
 interface TaskCardProps {
   task: Task;
+  columnName?: string;
   onClick: () => void;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
+export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick }) => {
   const startTimer = useStartTimeEntry();
   const { data: activeEntry } = useActiveTimeEntry();
 
@@ -47,9 +48,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
     }
   };
 
+  // Check if task is in a "done" column
+  const isDone = columnName?.toLowerCase() === 'done' || task.status === 'done';
+
   // Calculate deadline status for glow effect
   const getDeadlineStatus = () => {
-    if (!task.due_date || task.status === 'done') return null;
+    if (!task.due_date || isDone) return null;
     
     const dueDate = new Date(task.due_date);
     const now = new Date();
@@ -114,7 +118,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
             )}
           </div>
           
-          {task.status !== 'done' && (
+          {!isDone && (
             <Button
               size="sm"
               variant={isTimerActive ? 'default' : 'outline'}

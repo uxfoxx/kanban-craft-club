@@ -35,10 +35,10 @@ export interface KanbanColumn {
   id: string;
   project_id: string;
   name: string;
-  color: string;
+  color: string | null;
   position: number;
-  is_default: boolean;
-  created_at: string;
+  is_default: boolean | null;
+  created_at: string | null;
 }
 
 export interface Task {
