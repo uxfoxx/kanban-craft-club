@@ -10,13 +10,30 @@ export const useTaskAssignees = (taskId: string | undefined) => {
     queryKey: ['task-assignees', taskId],
     queryFn: async () => {
       if (!taskId) return [];
-      const { data, error } = await supabase
+      
+      // Fetch assignees first
+      const { data: assignees, error: assigneesError } = await supabase
         .from('task_assignees')
-        .select(`*, profiles:user_id (*)`)
+        .select('*')
         .eq('task_id', taskId);
       
-      if (error) throw error;
-      return data as TaskAssigneeWithProfile[];
+      if (assigneesError) throw assigneesError;
+      if (!assignees || assignees.length === 0) return [];
+      
+      // Fetch profiles for all assignee user_ids
+      const userIds = assignees.map(a => a.user_id);
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('user_id', userIds);
+      
+      if (profilesError) throw profilesError;
+      
+      // Combine assignees with their profiles
+      return assignees.map(assignee => ({
+        ...assignee,
+        profiles: profiles?.find(p => p.user_id === assignee.user_id)
+      })) as TaskAssigneeWithProfile[];
     },
     enabled: !!taskId,
   });
@@ -61,9 +78,30 @@ export const useSubtaskAssignees = (subtaskId: string | undefined) => {
     queryKey: ['subtask-assignees', subtaskId],
     queryFn: async () => {
       if (!subtaskId) return [];
-      const { data, error } = await supabase.from('subtask_assignees').select(`*, profiles:user_id (*)`).eq('subtask_id', subtaskId);
-      if (error) throw error;
-      return data as (SubtaskAssignee & { profiles?: Profile })[];
+      
+      // Fetch assignees first
+      const { data: assignees, error: assigneesError } = await supabase
+        .from('subtask_assignees')
+        .select('*')
+        .eq('subtask_id', subtaskId);
+      
+      if (assigneesError) throw assigneesError;
+      if (!assignees || assignees.length === 0) return [];
+      
+      // Fetch profiles for all assignee user_ids
+      const userIds = assignees.map(a => a.user_id);
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('user_id', userIds);
+      
+      if (profilesError) throw profilesError;
+      
+      // Combine assignees with their profiles
+      return assignees.map(assignee => ({
+        ...assignee,
+        profiles: profiles?.find(p => p.user_id === assignee.user_id)
+      })) as (SubtaskAssignee & { profiles?: Profile })[];
     },
     enabled: !!subtaskId,
   });
