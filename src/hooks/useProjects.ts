@@ -44,16 +44,31 @@ export const useProjectMembers = (projectId: string | undefined) => {
     queryKey: ['project-members', projectId],
     queryFn: async () => {
       if (!projectId) return [];
-      const { data, error } = await supabase
+      
+      // Fetch project members
+      const { data: membersData, error: membersError } = await supabase
         .from('project_members')
-        .select(`
-          *,
-          profiles:user_id (*)
-        `)
+        .select('*')
         .eq('project_id', projectId);
       
-      if (error) throw error;
-      return data as (typeof data[0] & { profiles: Profile })[];
+      if (membersError) throw membersError;
+      if (!membersData || membersData.length === 0) return [];
+      
+      // Fetch profiles for all member user_ids
+      const userIds = membersData.map(m => m.user_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('user_id', userIds);
+      
+      if (profilesError) throw profilesError;
+      
+      // Combine members with their profiles
+      const profileMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
+      return membersData.map(member => ({
+        ...member,
+        profiles: profileMap.get(member.user_id) as Profile | undefined,
+      }));
     },
     enabled: !!projectId,
   });

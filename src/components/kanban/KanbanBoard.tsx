@@ -192,6 +192,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
                 <TaskCard
                   key={task.id}
                   task={task}
+                  columnName={column.name}
                   onClick={() => setSelectedTask(task)}
                 />
               ))}
