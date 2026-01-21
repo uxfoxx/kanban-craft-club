@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Task, Subtask, Profile, KanbanColumn } from '@/types/database';
-import { useSubtasks, useCreateSubtask, useToggleSubtask, useUpdateTask } from '@/hooks/useTasks';
-import { useTimeEntries, formatDuration } from '@/hooks/useTimeTracking';
+import { useSubtasks, useCreateSubtask, useToggleSubtask, useUpdateTask, useDeleteTask, useDeleteSubtask, useUpdateSubtask } from '@/hooks/useTasks';
+import { useTimeEntries, formatDuration, useDeleteTimeEntry } from '@/hooks/useTimeTracking';
 import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee } from '@/hooks/useAssignees';
 import {
   Sheet,
@@ -10,11 +10,25 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -22,7 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Clock, ListTodo, Flag, Calendar, Users, X } from 'lucide-react';
+import { Plus, Clock, ListTodo, Flag, Calendar as CalendarIcon, Users, X, Trash2, Pencil, Check, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -48,10 +62,20 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const createSubtask = useCreateSubtask();
   const toggleSubtask = useToggleSubtask();
   const updateTask = useUpdateTask();
+  const deleteTask = useDeleteTask();
+  const deleteSubtask = useDeleteSubtask();
+  const updateSubtask = useUpdateSubtask();
+  const deleteTimeEntry = useDeleteTimeEntry();
   const addAssignee = useAddTaskAssignee();
   const removeAssignee = useRemoveTaskAssignee();
   
   const [newSubtask, setNewSubtask] = useState('');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState('');
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editedDescription, setEditedDescription] = useState('');
+  const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
+  const [editedSubtaskTitle, setEditedSubtaskTitle] = useState('');
 
   const handleAddSubtask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +117,118 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
     }
   };
 
+  const handlePriorityChange = async (priority: 'low' | 'medium' | 'high') => {
+    if (!task) return;
+    
+    try {
+      await updateTask.mutateAsync({
+        taskId: task.id,
+        updates: { priority },
+        projectId,
+      });
+      toast.success('Priority updated');
+    } catch (error) {
+      toast.error('Failed to update priority');
+    }
+  };
+
+  const handleDueDateChange = async (date: Date | undefined) => {
+    if (!task) return;
+    
+    try {
+      await updateTask.mutateAsync({
+        taskId: task.id,
+        updates: { due_date: date ? format(date, 'yyyy-MM-dd') : null },
+        projectId,
+      });
+      toast.success('Due date updated');
+    } catch (error) {
+      toast.error('Failed to update due date');
+    }
+  };
+
+  const handleSaveTitle = async () => {
+    if (!task || !editedTitle.trim()) return;
+    
+    try {
+      await updateTask.mutateAsync({
+        taskId: task.id,
+        updates: { title: editedTitle.trim() },
+        projectId,
+      });
+      setIsEditingTitle(false);
+      toast.success('Title updated');
+    } catch (error) {
+      toast.error('Failed to update title');
+    }
+  };
+
+  const handleSaveDescription = async () => {
+    if (!task) return;
+    
+    try {
+      await updateTask.mutateAsync({
+        taskId: task.id,
+        updates: { description: editedDescription.trim() || null },
+        projectId,
+      });
+      setIsEditingDescription(false);
+      toast.success('Description updated');
+    } catch (error) {
+      toast.error('Failed to update description');
+    }
+  };
+
+  const handleDeleteTask = async () => {
+    if (!task) return;
+    
+    try {
+      await deleteTask.mutateAsync({ taskId: task.id, projectId });
+      toast.success('Task deleted');
+      onClose();
+    } catch (error) {
+      toast.error('Failed to delete task');
+    }
+  };
+
+  const handleDeleteSubtask = async (subtaskId: string) => {
+    if (!task) return;
+    
+    try {
+      await deleteSubtask.mutateAsync({ subtaskId, taskId: task.id });
+      toast.success('Subtask deleted');
+    } catch (error) {
+      toast.error('Failed to delete subtask');
+    }
+  };
+
+  const handleSaveSubtaskTitle = async (subtaskId: string) => {
+    if (!task || !editedSubtaskTitle.trim()) return;
+    
+    try {
+      await updateSubtask.mutateAsync({
+        subtaskId,
+        title: editedSubtaskTitle.trim(),
+        taskId: task.id,
+      });
+      setEditingSubtaskId(null);
+      toast.success('Subtask updated');
+    } catch (error) {
+      toast.error('Failed to update subtask');
+    }
+  };
+
+  const handleDeleteTimeEntry = async (entryId: string) => {
+    if (!task) return;
+    
+    try {
+      await deleteTimeEntry.mutateAsync({ entryId, taskId: task.id });
+      toast.success('Time entry deleted');
+    } catch (error) {
+      toast.error('Failed to delete time entry');
+    }
+  };
+
   const handleAddAssignee = async (userId: string) => {
     if (!task) return;
     
@@ -122,23 +258,6 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const completedSubtasks = subtasks?.filter((s) => s.completed).length || 0;
   const totalSubtasks = subtasks?.length || 0;
 
-  const getPriorityBadge = () => {
-    if (!task) return null;
-    
-    const colors = {
-      high: 'bg-destructive/10 text-destructive',
-      medium: 'bg-chart-4/10 text-chart-4',
-      low: 'bg-chart-5/10 text-chart-5',
-    };
-    
-    return (
-      <Badge variant="outline" className={cn('capitalize', colors[task.priority])}>
-        <Flag className="h-3 w-3 mr-1" />
-        {task.priority}
-      </Badge>
-    );
-  };
-
   const currentColumn = columns?.find(c => c.id === task?.column_id);
 
   // Get assignee user ids
@@ -153,15 +272,81 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
         {task && (
           <>
             <SheetHeader>
-              <SheetTitle className="text-xl">{task.title}</SheetTitle>
+              {isEditingTitle ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={editedTitle}
+                    onChange={(e) => setEditedTitle(e.target.value)}
+                    className="text-xl font-semibold"
+                    autoFocus
+                  />
+                  <Button size="icon" variant="ghost" onClick={handleSaveTitle}>
+                    <Check className="h-4 w-4" />
+                  </Button>
+                  <Button size="icon" variant="ghost" onClick={() => setIsEditingTitle(false)}>
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <SheetTitle 
+                  className="text-xl cursor-pointer hover:text-primary transition-colors group flex items-center gap-2"
+                  onClick={() => { setEditedTitle(task.title); setIsEditingTitle(true); }}
+                >
+                  {task.title}
+                  <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </SheetTitle>
+              )}
               <SheetDescription className="flex flex-wrap items-center gap-2">
-                {getPriorityBadge()}
-                {task.due_date && (
-                  <Badge variant="outline" className="text-muted-foreground">
-                    <Calendar className="h-3 w-3 mr-1" />
-                    {format(new Date(task.due_date), 'MMM d, yyyy')}
-                  </Badge>
-                )}
+                {/* Priority Selector */}
+                <Select value={task.priority} onValueChange={handlePriorityChange}>
+                  <SelectTrigger className="w-auto h-7 text-xs">
+                    <SelectValue>
+                      <Badge variant="outline" className={cn('capitalize', {
+                        'bg-destructive/10 text-destructive': task.priority === 'high',
+                        'bg-chart-4/10 text-chart-4': task.priority === 'medium',
+                        'bg-chart-5/10 text-chart-5': task.priority === 'low',
+                      })}>
+                        <Flag className="h-3 w-3 mr-1" />
+                        {task.priority}
+                      </Badge>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Due Date Picker */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 text-xs">
+                      <CalendarIcon className="h-3 w-3 mr-1" />
+                      {task.due_date ? format(new Date(task.due_date), 'MMM d, yyyy') : 'Set due date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={task.due_date ? new Date(task.due_date) : undefined}
+                      onSelect={handleDueDateChange}
+                      initialFocus
+                    />
+                    {task.due_date && (
+                      <div className="p-2 border-t">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="w-full text-destructive"
+                          onClick={() => handleDueDateChange(undefined)}
+                        >
+                          Remove due date
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
               </SheetDescription>
             </SheetHeader>
             
@@ -201,12 +386,35 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                 </div>
               )}
 
-              {task.description && (
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Description</h4>
-                  <p className="text-sm text-muted-foreground">{task.description}</p>
-                </div>
-              )}
+              {/* Description */}
+              <div>
+                <h4 className="text-sm font-medium mb-2">Description</h4>
+                {isEditingDescription ? (
+                  <div className="space-y-2">
+                    <Textarea
+                      value={editedDescription}
+                      onChange={(e) => setEditedDescription(e.target.value)}
+                      placeholder="Add a description..."
+                      rows={4}
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleSaveDescription}>Save</Button>
+                      <Button size="sm" variant="outline" onClick={() => setIsEditingDescription(false)}>Cancel</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div 
+                    className="text-sm text-muted-foreground cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors group"
+                    onClick={() => { setEditedDescription(task.description || ''); setIsEditingDescription(true); }}
+                  >
+                    {task.description || (
+                      <span className="italic">Click to add description...</span>
+                    )}
+                    <Pencil className="h-3 w-3 inline-block ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                )}
+              </div>
               
               <Separator />
 
@@ -267,9 +475,19 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                 {timeEntries && timeEntries.length > 0 && (
                   <div className="mt-2 space-y-1">
                     {timeEntries.slice(0, 5).map((entry) => (
-                      <div key={entry.id} className="text-xs text-muted-foreground flex justify-between">
+                      <div key={entry.id} className="text-xs text-muted-foreground flex justify-between items-center group">
                         <span>{format(new Date(entry.started_at), 'MMM d, h:mm a')}</span>
-                        <span>{entry.duration_seconds ? formatDuration(entry.duration_seconds) : '-'}</span>
+                        <div className="flex items-center gap-2">
+                          <span>{entry.duration_seconds ? formatDuration(entry.duration_seconds) : '-'}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                            onClick={() => handleDeleteTimeEntry(entry.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -308,20 +526,48 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                   {subtasks?.map((subtask) => (
                     <div
                       key={subtask.id}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors group"
                     >
                       <Checkbox
                         checked={subtask.completed}
                         onCheckedChange={() => handleToggleSubtask(subtask)}
                       />
-                      <span
-                        className={cn(
-                          'text-sm flex-1',
-                          subtask.completed && 'line-through text-muted-foreground'
-                        )}
-                      >
-                        {subtask.title}
-                      </span>
+                      {editingSubtaskId === subtask.id ? (
+                        <div className="flex-1 flex items-center gap-2">
+                          <Input
+                            value={editedSubtaskTitle}
+                            onChange={(e) => setEditedSubtaskTitle(e.target.value)}
+                            className="h-7 text-sm"
+                            autoFocus
+                          />
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleSaveSubtaskTitle(subtask.id)}>
+                            <Check className="h-3 w-3" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingSubtaskId(null)}>
+                            <XCircle className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <span
+                            className={cn(
+                              'text-sm flex-1 cursor-pointer',
+                              subtask.completed && 'line-through text-muted-foreground'
+                            )}
+                            onClick={() => { setEditingSubtaskId(subtask.id); setEditedSubtaskTitle(subtask.title); }}
+                          >
+                            {subtask.title}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                            onClick={() => handleDeleteSubtask(subtask.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   ))}
                   
@@ -332,6 +578,36 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                   )}
                 </div>
               </div>
+
+              <Separator />
+
+              {/* Delete Task */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Task
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete this task?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete "{task.title}" and all its subtasks and time entries.
+                      This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteTask}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </>
         )}
