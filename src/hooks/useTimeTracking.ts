@@ -144,6 +144,45 @@ export const useStopTimeEntry = () => {
   });
 };
 
+export const useUpdateTimeEntry = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ entryId, description, taskId }: { entryId: string; description: string; taskId: string }) => {
+      const { data, error } = await supabase
+        .from('time_entries')
+        .update({ description })
+        .eq('id', entryId)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['time-entries', variables.taskId] });
+    },
+  });
+};
+
+export const useDeleteTimeEntry = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ entryId, taskId }: { entryId: string; taskId: string }) => {
+      const { error } = await supabase
+        .from('time_entries')
+        .delete()
+        .eq('id', entryId);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['time-entries', variables.taskId] });
+    },
+  });
+};
+
 export const formatDuration = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);

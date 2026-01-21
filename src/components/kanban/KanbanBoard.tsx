@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTasks, useUpdateTaskColumn } from '@/hooks/useTasks';
-import { useProject, useProjectMembers, useAddProjectMember } from '@/hooks/useProjects';
+import { useProject, useProjectMembers, useAddProjectMember, useProjectOwner } from '@/hooks/useProjects';
 import { useKanbanColumns } from '@/hooks/useKanbanColumns';
 import { useAuth } from '@/contexts/AuthContext';
-import { Task } from '@/types/database';
+import { Task, Profile } from '@/types/database';
 import { KanbanColumn } from './KanbanColumn';
 import { TaskCard } from './TaskCard';
 import { CreateTaskDialog } from './CreateTaskDialog';
@@ -41,6 +41,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
   const { data: project } = useProject(projectId);
   const { data: tasks, isLoading: tasksLoading } = useTasks(projectId);
   const { data: members } = useProjectMembers(projectId);
+  const { data: ownerProfile } = useProjectOwner(project?.owner_id);
   const { data: columns, isLoading: columnsLoading } = useKanbanColumns(projectId);
   const updateTaskColumn = useUpdateTaskColumn();
   const addMember = useAddProjectMember();
@@ -56,6 +57,36 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
   const isOwner = project?.owner_id === user?.id;
   const currentUserMember = members?.find(m => m.user_id === user?.id);
   const isAdmin = isOwner || currentUserMember?.role === 'admin';
+  const isMember = isOwner || !!currentUserMember;
+
+  // Combine owner with members for assignee lists
+  const allMembers = useMemo(() => {
+    const membersList: { user_id: string; role: string; profiles: Profile }[] = [];
+    
+    // Add owner first
+    if (ownerProfile && project?.owner_id) {
+      membersList.push({
+        user_id: project.owner_id,
+        role: 'owner',
+        profiles: ownerProfile,
+      });
+    }
+    
+    // Add regular members
+    if (members) {
+      members.forEach(m => {
+        if (m.profiles) {
+          membersList.push({
+            user_id: m.user_id,
+            role: m.role,
+            profiles: m.profiles as Profile,
+          });
+        }
+      });
+    }
+    
+    return membersList;
+  }, [members, ownerProfile, project?.owner_id]);
 
   const handleDrop = async (taskId: string, columnId: string) => {
     try {
@@ -104,7 +135,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
         </div>
         
         <div className="flex items-center gap-2">
-          {members && members.length > 0 && (
+          {allMembers.length > 0 && (
             <Button 
               variant="ghost" 
               size="sm" 
@@ -112,7 +143,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
               onClick={() => setSettingsOpen(true)}
             >
               <Users className="h-4 w-4" />
-              {members.length + 1} members
+              {allMembers.length} members
             </Button>
           )}
           
@@ -168,12 +199,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
                   </form>
                 </DialogContent>
               </Dialog>
-              
-              <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Task
-              </Button>
             </>
+          )}
+          
+          {isMember && (
+            <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Task
+            </Button>
           )}
         </div>
       </div>
@@ -213,14 +246,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
         columns={columns}
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        members={members}
+        members={allMembers}
       />
 
       <TaskDetailSheet
         task={selectedTask}
         projectId={projectId}
         columns={columns}
-        members={members}
+        members={allMembers}
         onClose={() => setSelectedTask(null)}
       />
 

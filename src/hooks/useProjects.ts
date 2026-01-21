@@ -183,3 +183,88 @@ export const useRemoveProjectMember = () => {
     },
   });
 };
+
+export const useUpdateProject = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ projectId, name, description }: { projectId: string; name: string; description?: string }) => {
+      const { data, error } = await supabase
+        .from('projects')
+        .update({ name, description })
+        .eq('id', projectId)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['project', variables.projectId] });
+    },
+  });
+};
+
+export const useDeleteProject = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ projectId }: { projectId: string }) => {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
+  });
+};
+
+export const useProjectOwner = (ownerId: string | undefined) => {
+  return useQuery({
+    queryKey: ['profile', ownerId],
+    queryFn: async () => {
+      if (!ownerId) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', ownerId)
+        .single();
+      
+      if (error) throw error;
+      return data as Profile;
+    },
+    enabled: !!ownerId,
+  });
+};
+
+export const useUpdateProfile = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  
+  return useMutation({
+    mutationFn: async ({ fullName, role, avatarUrl }: { fullName?: string; role?: string; avatarUrl?: string }) => {
+      const updates: Record<string, string> = {};
+      if (fullName) updates.full_name = fullName;
+      if (role !== undefined) updates.role = role;
+      if (avatarUrl !== undefined) updates.avatar_url = avatarUrl;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('user_id', user!.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+    },
+  });
+};

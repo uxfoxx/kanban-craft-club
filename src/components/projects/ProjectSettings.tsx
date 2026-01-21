@@ -1,7 +1,10 @@
-import React from 'react';
-import { useProject, useProjectMembers, useUpdateMemberRole, useRemoveProjectMember } from '@/hooks/useProjects';
+import React, { useState } from 'react';
+import { useProject, useProjectMembers, useUpdateMemberRole, useRemoveProjectMember, useProjectOwner, useUpdateProject, useDeleteProject } from '@/hooks/useProjects';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -29,25 +32,35 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Trash2, Crown, Shield, User } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Loader2, Trash2, Crown, Shield, User, Pencil, Save, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProjectSettingsProps {
   projectId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onProjectDeleted?: () => void;
 }
 
 export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
   projectId,
   open,
   onOpenChange,
+  onProjectDeleted,
 }) => {
   const { user } = useAuth();
   const { data: project } = useProject(projectId);
   const { data: members, isLoading } = useProjectMembers(projectId);
+  const { data: ownerProfile } = useProjectOwner(project?.owner_id);
   const updateRole = useUpdateMemberRole();
   const removeMember = useRemoveProjectMember();
+  const updateProject = useUpdateProject();
+  const deleteProject = useDeleteProject();
+
+  const [isEditingProject, setIsEditingProject] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const [editedDescription, setEditedDescription] = useState('');
 
   const isOwner = project?.owner_id === user?.id;
 
@@ -67,6 +80,42 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
     } catch (error) {
       toast.error('Failed to remove member');
     }
+  };
+
+  const handleSaveProject = async () => {
+    if (!editedName.trim()) {
+      toast.error('Project name is required');
+      return;
+    }
+    
+    try {
+      await updateProject.mutateAsync({
+        projectId,
+        name: editedName.trim(),
+        description: editedDescription.trim() || undefined,
+      });
+      toast.success('Project updated');
+      setIsEditingProject(false);
+    } catch (error) {
+      toast.error('Failed to update project');
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    try {
+      await deleteProject.mutateAsync({ projectId });
+      toast.success('Project deleted');
+      onOpenChange(false);
+      onProjectDeleted?.();
+    } catch (error) {
+      toast.error('Failed to delete project');
+    }
+  };
+
+  const startEditing = () => {
+    setEditedName(project?.name || '');
+    setEditedDescription(project?.description || '');
+    setIsEditingProject(true);
   };
 
   const getInitials = (name: string) => {
@@ -89,26 +138,92 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-lg">
+      <SheetContent className="sm:max-w-lg overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Project Settings</SheetTitle>
           <SheetDescription>
-            Manage project members and their roles.
+            Manage project details and team members.
           </SheetDescription>
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
+          {/* Project Details */}
+          {isOwner && (
+            <>
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium">Project Details</h3>
+                  {!isEditingProject && (
+                    <Button variant="ghost" size="sm" onClick={startEditing}>
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                  )}
+                </div>
+                
+                {isEditingProject ? (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="project-name">Name</Label>
+                      <Input
+                        id="project-name"
+                        value={editedName}
+                        onChange={(e) => setEditedName(e.target.value)}
+                        placeholder="Project name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="project-description">Description</Label>
+                      <Textarea
+                        id="project-description"
+                        value={editedDescription}
+                        onChange={(e) => setEditedDescription(e.target.value)}
+                        placeholder="Project description (optional)"
+                        rows={3}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleSaveProject} disabled={updateProject.isPending}>
+                        {updateProject.isPending ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-1" />
+                        )}
+                        Save
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setIsEditingProject(false)}>
+                        <XCircle className="h-4 w-4 mr-1" />
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-lg bg-muted/50 space-y-1">
+                    <p className="font-medium">{project?.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {project?.description || 'No description'}
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              <Separator />
+            </>
+          )}
+
+          {/* Project Owner */}
           <div>
             <h3 className="text-sm font-medium mb-4">Project Owner</h3>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
               <Avatar className="h-10 w-10">
+                <AvatarImage src={ownerProfile?.avatar_url || undefined} />
                 <AvatarFallback>
-                  <Crown className="h-4 w-4 text-amber-500" />
+                  {ownerProfile ? getInitials(ownerProfile.full_name) : <Crown className="h-4 w-4 text-amber-500" />}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <p className="text-sm font-medium">Project Owner</p>
-                <p className="text-xs text-muted-foreground">Full access to all settings</p>
+                <p className="text-sm font-medium">{ownerProfile?.full_name || 'Loading...'}</p>
+                <p className="text-xs text-muted-foreground">{ownerProfile?.email || 'Full access to all settings'}</p>
               </div>
               <Badge variant="secondary" className="gap-1">
                 <Crown className="h-3 w-3 text-amber-500" />
@@ -228,6 +343,42 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
             <p className="text-xs text-muted-foreground text-center">
               Only the project owner can manage member roles.
             </p>
+          )}
+
+          {/* Delete Project */}
+          {isOwner && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="text-sm font-medium mb-4 text-destructive">Danger Zone</h3>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" className="w-full">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Project
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete this project?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete "{project?.name}" and all its tasks, columns, and member associations.
+                        This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDeleteProject}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete Project
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </>
           )}
         </div>
       </SheetContent>

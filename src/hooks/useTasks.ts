@@ -246,3 +246,60 @@ export const useToggleSubtask = () => {
     },
   });
 };
+
+export const useDeleteTask = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ taskId, projectId }: { taskId: string; projectId: string }) => {
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', taskId);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', variables.projectId] });
+    },
+  });
+};
+
+export const useDeleteSubtask = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ subtaskId, taskId }: { subtaskId: string; taskId: string }) => {
+      const { error } = await supabase
+        .from('subtasks')
+        .delete()
+        .eq('id', subtaskId);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['subtasks', variables.taskId] });
+    },
+  });
+};
+
+export const useUpdateSubtask = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ subtaskId, title, taskId }: { subtaskId: string; title: string; taskId: string }) => {
+      const { data, error } = await supabase
+        .from('subtasks')
+        .update({ title })
+        .eq('id', subtaskId)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['subtasks', variables.taskId] });
+    },
+  });
+};
