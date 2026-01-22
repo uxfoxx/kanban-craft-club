@@ -148,10 +148,47 @@ export const useUpdateTimeEntry = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ entryId, description, taskId }: { entryId: string; description: string; taskId: string }) => {
+    mutationFn: async ({ 
+      entryId, 
+      taskId,
+      startedAt,
+      endedAt,
+      description 
+    }: { 
+      entryId: string; 
+      taskId: string;
+      startedAt?: Date;
+      endedAt?: Date;
+      description?: string;
+    }) => {
+      const updates: Record<string, unknown> = {};
+      
+      if (description !== undefined) updates.description = description;
+      if (startedAt) updates.started_at = startedAt.toISOString();
+      if (endedAt) updates.ended_at = endedAt.toISOString();
+      
+      // Recalculate duration if times changed
+      if (startedAt || endedAt) {
+        // Fetch current entry to get missing time
+        const { data: current } = await supabase
+          .from('time_entries')
+          .select('started_at, ended_at')
+          .eq('id', entryId)
+          .single();
+        
+        if (current) {
+          const start = startedAt || new Date(current.started_at);
+          const end = endedAt || (current.ended_at ? new Date(current.ended_at) : null);
+          
+          if (end) {
+            updates.duration_seconds = Math.floor((end.getTime() - start.getTime()) / 1000);
+          }
+        }
+      }
+      
       const { data, error } = await supabase
         .from('time_entries')
-        .update({ description })
+        .update(updates)
         .eq('id', entryId)
         .select()
         .single();
@@ -161,6 +198,7 @@ export const useUpdateTimeEntry = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['time-entries', variables.taskId] });
+      queryClient.invalidateQueries({ queryKey: ['active-time-entry'] });
     },
   });
 };
@@ -195,4 +233,45 @@ export const formatDuration = (seconds: number): string => {
     return `${minutes}m ${secs}s`;
   }
   return `${secs}s`;
+};
+
+export const useCreateManualTimeEntry = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      taskId, 
+      startedAt, 
+      endedAt, 
+      description 
+    }: { 
+      taskId: string; 
+      startedAt: Date; 
+      endedAt: Date; 
+      description?: string;
+    }) => {
+      const durationSeconds = Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000);
+      
+      const { data, error } = await supabase
+        .from('time_entries')
+        .insert({
+          task_id: taskId,
+          user_id: user!.id,
+          started_at: startedAt.toISOString(),
+          ended_at: endedAt.toISOString(),
+          duration_seconds: durationSeconds,
+          description,
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['time-entries'] });
+      queryClient.invalidateQueries({ queryKey: ['active-time-entry'] });
+    },
+  });
 };
