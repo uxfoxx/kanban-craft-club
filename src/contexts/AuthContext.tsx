@@ -24,6 +24,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Set up auth state listener FIRST to prevent missing events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        // Only synchronous state updates here - NO await to prevent deadlock!
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Defer async operations with setTimeout to prevent deadlock
+        if (session?.user) {
+          setTimeout(() => {
+            fetchProfile(session.user.id);
+          }, 0);
+        } else {
+          setProfile(null);
+          setLoading(false);
+        }
+      }
+    );
+
+    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -34,31 +54,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
-        setLoading(false);
-      }
-    });
-
     return () => subscription.unsubscribe();
   }, []);
 
   const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-    
-    if (!error && data) {
-      setProfile(data as Profile);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      if (!error && data) {
+        setProfile(data as Profile);
+      } else {
+        console.error('Failed to fetch profile:', error);
+        setProfile(null);
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+      setProfile(null);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const signIn = async (email: string, password: string) => {
@@ -67,10 +85,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
+    const redirectUrl = `${window.location.origin}/`;
+    
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo: redirectUrl,
         data: {
           full_name: fullName,
         },

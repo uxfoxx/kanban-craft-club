@@ -61,7 +61,7 @@ export interface TaskAssignee {
   task_id: string;
   user_id: string;
   assigned_by: string | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface Subtask {
@@ -77,7 +77,7 @@ export interface SubtaskAssignee {
   subtask_id: string;
   user_id: string;
   assigned_by: string | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface TimeEntry {
