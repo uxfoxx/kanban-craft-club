@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
 
   // Fallbacks (public values) to avoid a blank screen if env injection is missing.
   const defaultSupabaseUrl = "https://nexahtdtctnhylfjatix.supabase.co";
-  const defaultSupabasePublishableKey =
+  const defaultSupabaseAnonKey =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5leGFodGR0Y3RuaHlsZmphdGl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2NzE3MzMsImV4cCI6MjA4NDI0NzczM30.5e8IqSZD06Z5f5ZAb2-iEHC9CHGXIDq0jVt5VcEJ4wc";
 
   const supabaseUrl =
@@ -22,18 +22,18 @@ export default defineConfig(({ mode }) => {
     process.env.SUPABASE_URL ||
     defaultSupabaseUrl;
 
-  const supabasePublishableKey =
-    env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-    env.SUPABASE_PUBLISHABLE_KEY ||
-    process.env.SUPABASE_PUBLISHABLE_KEY ||
-    defaultSupabasePublishableKey;
+  const supabaseAnonKey =
+    env.VITE_SUPABASE_ANON_KEY ||
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    env.SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    defaultSupabaseAnonKey;
 
   return {
     // Force-inject the exact env names used by the auto-generated client.
     define: {
       "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(supabaseUrl),
-      "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(supabasePublishableKey),
+      "import.meta.env.VITE_SUPABASE_ANON_KEY": JSON.stringify(supabaseAnonKey),
     },
     server: {
       host: "::",
