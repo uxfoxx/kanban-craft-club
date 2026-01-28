@@ -230,3 +230,43 @@ export const useRemoveOrganizationMember = () => {
     },
   });
 };
+
+export const useOrganizationMembersForProject = (projectId: string | undefined) => {
+  return useQuery({
+    queryKey: ['organization-members-for-project', projectId],
+    queryFn: async () => {
+      if (!projectId) return [];
+
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('organization_id')
+        .eq('id', projectId)
+        .maybeSingle();
+
+      if (projectError) throw projectError;
+      if (!project?.organization_id) return [];
+
+      const { data: members, error: membersError } = await supabase
+        .from('organization_members')
+        .select('*')
+        .eq('organization_id', project.organization_id);
+
+      if (membersError) throw membersError;
+      if (!members || members.length === 0) return [];
+
+      const userIds = members.map(m => m.user_id);
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('user_id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      return members.map(member => ({
+        ...member,
+        profiles: profiles?.find(p => p.user_id === member.user_id)
+      })) as OrganizationMemberWithProfile[];
+    },
+    enabled: !!projectId,
+  });
+};

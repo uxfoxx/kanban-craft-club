@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Task, Subtask, Profile, KanbanColumn, TimeEntry } from '@/types/database';
-import { useSubtasks, useCreateSubtask, useToggleSubtask, useUpdateTask, useDeleteTask, useDeleteSubtask, useUpdateSubtask } from '@/hooks/useTasks';
+import { Task, KanbanColumn, TimeEntry } from '@/types/database';
+import { useSubtasks, useCreateSubtask, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
 import { useTimeEntries, formatDuration, useDeleteTimeEntry } from '@/hooks/useTimeTracking';
 import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee } from '@/hooks/useAssignees';
+import { useOrganizationMembersForProject } from '@/hooks/useOrganizations';
 import { TimeEntryDialog } from '@/components/time/TimeEntryDialog';
+import { SubtaskRow } from './SubtaskRow';
 import {
   Sheet,
   SheetContent,
@@ -46,7 +48,6 @@ interface TaskDetailSheetProps {
   task: Task | null;
   projectId: string;
   columns?: KanbanColumn[];
-  members?: { user_id: string; role: string; profiles: Profile }[];
   onClose: () => void;
 }
 
@@ -54,29 +55,24 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   task,
   projectId,
   columns,
-  members,
   onClose,
 }) => {
   const { data: subtasks } = useSubtasks(task?.id);
   const { data: timeEntries } = useTimeEntries(task?.id);
   const { data: assignees } = useTaskAssignees(task?.id);
+  const { data: organizationMembers = [] } = useOrganizationMembersForProject(projectId);
   const createSubtask = useCreateSubtask();
-  const toggleSubtask = useToggleSubtask();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
-  const deleteSubtask = useDeleteSubtask();
-  const updateSubtask = useUpdateSubtask();
   const deleteTimeEntry = useDeleteTimeEntry();
   const addAssignee = useAddTaskAssignee();
   const removeAssignee = useRemoveTaskAssignee();
-  
+
   const [newSubtask, setNewSubtask] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editedDescription, setEditedDescription] = useState('');
-  const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
-  const [editedSubtaskTitle, setEditedSubtaskTitle] = useState('');
   
   // Time entry dialog state
   const [showTimeEntryDialog, setShowTimeEntryDialog] = useState(false);
@@ -86,25 +82,13 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const handleAddSubtask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!task || !newSubtask.trim()) return;
-    
+
     try {
       await createSubtask.mutateAsync({ taskId: task.id, title: newSubtask.trim() });
       setNewSubtask('');
       toast.success('Subtask added');
     } catch (error) {
       toast.error('Failed to add subtask');
-    }
-  };
-
-  const handleToggleSubtask = async (subtask: Subtask) => {
-    try {
-      await toggleSubtask.mutateAsync({
-        subtaskId: subtask.id,
-        completed: !subtask.completed,
-        taskId: subtask.task_id,
-      });
-    } catch (error) {
-      toast.error('Failed to update subtask');
     }
   };
 
@@ -187,40 +171,13 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
 
   const handleDeleteTask = async () => {
     if (!task) return;
-    
+
     try {
       await deleteTask.mutateAsync({ taskId: task.id, projectId });
       toast.success('Task deleted');
       onClose();
     } catch (error) {
       toast.error('Failed to delete task');
-    }
-  };
-
-  const handleDeleteSubtask = async (subtaskId: string) => {
-    if (!task) return;
-    
-    try {
-      await deleteSubtask.mutateAsync({ subtaskId, taskId: task.id });
-      toast.success('Subtask deleted');
-    } catch (error) {
-      toast.error('Failed to delete subtask');
-    }
-  };
-
-  const handleSaveSubtaskTitle = async (subtaskId: string) => {
-    if (!task || !editedSubtaskTitle.trim()) return;
-    
-    try {
-      await updateSubtask.mutateAsync({
-        subtaskId,
-        title: editedSubtaskTitle.trim(),
-        taskId: task.id,
-      });
-      setEditingSubtaskId(null);
-      toast.success('Subtask updated');
-    } catch (error) {
-      toast.error('Failed to update subtask');
     }
   };
 
@@ -269,8 +226,8 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   // Get assignee user ids
   const assigneeUserIds = assignees?.map(a => a.user_id) || [];
 
-  // Get unassigned members
-  const unassignedMembers = members?.filter(m => !assigneeUserIds.includes(m.user_id)) || [];
+  // Get unassigned members from organization
+  const unassignedMembers = organizationMembers.filter(m => !assigneeUserIds.includes(m.user_id));
 
   return (
     <Sheet open={!!task} onOpenChange={() => onClose()}>
@@ -458,7 +415,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                       <SelectContent>
                         {unassignedMembers.map((member) => (
                           <SelectItem key={member.user_id} value={member.user_id}>
-                            {member.profiles.full_name}
+                            {member.profiles?.full_name || member.profiles?.email || 'Unknown'}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -564,53 +521,13 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                 
                 <div className="space-y-2">
                   {subtasks?.map((subtask) => (
-                    <div
+                    <SubtaskRow
                       key={subtask.id}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors group"
-                    >
-                      <Checkbox
-                        checked={subtask.completed}
-                        onCheckedChange={() => handleToggleSubtask(subtask)}
-                      />
-                      {editingSubtaskId === subtask.id ? (
-                        <div className="flex-1 flex items-center gap-2">
-                          <Input
-                            value={editedSubtaskTitle}
-                            onChange={(e) => setEditedSubtaskTitle(e.target.value)}
-                            className="h-7 text-sm"
-                            autoFocus
-                          />
-                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleSaveSubtaskTitle(subtask.id)}>
-                            <Check className="h-3 w-3" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingSubtaskId(null)}>
-                            <XCircle className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <>
-                          <span
-                            className={cn(
-                              'text-sm flex-1 cursor-pointer',
-                              subtask.completed && 'line-through text-muted-foreground'
-                            )}
-                            onClick={() => { setEditingSubtaskId(subtask.id); setEditedSubtaskTitle(subtask.title); }}
-                          >
-                            {subtask.title}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                            onClick={() => handleDeleteSubtask(subtask.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
+                      subtask={subtask}
+                      organizationMembers={organizationMembers}
+                    />
                   ))}
-                  
+
                   {(!subtasks || subtasks.length === 0) && (
                     <p className="text-sm text-muted-foreground text-center py-4">
                       No subtasks yet

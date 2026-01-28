@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tantml:react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { SubtaskTimeEntry } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';

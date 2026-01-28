@@ -253,7 +253,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
         task={selectedTask}
         projectId={projectId}
         columns={columns}
-        members={allMembers}
         onClose={() => setSelectedTask(null)}
       />
 
