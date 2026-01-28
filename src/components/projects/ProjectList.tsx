@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useProjects, useCreateProject } from '@/hooks/useProjects';
+import { ProjectCard } from './ProjectCard';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,25 +16,29 @@ import {
 } from '@/components/ui/dialog';
 import { Plus, FolderOpen, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
 
 interface ProjectListProps {
+  organizationId?: string;
   onSelectProject: (projectId: string) => void;
 }
 
-export const ProjectList: React.FC<ProjectListProps> = ({ onSelectProject }) => {
-  const { data: projects, isLoading } = useProjects();
+export const ProjectList: React.FC<ProjectListProps> = ({ organizationId, onSelectProject }) => {
+  const { data: projects, isLoading } = useProjects(organizationId);
   const createProject = useCreateProject();
-  
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
-      await createProject.mutateAsync({ name, description });
+      await createProject.mutateAsync({
+        name,
+        description,
+        organizationId: organizationId
+      });
       toast.success('Project created!');
       setDialogOpen(false);
       setName('');
@@ -58,7 +63,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({ onSelectProject }) => 
           <h1 className="text-3xl font-bold">Projects</h1>
           <p className="text-muted-foreground">Manage your projects and tasks</p>
         </div>
-        
+
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -116,26 +121,11 @@ export const ProjectList: React.FC<ProjectListProps> = ({ onSelectProject }) => 
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {projects?.map((project) => (
-            <Card
+            <ProjectCard
               key={project.id}
-              className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
-              onClick={() => onSelectProject(project.id)}
-            >
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FolderOpen className="h-5 w-5 text-primary" />
-                  {project.name}
-                </CardTitle>
-                <CardDescription className="line-clamp-2">
-                  {project.description || 'No description'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Created {format(new Date(project.created_at), 'MMM d, yyyy')}
-                </p>
-              </CardContent>
-            </Card>
+              project={project}
+              onSelect={onSelectProject}
+            />
           ))}
         </div>
       )}

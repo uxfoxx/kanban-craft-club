@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth, AuthProvider } from '@/contexts/AuthContext';
+import { OrganizationProvider, useOrganization } from '@/contexts/OrganizationContext';
 import { AuthPage } from '@/components/auth/AuthPage';
 import { Header } from '@/components/layout/Header';
 import { ProjectList } from '@/components/projects/ProjectList';
@@ -8,9 +9,10 @@ import { Loader2 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { user, loading } = useAuth();
+  const { currentOrganization, isLoading: orgLoading } = useOrganization();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
-  if (loading) {
+  if (loading || orgLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -32,7 +34,10 @@ const Dashboard: React.FC = () => {
             onBack={() => setSelectedProjectId(null)}
           />
         ) : (
-          <ProjectList onSelectProject={setSelectedProjectId} />
+          <ProjectList
+            organizationId={currentOrganization?.id}
+            onSelectProject={setSelectedProjectId}
+          />
         )}
       </main>
     </div>
@@ -42,7 +47,9 @@ const Dashboard: React.FC = () => {
 const Index: React.FC = () => {
   return (
     <AuthProvider>
-      <Dashboard />
+      <OrganizationProvider>
+        <Dashboard />
+      </OrganizationProvider>
     </AuthProvider>
   );
 };

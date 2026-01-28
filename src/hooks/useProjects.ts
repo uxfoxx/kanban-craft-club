@@ -3,17 +3,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { Project, Profile } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
 
-export const useProjects = () => {
+export const useProjects = (organizationId?: string | null) => {
   const { user } = useAuth();
-  
+
   return useQuery({
-    queryKey: ['projects', user?.id],
+    queryKey: ['projects', user?.id, organizationId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('projects')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
+      if (organizationId) {
+        query = query.eq('organization_id', organizationId);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
       return data as Project[];
     },
@@ -77,19 +83,20 @@ export const useProjectMembers = (projectId: string | undefined) => {
 export const useCreateProject = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  
+
   return useMutation({
-    mutationFn: async ({ name, description }: { name: string; description?: string }) => {
+    mutationFn: async ({ name, description, organizationId }: { name: string; description?: string; organizationId?: string }) => {
       const { data, error } = await supabase
         .from('projects')
         .insert({
           name,
           description,
           owner_id: user!.id,
+          organization_id: organizationId || null,
         })
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },

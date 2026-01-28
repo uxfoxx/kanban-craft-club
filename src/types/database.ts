@@ -1,4 +1,5 @@
 export type MemberRole = 'admin' | 'member';
+export type OrganizationRole = 'owner' | 'admin' | 'member';
 export type TaskStatus = 'todo' | 'in_progress' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high';
 export type NotificationType = 'project_invite' | 'assignment' | 'deadline' | 'deadline_warning';
@@ -14,11 +15,29 @@ export interface Profile {
   updated_at: string;
 }
 
+export interface Organization {
+  id: string;
+  name: string;
+  description: string | null;
+  owner_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrganizationMember {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  role: OrganizationRole;
+  created_at: string;
+}
+
 export interface Project {
   id: string;
   name: string;
   description: string | null;
   owner_id: string;
+  organization_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -83,6 +102,17 @@ export interface SubtaskAssignee {
 export interface TimeEntry {
   id: string;
   task_id: string;
+  user_id: string;
+  started_at: string;
+  ended_at: string | null;
+  duration_seconds: number | null;
+  description: string | null;
+  created_at: string;
+}
+
+export interface SubtaskTimeEntry {
+  id: string;
+  subtask_id: string;
   user_id: string;
   started_at: string;
   ended_at: string | null;

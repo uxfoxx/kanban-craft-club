@@ -14,6 +14,7 @@ import { LayoutDashboard, LogOut, Settings } from 'lucide-react';
 import { ActiveTimer } from '@/components/time/ActiveTimer';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { ProfileSettings } from '@/components/profile/ProfileSettings';
+import { OrganizationSwitcher } from '@/components/organizations/OrganizationSwitcher';
 
 export const Header: React.FC = () => {
   const { profile, signOut } = useAuth();
@@ -32,11 +33,12 @@ export const Header: React.FC = () => {
     <>
       <header className="border-b bg-card">
         <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <LayoutDashboard className="h-6 w-6 text-primary" />
               <span className="text-xl font-bold">TaskFlow</span>
             </div>
+            <OrganizationSwitcher />
           </div>
 
           <div className="flex items-center gap-4">
