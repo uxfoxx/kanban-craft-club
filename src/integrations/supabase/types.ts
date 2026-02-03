@@ -560,6 +560,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      is_organization_admin: {
+        Args: { check_user_id: string; org_id: string }
+        Returns: boolean
+      }
+      is_organization_member: {
+        Args: { check_user_id: string; org_id: string }
+        Returns: boolean
+      }
+      is_organization_owner: {
+        Args: { check_user_id: string; org_id: string }
+        Returns: boolean
+      }
       is_project_member: {
         Args: { p_project_id: string; p_user_id: string }
         Returns: boolean
