@@ -52,72 +52,6 @@ export type Database = {
           },
         ]
       }
-      organization_members: {
-        Row: {
-          created_at: string
-          id: string
-          organization_id: string
-          role: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          organization_id: string
-          role?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          organization_id?: string
-          role?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "organization_members_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "organization_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      organizations: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          name: string
-          owner_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          name: string
-          owner_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          name?: string
-          owner_id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       notification_preferences: {
         Row: {
           assignment_alerts: boolean | null
@@ -199,6 +133,65 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      organization_members: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -349,38 +342,6 @@ export type Database = {
           },
         ]
       }
-      subtasks: {
-        Row: {
-          completed: boolean
-          created_at: string
-          id: string
-          task_id: string
-          title: string
-        }
-        Insert: {
-          completed?: boolean
-          created_at?: string
-          id?: string
-          task_id: string
-          title: string
-        }
-        Update: {
-          completed?: boolean
-          created_at?: string
-          id?: string
-          task_id?: string
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "subtasks_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       subtask_time_entries: {
         Row: {
           created_at: string
@@ -418,6 +379,38 @@ export type Database = {
             columns: ["subtask_id"]
             isOneToOne: false
             referencedRelation: "subtasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subtasks: {
+        Row: {
+          completed: boolean
+          created_at: string
+          id: string
+          task_id: string
+          title: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          task_id: string
+          title: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          task_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subtasks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]
@@ -567,18 +560,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      is_organization_admin: {
-        Args: { p_organization_id: string; p_user_id: string }
-        Returns: boolean
-      }
-      is_organization_member: {
-        Args: { p_organization_id: string; p_user_id: string }
-        Returns: boolean
-      }
-      is_organization_owner: {
-        Args: { p_organization_id: string; p_user_id: string }
-        Returns: boolean
-      }
       is_project_member: {
         Args: { p_project_id: string; p_user_id: string }
         Returns: boolean
