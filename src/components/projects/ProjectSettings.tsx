@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useProject, useProjectMembers, useUpdateMemberRole, useRemoveProjectMember, useProjectOwner, useUpdateProject, useDeleteProject } from '@/hooks/useProjects';
+import { useProject, useProjectOwner, useUpdateProject, useDeleteProject } from '@/hooks/useProjects';
+import { useOrganizationMembers } from '@/hooks/useOrganizations';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,13 +16,6 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -33,7 +27,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Trash2, Crown, Shield, User, Pencil, Save, XCircle } from 'lucide-react';
+import { Loader2, Trash2, Crown, Shield, User, Pencil, Save, XCircle, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProjectSettingsProps {
@@ -51,10 +45,8 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
 }) => {
   const { user } = useAuth();
   const { data: project } = useProject(projectId);
-  const { data: members, isLoading } = useProjectMembers(projectId);
+  const { data: orgMembers, isLoading } = useOrganizationMembers(project?.organization_id || undefined);
   const { data: ownerProfile } = useProjectOwner(project?.owner_id);
-  const updateRole = useUpdateMemberRole();
-  const removeMember = useRemoveProjectMember();
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
 
@@ -63,24 +55,6 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
   const [editedDescription, setEditedDescription] = useState('');
 
   const isOwner = project?.owner_id === user?.id;
-
-  const handleRoleChange = async (memberId: string, role: 'admin' | 'member') => {
-    try {
-      await updateRole.mutateAsync({ projectId, memberId, role });
-      toast.success('Role updated');
-    } catch (error) {
-      toast.error('Failed to update role');
-    }
-  };
-
-  const handleRemoveMember = async (memberId: string, memberName: string) => {
-    try {
-      await removeMember.mutateAsync({ projectId, memberId });
-      toast.success(`${memberName} has been removed from the project`);
-    } catch (error) {
-      toast.error('Failed to remove member');
-    }
-  };
 
   const handleSaveProject = async () => {
     if (!editedName.trim()) {
@@ -142,7 +116,7 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
         <SheetHeader>
           <SheetTitle>Project Settings</SheetTitle>
           <SheetDescription>
-            Manage project details and team members.
+            Manage project details. Team members are managed at the organization level.
           </SheetDescription>
         </SheetHeader>
 
@@ -232,16 +206,31 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
             </div>
           </div>
 
+          {/* Organization Members */}
           <div>
-            <h3 className="text-sm font-medium mb-4">Team Members</h3>
-            
-            {isLoading ? (
+            <div className="flex items-center gap-2 mb-4">
+              <h3 className="text-sm font-medium">Team Members</h3>
+              {project?.organization_id && (
+                <Badge variant="outline" className="gap-1 text-xs">
+                  <Building2 className="h-3 w-3" />
+                  From Organization
+                </Badge>
+              )}
+            </div>
+
+            {!project?.organization_id ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Building2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No organization assigned</p>
+                <p className="text-xs">Create this project within an organization to add team members</p>
+              </div>
+            ) : isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
-            ) : members && members.length > 0 ? (
+            ) : orgMembers && orgMembers.length > 0 ? (
               <div className="space-y-2">
-                {members.map((member) => {
+                {orgMembers.map((member) => {
                   const profile = member.profiles;
                   const memberName = profile?.full_name || profile?.email || 'Unknown';
                   
@@ -264,68 +253,10 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
                         </p>
                       </div>
 
-                      {isOwner ? (
-                        <>
-                          <Select
-                            value={member.role}
-                            onValueChange={(value) => handleRoleChange(member.id, value as 'admin' | 'member')}
-                            disabled={updateRole.isPending}
-                          >
-                            <SelectTrigger className="w-28">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="admin">
-                                <span className="flex items-center gap-2">
-                                  <Shield className="h-3 w-3" />
-                                  Admin
-                                </span>
-                              </SelectItem>
-                              <SelectItem value="member">
-                                <span className="flex items-center gap-2">
-                                  <User className="h-3 w-3" />
-                                  Member
-                                </span>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Remove member?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to remove {memberName} from this project?
-                                  They will lose access to all project tasks and data.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleRemoveMember(member.id, memberName)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Remove
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </>
-                      ) : (
-                        <Badge variant="outline" className="gap-1">
-                          {getRoleIcon(member.role)}
-                          {member.role}
-                        </Badge>
-                      )}
+                      <Badge variant="outline" className="gap-1">
+                        {getRoleIcon(member.role)}
+                        {member.role}
+                      </Badge>
                     </div>
                   );
                 })}
@@ -334,16 +265,16 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
               <div className="text-center py-8 text-muted-foreground">
                 <User className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No team members yet</p>
-                <p className="text-xs">Add members using the "Add Member" button</p>
+                <p className="text-xs">Add members via Organization Settings</p>
               </div>
             )}
-          </div>
 
-          {!isOwner && (
-            <p className="text-xs text-muted-foreground text-center">
-              Only the project owner can manage member roles.
-            </p>
-          )}
+            {project?.organization_id && (
+              <p className="text-xs text-muted-foreground text-center mt-4">
+                Manage team members in Organization Settings
+              </p>
+            )}
+          </div>
 
           {/* Delete Project */}
           {isOwner && (
@@ -362,7 +293,7 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete this project?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will permanently delete "{project?.name}" and all its tasks, columns, and member associations.
+                        This will permanently delete "{project?.name}" and all its tasks, columns, and data.
                         This action cannot be undone.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
