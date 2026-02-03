@@ -66,7 +66,11 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
 
   const handleToggle = async () => {
     try {
-      await toggleSubtask.mutateAsync(subtask);
+      await toggleSubtask.mutateAsync({
+        subtaskId: subtask.id,
+        completed: !subtask.completed,
+        taskId: subtask.task_id
+      });
     } catch (error) {
       toast.error('Failed to update subtask');
     }
@@ -80,7 +84,8 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
     try {
       await updateSubtask.mutateAsync({
         subtaskId: subtask.id,
-        updates: { title: editedTitle },
+        title: editedTitle,
+        taskId: subtask.task_id
       });
       setIsEditing(false);
     } catch (error) {
@@ -90,7 +95,10 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
 
   const handleDelete = async () => {
     try {
-      await deleteSubtask.mutateAsync(subtask.id);
+      await deleteSubtask.mutateAsync({
+        subtaskId: subtask.id,
+        taskId: subtask.task_id
+      });
       toast.success('Subtask deleted');
     } catch (error) {
       toast.error('Failed to delete subtask');
@@ -125,9 +133,12 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
     }
   };
 
-  const handleRemoveAssignee = async (assigneeId: string) => {
+  const handleRemoveAssignee = async (userId: string) => {
     try {
-      await removeAssignee.mutateAsync(assigneeId);
+      await removeAssignee.mutateAsync({
+        subtaskId: subtask.id,
+        userId
+      });
       toast.success('Assignee removed');
     } catch (error) {
       toast.error('Failed to remove assignee');
@@ -273,13 +284,13 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
                       </Avatar>
                       <span className="text-sm">{assignee.profiles?.full_name || assignee.profiles?.email}</span>
                     </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6"
-                      onClick={() => handleRemoveAssignee(assignee.id)}
-                    >
-                      <X className="h-3 w-3" />
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-6 w-6"
+                                      onClick={() => handleRemoveAssignee(assignee.user_id)}
+                                    >
+                                      <X className="h-3 w-3" />
                     </Button>
                   </div>
                 ))}
