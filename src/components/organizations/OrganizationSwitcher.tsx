@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useCreateOrganization } from '@/hooks/useOrganizations';
+import { OrganizationSettings } from './OrganizationSettings';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -20,7 +21,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Building2, Check, ChevronDown, Plus, Loader2 } from 'lucide-react';
+import { Building2, Check, ChevronDown, Plus, Loader2, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const OrganizationSwitcher: React.FC = () => {
@@ -28,6 +29,7 @@ export const OrganizationSwitcher: React.FC = () => {
   const createOrganization = useCreateOrganization();
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
 
@@ -77,6 +79,15 @@ export const OrganizationSwitcher: React.FC = () => {
               </div>
             </DropdownMenuItem>
           ))}
+          {currentOrganization && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setSettingsOpen(true)} className="cursor-pointer">
+                <Settings className="h-4 w-4 mr-2" />
+                Manage Organization
+              </DropdownMenuItem>
+            </>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setDialogOpen(true)} className="cursor-pointer">
             <Plus className="h-4 w-4 mr-2" />
@@ -121,6 +132,14 @@ export const OrganizationSwitcher: React.FC = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      {currentOrganization && (
+        <OrganizationSettings
+          organizationId={currentOrganization.id}
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+        />
+      )}
     </>
   );
 };
