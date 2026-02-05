@@ -117,8 +117,6 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       </header>
-      
-      <ProfileSettings open={profileSettingsOpen} onOpenChange={setProfileSettingsOpen} />
     </>
   );
 };
