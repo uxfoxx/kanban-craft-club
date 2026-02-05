@@ -1,229 +1,326 @@
 
+## Plan: Personal View, Time Tracking Dashboard, and Organization Team Analytics
 
-## Fix Plan: Resolve Missing Database Tables and Build Errors
-
-### Problem Summary
-
-The application isn't working because:
-1. The `organizations` and `organization_members` tables don't exist in the database, even though the code expects them
-2. The `projects` table is missing the `organization_id` column
-3. There are TypeScript build errors in SubtaskRow.tsx due to mismatched function signatures
+This plan introduces a comprehensive personal workspace and time tracking system with organization-level team analytics.
 
 ---
 
-### Phase 1: Create Missing Database Tables
+### Overview of New Features
 
-**1.1 Create Organizations Table**
+1. **Personal Dashboard** - A "My Tasks" view showing tasks due today, personal task management, and daily time summary
+2. **Personal Time Tracking Page** - Dedicated page for managing all time entries across all projects
+3. **Organization Team Analytics** - View team members' work hours and click to see individual work history
+4. **Navigation Improvements** - Tab-based navigation to switch between Personal/Projects/Team views
+5. **Mobile-First Responsive Design** - All new pages optimized for mobile devices
+
+---
+
+### Phase 1: Navigation Restructure
+
+**1.1 Update Header with Tab Navigation**
+
+Modify `src/components/layout/Header.tsx` to include navigation tabs:
+
+```text
++--------------------------------------------------+
+| TaskFlow  [Org Switcher]  [My Tasks] [Projects] [Team]  [Timer] [Bell] [Avatar] |
++--------------------------------------------------+
+```
+
+On mobile, tabs collapse into a hamburger menu or bottom navigation bar.
+
+**1.2 Update Index Page with View State**
+
+Modify `src/pages/Index.tsx` to manage current view:
+- `personal` - My Tasks / Personal Dashboard
+- `projects` - Current project list view
+- `team` - Organization team view
+- `timetracking` - Personal time tracking page
+
+---
+
+### Phase 2: Personal Dashboard ("My Tasks")
+
+**2.1 Create `src/components/personal/PersonalDashboard.tsx`**
+
+Dashboard layout:
+
+```text
++------------------------------------------+
+|  Welcome, [Name]!                        |
+|  Today: Wednesday, Feb 5, 2026           |
++------------------------------------------+
+|  Today's Time Worked                     |
+|  [====== 2h 34m ======]                  |
+|  Active Timer: Task Name (00:12:34)      |
++------------------------------------------+
+|  Tasks Due Today (3)                     |
+|  [ ] Task 1 - Project A      [Start]    |
+|  [ ] Task 2 - Project B      [Start]    |
+|  [x] Task 3 - Project A      1h 20m     |
++------------------------------------------+
+|  Quick Add Personal Task                 |
+|  [Enter task...        ] [Add]           |
++------------------------------------------+
+|  [View Time Tracking -->]                |
++------------------------------------------+
+```
+
+**2.2 Create `src/hooks/usePersonalTasks.ts`**
+
+New hooks for personal task queries:
+- `useMyTasksToday()` - Tasks assigned to user due today (across all orgs/projects)
+- `useMyTodayTimeTotal()` - Sum of all time entries for today
+- `useMyRecentTimeEntries()` - Recent time entries across all tasks
+
+**2.3 Add Quick Task Feature**
+
+Allow users to create tasks for themselves directly from personal dashboard. These get assigned to a "Personal" project or the user can select a project.
+
+---
+
+### Phase 3: Personal Time Tracking Page
+
+**3.1 Create `src/components/personal/TimeTrackingPage.tsx`**
+
+Full-page time tracking management:
+
+```text
++------------------------------------------+
+|  Time Tracking                           |
+|  [Today] [This Week] [This Month] [All]  |
++------------------------------------------+
+|  Total: 8h 45m  |  [+ Add Entry]         |
++------------------------------------------+
+|  Today - Feb 5                           |
+|  +------------------------------------+  |
+|  | 9:00 - 11:30  | Task A | Proj 1   |  |
+|  | Description: Fixed bug...   [Edit] |  |
+|  +------------------------------------+  |
+|  | 1:00 - 3:45   | Task B | Proj 2   |  |
+|  | No description          [Edit]    |  |
+|  +------------------------------------+  |
++------------------------------------------+
+|  Yesterday - Feb 4                       |
+|  +------------------------------------+  |
+|  | ...                                |  |
+|  +------------------------------------+  |
++------------------------------------------+
+```
+
+**3.2 Create `src/hooks/useAllTimeEntries.ts`**
+
+New hooks:
+- `useAllMyTimeEntries(dateRange)` - Fetch all time entries for current user with task/project info
+- Include both `time_entries` (task level) and `subtask_time_entries` (subtask level)
+
+**3.3 Time Entry Grouping**
+
+Group entries by date and show:
+- Task name with link to task
+- Project name
+- Duration
+- Description
+- Edit/Delete actions
+
+---
+
+### Phase 4: Organization Team Analytics
+
+**4.1 Create `src/components/organizations/TeamAnalyticsPage.tsx`**
+
+Team overview showing all members' time:
+
+```text
++------------------------------------------+
+|  Team - [Organization Name]              |
++------------------------------------------+
+|  Today  |  This Week  |  This Month     |
++------------------------------------------+
+|  Member             | Today | This Week  |
+|  +-----------------------------------------+
+|  | [Avatar] John Doe    | 3h 20m | 28h   |
+|  | [Click to view details]              |
+|  +-----------------------------------------+
+|  | [Avatar] Jane Smith  | 2h 45m | 24h   |
+|  +-----------------------------------------+
+|  | [Avatar] Bob Jones   | 4h 10m | 32h   |
+|  +-----------------------------------------+
++------------------------------------------+
+```
+
+**4.2 Create `src/hooks/useTeamTimeTracking.ts`**
+
+New hooks for organization-level time queries:
+- `useOrganizationTimeEntries(orgId, dateRange)` - All time entries for org members
+- `useTeamMemberTimeSummary(orgId)` - Aggregated time per member
+
+This requires updating RLS policies to allow organization admins/owners to view time entries of members.
+
+**4.3 Database Migration: Add RLS for Team Time Viewing**
+
+New policy on `time_entries` table:
 ```sql
-CREATE TABLE public.organizations (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name text NOT NULL,
-  description text,
-  owner_id uuid NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+CREATE POLICY "Organization admins can view member time entries"
+ON time_entries FOR SELECT
+USING (
+  EXISTS (
+    SELECT 1 FROM tasks t
+    JOIN projects p ON p.id = t.project_id
+    WHERE t.id = time_entries.task_id
+    AND p.organization_id IS NOT NULL
+    AND (
+      is_organization_owner(p.organization_id, auth.uid())
+      OR is_organization_admin(p.organization_id, auth.uid())
+    )
+  )
 );
-
-ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 ```
 
-**1.2 Create Organization Members Table**
-```sql
-CREATE TABLE public.organization_members (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  organization_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
-  user_id uuid NOT NULL,
-  role text NOT NULL DEFAULT 'member' CHECK (role IN ('admin', 'member')),
-  created_at timestamptz NOT NULL DEFAULT now()
-);
+**4.4 Member Detail View: `src/components/organizations/MemberTimeHistory.tsx`**
 
-ALTER TABLE public.organization_members ENABLE ROW LEVEL SECURITY;
-```
+Clicking on a team member opens a sheet showing their work history:
 
-**1.3 Add organization_id to Projects Table**
-```sql
-ALTER TABLE public.projects 
-ADD COLUMN organization_id uuid REFERENCES public.organizations(id) ON DELETE SET NULL;
-```
-
-**1.4 Create RLS Policies for Organizations**
-- Owner can do all CRUD operations
-- Members can view the organization
-- Authenticated users can create organizations
-- Auto-add owner as a member when organization is created (via trigger)
-
-**1.5 Create RLS Policies for Organization Members**
-- Organization owners/admins can manage members
-- Members can view other members
-
----
-
-### Phase 2: Fix SubtaskRow.tsx Build Errors
-
-The hook function signatures have changed but SubtaskRow.tsx uses old calling patterns:
-
-| Line | Current Call | Expected Signature |
-|------|-------------|-------------------|
-| 69 | `toggleSubtask.mutateAsync(subtask)` | `{ subtaskId, completed, taskId }` |
-| 81-84 | `updateSubtask.mutateAsync({ subtaskId, updates: {...} })` | `{ subtaskId, title, taskId }` |
-| 93 | `deleteSubtask.mutateAsync(subtask.id)` | `{ subtaskId, taskId }` |
-| 130 | `removeAssignee.mutateAsync(assigneeId)` | `{ subtaskId, userId }` |
-
-**Fix each call:**
-
-```typescript
-// Line 69: Fix toggleSubtask call
-await toggleSubtask.mutateAsync({
-  subtaskId: subtask.id,
-  completed: !subtask.completed,
-  taskId: subtask.task_id
-});
-
-// Line 81-84: Fix updateSubtask call
-await updateSubtask.mutateAsync({
-  subtaskId: subtask.id,
-  title: editedTitle,
-  taskId: subtask.task_id
-});
-
-// Line 93: Fix deleteSubtask call
-await deleteSubtask.mutateAsync({
-  subtaskId: subtask.id,
-  taskId: subtask.task_id
-});
-
-// Line 130: Fix removeSubtaskAssignee call
-// Need to get the user_id from the assignee object
-await removeAssignee.mutateAsync({
-  subtaskId: subtask.id,
-  userId: /* assignee's user_id */
-});
+```text
++------------------------------------------+
+|  John Doe's Work History                 |
+|  [This Week] [This Month] [All Time]     |
++------------------------------------------+
+|  Summary                                 |
+|  Total This Week: 28h 15m                |
+|  Most Active Project: Project Alpha      |
++------------------------------------------+
+|  Recent Entries                          |
+|  +------------------------------------+  |
+|  | Feb 5, 9:00 AM - 12:30 PM         |  |
+|  | Task: Implement feature X          |  |
+|  | Project: Project Alpha             |  |
+|  | Duration: 3h 30m                   |  |
+|  +------------------------------------+  |
+|  | Feb 4, 2:00 PM - 5:45 PM          |  |
+|  | Task: Code review                  |  |
+|  | Project: Project Beta              |  |
+|  | Duration: 3h 45m                   |  |
+|  +------------------------------------+  |
++------------------------------------------+
 ```
 
 ---
 
-### Phase 3: Create Organization Trigger
+### Phase 5: Mobile Responsiveness
 
-Create a trigger to automatically add the organization creator as an owner/admin member:
+**5.1 Responsive Navigation**
 
-```sql
-CREATE OR REPLACE FUNCTION handle_new_organization()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.organization_members (organization_id, user_id, role)
-  VALUES (NEW.id, NEW.owner_id, 'admin');
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+- **Desktop**: Horizontal tabs in header
+- **Mobile**: Bottom navigation bar with icons
 
-CREATE TRIGGER on_organization_created
-  AFTER INSERT ON public.organizations
-  FOR EACH ROW EXECUTE FUNCTION handle_new_organization();
+Create `src/components/layout/BottomNavigation.tsx`:
+```text
++------------------------------------------+
+|          CONTENT AREA                    |
++------------------------------------------+
+| [Home] [Projects] [Team] [Time] [Profile]|
++------------------------------------------+
 ```
 
+**5.2 Mobile-Optimized Components**
+
+- Stack layouts vertically on small screens
+- Use collapsible sections for data-heavy views
+- Touch-friendly tap targets (min 44x44px)
+- Swipe gestures for editing time entries (optional)
+
+**5.3 Update All New Components with Responsive Classes**
+
+Use Tailwind breakpoints:
+- `flex flex-col md:flex-row`
+- `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3`
+- `text-sm md:text-base`
+- `p-4 md:p-6`
+
 ---
+
+### Files to Create
+
+| File | Description |
+|------|-------------|
+| `src/components/personal/PersonalDashboard.tsx` | My Tasks dashboard with today's tasks and time summary |
+| `src/components/personal/TimeTrackingPage.tsx` | Full time tracking management page |
+| `src/components/personal/QuickAddTask.tsx` | Quick task creation form |
+| `src/components/personal/TodayTimeCard.tsx` | Card showing today's total time worked |
+| `src/components/personal/TaskDueToday.tsx` | List of tasks due today |
+| `src/components/personal/TimeEntryListItem.tsx` | Individual time entry row with edit/delete |
+| `src/components/organizations/TeamAnalyticsPage.tsx` | Team time overview |
+| `src/components/organizations/MemberTimeHistory.tsx` | Individual member work history sheet |
+| `src/components/organizations/TeamMemberRow.tsx` | Row in team list with time summary |
+| `src/components/layout/BottomNavigation.tsx` | Mobile bottom navigation |
+| `src/hooks/usePersonalTasks.ts` | Hooks for personal task queries |
+| `src/hooks/useAllTimeEntries.ts` | Hooks for fetching all user time entries |
+| `src/hooks/useTeamTimeTracking.ts` | Hooks for organization time analytics |
 
 ### Files to Modify
 
 | File | Changes |
 |------|---------|
-| Database Migration | Create `organizations` table, `organization_members` table, add `organization_id` to `projects`, add RLS policies, add trigger |
-| `src/components/kanban/SubtaskRow.tsx` | Fix all 4 hook call sites to match new function signatures |
+| `src/pages/Index.tsx` | Add view state management, render different views based on navigation |
+| `src/components/layout/Header.tsx` | Add navigation tabs, make responsive |
+| `src/hooks/useTimeTracking.ts` | Add hooks for today's time total |
+| Database Migration | Add RLS policy for organization admins to view member time entries |
 
 ---
 
-### Expected Outcome
+### Database Changes
 
-After implementation:
-1. Users can create and manage organizations
-2. Users can create projects (optionally within an organization)
-3. Build errors are resolved
-4. The app loads correctly after login
+**Migration: Allow org admins to view member time entries**
+
+```sql
+-- Create policy for organization admins to view time entries of org members
+CREATE POLICY "Organization members can view time entries for org projects"
+ON time_entries FOR SELECT
+USING (
+  user_id = auth.uid() 
+  OR EXISTS (
+    SELECT 1 FROM tasks t
+    JOIN projects p ON p.id = t.project_id
+    JOIN organization_members om ON om.organization_id = p.organization_id
+    WHERE t.id = time_entries.task_id
+    AND om.user_id = auth.uid()
+    AND (om.role = 'admin' OR p.owner_id = om.user_id)
+  )
+);
+```
 
 ---
 
-### Technical Details
+### UI/UX Improvements
 
-**RLS Policies for Organizations:**
-```sql
--- Users can view organizations they own or are members of
-CREATE POLICY "Users can view their organizations"
-  ON public.organizations FOR SELECT
-  USING (
-    owner_id = auth.uid() OR 
-    EXISTS (
-      SELECT 1 FROM public.organization_members 
-      WHERE organization_id = organizations.id 
-      AND user_id = auth.uid()
-    )
-  );
+1. **Consistent Card Design** - Use consistent card styling across all new components
+2. **Loading States** - Skeleton loaders for all data-fetching components
+3. **Empty States** - Friendly messages when no data (e.g., "No tasks due today!")
+4. **Date Filtering** - Consistent date range picker across time views
+5. **Animations** - Subtle transitions when switching views
+6. **Dark Mode Support** - Ensure all new components work in dark mode
 
--- Users can create organizations
-CREATE POLICY "Authenticated users can create organizations"
-  ON public.organizations FOR INSERT
-  WITH CHECK (auth.uid() = owner_id);
+---
 
--- Owners can update their organizations
-CREATE POLICY "Owners can update organizations"
-  ON public.organizations FOR UPDATE
-  USING (owner_id = auth.uid());
+### Implementation Order
 
--- Owners can delete their organizations
-CREATE POLICY "Owners can delete organizations"
-  ON public.organizations FOR DELETE
-  USING (owner_id = auth.uid());
-```
+1. Navigation restructure and view state management
+2. Personal Dashboard with today's tasks
+3. Today's time summary card
+4. Personal Time Tracking page
+5. Database migration for team time viewing
+6. Team Analytics page
+7. Member Time History detail view
+8. Mobile bottom navigation
+9. Responsive design polish
+10. Testing and refinements
 
-**RLS Policies for Organization Members:**
-```sql
--- Members can view other members in their organizations
-CREATE POLICY "Members can view organization members"
-  ON public.organization_members FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.organizations 
-      WHERE id = organization_members.organization_id 
-      AND owner_id = auth.uid()
-    ) OR
-    EXISTS (
-      SELECT 1 FROM public.organization_members om
-      WHERE om.organization_id = organization_members.organization_id 
-      AND om.user_id = auth.uid()
-    )
-  );
+---
 
--- Owners/admins can add members
-CREATE POLICY "Owners and admins can add members"
-  ON public.organization_members FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.organizations 
-      WHERE id = organization_members.organization_id 
-      AND owner_id = auth.uid()
-    ) OR
-    EXISTS (
-      SELECT 1 FROM public.organization_members om
-      WHERE om.organization_id = organization_members.organization_id 
-      AND om.user_id = auth.uid()
-      AND om.role = 'admin'
-    )
-  );
+### Technical Considerations
 
--- Owners/admins can remove members
-CREATE POLICY "Owners and admins can remove members"
-  ON public.organization_members FOR DELETE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.organizations 
-      WHERE id = organization_members.organization_id 
-      AND owner_id = auth.uid()
-    ) OR
-    EXISTS (
-      SELECT 1 FROM public.organization_members om
-      WHERE om.organization_id = organization_members.organization_id 
-      AND om.user_id = auth.uid()
-      AND om.role = 'admin'
-    )
-  );
-```
-
+- **Performance**: Use React Query for caching and pagination on large time entry lists
+- **Real-time**: Continue using Supabase realtime for time entries
+- **Date handling**: Use date-fns consistently for all date operations
+- **Type safety**: Create proper TypeScript interfaces for all new data structures
