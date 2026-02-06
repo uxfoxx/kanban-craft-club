@@ -8,7 +8,7 @@ import { ProjectList } from '@/components/projects/ProjectList';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { PersonalDashboard } from '@/components/personal/PersonalDashboard';
 import { TimeTrackingPage } from '@/components/personal/TimeTrackingPage';
-import { TeamAnalyticsPage } from '@/components/organizations/TeamAnalyticsPage';
+import { OrganizationPage } from '@/components/organizations/OrganizationPage';
 import { Loader2 } from 'lucide-react';
 import { ProfileSettings } from '@/components/profile/ProfileSettings';
 
@@ -66,7 +66,7 @@ const Dashboard: React.FC = () => {
         );
       
       case 'team':
-        return <TeamAnalyticsPage />;
+        return <OrganizationPage />;
       
       case 'timetracking':
         return (

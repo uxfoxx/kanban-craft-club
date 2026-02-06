@@ -1,21 +1,21 @@
  import React from 'react';
  import { Button } from '@/components/ui/button';
- import { Home, FolderOpen, Users, Clock } from 'lucide-react';
- import { cn } from '@/lib/utils';
- 
- export type ViewType = 'personal' | 'projects' | 'team' | 'timetracking';
- 
- interface BottomNavigationProps {
-   currentView: ViewType;
-   onViewChange: (view: ViewType) => void;
- }
- 
- const navItems: { view: ViewType; label: string; icon: React.ReactNode }[] = [
-   { view: 'personal', label: 'Home', icon: <Home className="h-5 w-5" /> },
-   { view: 'projects', label: 'Projects', icon: <FolderOpen className="h-5 w-5" /> },
-   { view: 'team', label: 'Team', icon: <Users className="h-5 w-5" /> },
-   { view: 'timetracking', label: 'Time', icon: <Clock className="h-5 w-5" /> },
- ];
+import { Home, FolderOpen, Building2, Clock } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+export type ViewType = 'personal' | 'projects' | 'team' | 'timetracking';
+
+interface BottomNavigationProps {
+  currentView: ViewType;
+  onViewChange: (view: ViewType) => void;
+}
+
+const navItems: { view: ViewType; label: string; icon: React.ReactNode }[] = [
+  { view: 'personal', label: 'Home', icon: <Home className="h-5 w-5" /> },
+  { view: 'projects', label: 'Projects', icon: <FolderOpen className="h-5 w-5" /> },
+  { view: 'team', label: 'Org', icon: <Building2 className="h-5 w-5" /> },
+  { view: 'timetracking', label: 'Time', icon: <Clock className="h-5 w-5" /> },
+];
  
  export const BottomNavigation: React.FC<BottomNavigationProps> = ({
    currentView,
