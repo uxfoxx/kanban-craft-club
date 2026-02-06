@@ -8,35 +8,18 @@
  import { Skeleton } from '@/components/ui/skeleton';
  import { formatDuration } from '@/hooks/useTimeTracking';
  
- export const TeamAnalyticsPage: React.FC = () => {
-   const { currentOrganization } = useOrganization();
-   const { data: teamStats = [], isLoading } = useTeamMemberTimeSummary(currentOrganization?.id);
-   const [selectedMember, setSelectedMember] = useState<TeamMemberTimeStats | null>(null);
-   
-   const totalTeamHoursToday = teamStats.reduce((sum, m) => sum + m.todaySeconds, 0);
-   const totalTeamHoursWeek = teamStats.reduce((sum, m) => sum + m.weekSeconds, 0);
-   
-   if (!currentOrganization) {
-     return (
-       <Card>
-         <CardContent className="flex flex-col items-center justify-center py-12">
-           <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-           <p className="text-lg font-medium">No Organization Selected</p>
-           <p className="text-sm text-muted-foreground">
-             Select an organization to view team analytics.
-           </p>
-         </CardContent>
-       </Card>
-     );
-   }
-   
-   return (
-     <div className="space-y-6">
-       {/* Header */}
-       <div>
-         <h1 className="text-2xl md:text-3xl font-bold">Team</h1>
-         <p className="text-muted-foreground">{currentOrganization.name}</p>
-       </div>
+export const TeamAnalyticsPage: React.FC = () => {
+  const { currentOrganization } = useOrganization();
+  const { data: teamStats = [], isLoading } = useTeamMemberTimeSummary(currentOrganization?.id);
+  const [selectedMember, setSelectedMember] = useState<TeamMemberTimeStats | null>(null);
+  
+  const totalTeamHoursToday = teamStats.reduce((sum, m) => sum + m.todaySeconds, 0);
+  const totalTeamHoursWeek = teamStats.reduce((sum, m) => sum + m.weekSeconds, 0);
+  
+  if (!currentOrganization) return null;
+  
+  return (
+    <div className="space-y-6">
        
        {/* Summary Cards */}
        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">

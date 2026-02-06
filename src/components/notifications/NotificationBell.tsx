@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Bell, Check, CheckCheck, Trash2, Users, Calendar, ClipboardList } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Bell, Check, CheckCheck, Trash2, Users, Calendar, ClipboardList, BellRing } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -9,6 +9,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useNotifications, useUnreadCount, useMarkAsRead, useMarkAllAsRead, useClearNotifications } from '@/hooks/useNotifications';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -19,6 +20,22 @@ export const NotificationBell: React.FC = () => {
   const markAsRead = useMarkAsRead();
   const markAllAsRead = useMarkAllAsRead();
   const clearNotifications = useClearNotifications();
+  const { isSupported, isSubscribed, permission, requestPermission, sendLocalNotification } = usePushNotifications();
+  const prevUnreadRef = useRef(unreadCount);
+
+  // Send push notification when new notifications arrive
+  useEffect(() => {
+    if (unreadCount > prevUnreadRef.current && isSubscribed && notifications.length > 0) {
+      const latest = notifications[0];
+      if (latest && !latest.read) {
+        sendLocalNotification(latest.title, {
+          body: latest.message || undefined,
+          tag: latest.id,
+        });
+      }
+    }
+    prevUnreadRef.current = unreadCount;
+  }, [unreadCount, isSubscribed, notifications, sendLocalNotification]);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -50,6 +67,18 @@ export const NotificationBell: React.FC = () => {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0 bg-popover" align="end">
+        {/* Push notification prompt */}
+        {isSupported && !isSubscribed && (
+          <div className="p-3 border-b bg-muted/30">
+            <div className="flex items-center gap-2">
+              <BellRing className="h-4 w-4 text-primary flex-shrink-0" />
+              <p className="text-xs text-muted-foreground flex-1">Get push notifications</p>
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={requestPermission}>
+                Enable
+              </Button>
+            </div>
+          </div>
+        )}
         <div className="flex items-center justify-between p-3 border-b">
           <h4 className="font-semibold">Notifications</h4>
           <div className="flex gap-1">

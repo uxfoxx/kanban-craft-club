@@ -10,11 +10,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LayoutDashboard, LogOut, Settings, Home, FolderOpen, Users, Clock } from 'lucide-react';
+import { LayoutDashboard, LogOut, Settings, Home, FolderOpen, Building2, Clock } from 'lucide-react';
 import { ActiveTimer } from '@/components/time/ActiveTimer';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { ProfileSettings } from '@/components/profile/ProfileSettings';
-import { OrganizationSwitcher } from '@/components/organizations/OrganizationSwitcher';
 import { cn } from '@/lib/utils';
 
 export type ViewType = 'personal' | 'projects' | 'team' | 'timetracking';
@@ -29,7 +28,7 @@ interface HeaderProps {
 const navItems: { view: ViewType; label: string; icon: React.ReactNode }[] = [
   { view: 'personal', label: 'My Tasks', icon: <Home className="h-4 w-4" /> },
   { view: 'projects', label: 'Projects', icon: <FolderOpen className="h-4 w-4" /> },
-  { view: 'team', label: 'Team', icon: <Users className="h-4 w-4" /> },
+  { view: 'team', label: 'Organization', icon: <Building2 className="h-4 w-4" /> },
   { view: 'timetracking', label: 'Time', icon: <Clock className="h-4 w-4" /> },
 ];
 
@@ -59,7 +58,6 @@ export const Header: React.FC<HeaderProps> = ({
               <LayoutDashboard className="h-6 w-6 text-primary" />
               <span className="text-xl font-bold">TaskFlow</span>
             </div>
-            <OrganizationSwitcher />
           </div>
 
           {/* Desktop Navigation Tabs */}
