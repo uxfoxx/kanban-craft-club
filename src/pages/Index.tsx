@@ -14,14 +14,15 @@ import { ProfileSettings } from '@/components/profile/ProfileSettings';
 
 const Dashboard: React.FC = () => {
   const { user, loading } = useAuth();
-  const { currentOrganization, isLoading: orgLoading } = useOrganization();
+  const { isLoading: orgLoading } = useOrganization();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<ViewType>('personal');
   const [profileSettingsOpen, setProfileSettingsOpen] = useState(false);
+  // Track which view opened the kanban board
+  const [kanbanSource, setKanbanSource] = useState<ViewType>('projects');
 
-  // Reset project selection when changing views
   useEffect(() => {
-    if (currentView !== 'projects') {
+    if (currentView !== 'projects' && currentView !== 'team') {
       setSelectedProjectId(null);
     }
   }, [currentView]);
@@ -43,38 +44,31 @@ const Dashboard: React.FC = () => {
     setSelectedProjectId(null);
   };
 
+  const handleSelectProject = (projectId: string, source: ViewType = 'projects') => {
+    setSelectedProjectId(projectId);
+    setKanbanSource(source);
+  };
+
   const renderContent = () => {
+    // If a project is selected, show Kanban regardless of view
+    if (selectedProjectId) {
+      return (
+        <KanbanBoard
+          projectId={selectedProjectId}
+          onBack={() => setSelectedProjectId(null)}
+        />
+      );
+    }
+
     switch (currentView) {
       case 'personal':
-        return (
-          <PersonalDashboard 
-            onViewTimeTracking={() => setCurrentView('timetracking')} 
-          />
-        );
-      
+        return <PersonalDashboard onViewTimeTracking={() => setCurrentView('timetracking')} />;
       case 'projects':
-        return selectedProjectId ? (
-          <KanbanBoard
-            projectId={selectedProjectId}
-            onBack={() => setSelectedProjectId(null)}
-          />
-        ) : (
-          <ProjectList
-            organizationId={currentOrganization?.id}
-            onSelectProject={setSelectedProjectId}
-          />
-        );
-      
+        return <ProjectList onSelectProject={(id) => handleSelectProject(id, 'projects')} />;
       case 'team':
-        return <OrganizationPage />;
-      
+        return <OrganizationPage onSelectProject={(id) => handleSelectProject(id, 'team')} />;
       case 'timetracking':
-        return (
-          <TimeTrackingPage 
-            onBack={() => setCurrentView('personal')} 
-          />
-        );
-      
+        return <TimeTrackingPage onBack={() => setCurrentView('personal')} />;
       default:
         return null;
     }
@@ -91,18 +85,8 @@ const Dashboard: React.FC = () => {
       <main className="container py-4 md:py-8 pb-20 md:pb-8">
         {renderContent()}
       </main>
-      
-      {/* Mobile Bottom Navigation */}
-      <BottomNavigation 
-        currentView={currentView} 
-        onViewChange={handleViewChange} 
-      />
-      
-      {/* Profile Settings Dialog */}
-      <ProfileSettings 
-        open={profileSettingsOpen} 
-        onOpenChange={setProfileSettingsOpen} 
-      />
+      <BottomNavigation currentView={currentView} onViewChange={handleViewChange} />
+      <ProfileSettings open={profileSettingsOpen} onOpenChange={setProfileSettingsOpen} />
     </div>
   );
 };

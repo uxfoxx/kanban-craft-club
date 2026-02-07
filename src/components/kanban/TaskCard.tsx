@@ -1,9 +1,11 @@
 import React from 'react';
-import { Task } from '@/types/database';
-import { useStartTimeEntry, useActiveTimeEntry } from '@/hooks/useTimeTracking';
+import { Task, Profile } from '@/types/database';
+import { useStartTimeEntry, useActiveTimeEntry, formatDuration } from '@/hooks/useTimeTracking';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Play, Calendar, Flag } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Play, Calendar, Flag, Clock } from 'lucide-react';
 import { format, differenceInHours, isPast } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -12,9 +14,11 @@ interface TaskCardProps {
   task: Task;
   columnName?: string;
   onClick: () => void;
+  assignees?: { user_id: string; profile: Profile }[];
+  timeSpent?: number;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick }) => {
+export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, assignees = [], timeSpent }) => {
   const startTimer = useStartTimeEntry();
   const { data: activeEntry } = useActiveTimeEntry();
 
@@ -24,7 +28,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick })
 
   const handleStartTimer = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    
     try {
       await startTimer.mutateAsync({ taskId: task.id });
       toast.success('Timer started');
@@ -37,45 +40,30 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick })
 
   const getPriorityColor = () => {
     switch (task.priority) {
-      case 'high':
-        return 'text-destructive';
-      case 'medium':
-        return 'text-chart-4';
-      case 'low':
-        return 'text-chart-5';
-      default:
-        return 'text-muted-foreground';
+      case 'high': return 'text-destructive';
+      case 'medium': return 'text-chart-4';
+      case 'low': return 'text-chart-5';
+      default: return 'text-muted-foreground';
     }
   };
 
-  // Check if task is in a "done" column
   const isDone = columnName?.toLowerCase() === 'done' || task.status === 'done';
 
-  // Calculate deadline status for glow effect
   const getDeadlineStatus = () => {
     if (!task.due_date || isDone) return null;
-    
     const dueDate = new Date(task.due_date);
     const now = new Date();
-    
-    if (isPast(dueDate)) {
-      return 'overdue';
-    }
-    
+    if (isPast(dueDate)) return 'overdue';
     const hoursUntilDue = differenceInHours(dueDate, now);
-    
-    if (hoursUntilDue <= 24) {
-      return 'urgent'; // Within 24 hours
-    }
-    
-    if (hoursUntilDue <= 48) {
-      return 'warning'; // Within 48 hours
-    }
-    
+    if (hoursUntilDue <= 24) return 'urgent';
+    if (hoursUntilDue <= 48) return 'warning';
     return null;
   };
 
   const deadlineStatus = getDeadlineStatus();
+
+  const getInitials = (name: string) =>
+    name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
   return (
     <Card
@@ -116,6 +104,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick })
                 {format(new Date(task.due_date), 'MMM d')}
               </div>
             )}
+            {typeof timeSpent === 'number' && timeSpent > 0 && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                {formatDuration(timeSpent)}
+              </div>
+            )}
           </div>
           
           {!isDone && (
@@ -131,6 +125,31 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick })
             </Button>
           )}
         </div>
+
+        {/* Assignee avatars */}
+        {assignees.length > 0 && (
+          <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border/50">
+            <div className="flex -space-x-2">
+              {assignees.slice(0, 4).map(a => (
+                <Tooltip key={a.user_id}>
+                  <TooltipTrigger asChild>
+                    <Avatar className="h-6 w-6 border-2 border-card">
+                      <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                        {getInitials(a.profile.full_name)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">
+                    {a.profile.full_name}
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+            {assignees.length > 4 && (
+              <span className="text-xs text-muted-foreground ml-1">+{assignees.length - 4}</span>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

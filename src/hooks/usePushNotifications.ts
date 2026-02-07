@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const VAPID_PUBLIC_KEY_STORAGE = 'push-notifications-enabled';
+const PUSH_ENABLED_KEY = 'push-notifications-enabled';
 
 export const usePushNotifications = () => {
   const [isSupported, setIsSupported] = useState(false);
@@ -8,51 +8,62 @@ export const usePushNotifications = () => {
   const [permission, setPermission] = useState<NotificationPermission>('default');
 
   useEffect(() => {
-    const supported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+    const supported = 'Notification' in window && 'serviceWorker' in navigator;
     setIsSupported(supported);
 
     if (supported) {
       setPermission(Notification.permission);
-      setIsSubscribed(localStorage.getItem(VAPID_PUBLIC_KEY_STORAGE) === 'true');
+      setIsSubscribed(
+        Notification.permission === 'granted' && 
+        localStorage.getItem(PUSH_ENABLED_KEY) === 'true'
+      );
     }
   }, []);
 
   const requestPermission = useCallback(async () => {
     if (!isSupported) return false;
 
-    const result = await Notification.requestPermission();
-    setPermission(result);
+    try {
+      const result = await Notification.requestPermission();
+      setPermission(result);
 
-    if (result === 'granted') {
-      localStorage.setItem(VAPID_PUBLIC_KEY_STORAGE, 'true');
-      setIsSubscribed(true);
-      return true;
+      if (result === 'granted') {
+        localStorage.setItem(PUSH_ENABLED_KEY, 'true');
+        setIsSubscribed(true);
+        return true;
+      }
+    } catch (err) {
+      console.error('Failed to request notification permission:', err);
     }
     return false;
   }, [isSupported]);
 
   const sendLocalNotification = useCallback((title: string, options?: NotificationOptions) => {
-    if (!isSupported || permission !== 'granted') return;
+    if (!isSupported || Notification.permission !== 'granted') return;
 
-    // Use service worker notification if available, fallback to Notification API
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(registration => {
-        registration.showNotification(title, {
-          icon: '/pwa-192x192.png',
-          badge: '/pwa-192x192.png',
-          ...options,
+    try {
+      // Try service worker notification first (works in background)
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(registration => {
+          registration.showNotification(title, {
+            icon: '/pwa-192x192.png',
+            badge: '/pwa-192x192.png',
+            ...options,
+          });
+        }).catch(() => {
+          // Fallback to Notification API
+          new Notification(title, { icon: '/pwa-192x192.png', ...options });
         });
-      });
-    } else {
-      new Notification(title, {
-        icon: '/pwa-192x192.png',
-        ...options,
-      });
+      } else {
+        new Notification(title, { icon: '/pwa-192x192.png', ...options });
+      }
+    } catch (err) {
+      console.error('Failed to send notification:', err);
     }
-  }, [isSupported, permission]);
+  }, [isSupported]);
 
   const unsubscribe = useCallback(() => {
-    localStorage.removeItem(VAPID_PUBLIC_KEY_STORAGE);
+    localStorage.removeItem(PUSH_ENABLED_KEY);
     setIsSubscribed(false);
   }, []);
 
