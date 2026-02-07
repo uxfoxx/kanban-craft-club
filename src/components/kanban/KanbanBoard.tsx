@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useTasks, useUpdateTaskColumn } from '@/hooks/useTasks';
 import { useProject, useProjectMembers, useAddProjectMember, useProjectOwner } from '@/hooks/useProjects';
 import { useKanbanColumns } from '@/hooks/useKanbanColumns';
+import { useTaskAssigneesForProject, useTaskTimeForProject } from '@/hooks/useTaskAssigneesForProject';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task, Profile } from '@/types/database';
 import { KanbanColumn } from './KanbanColumn';
@@ -14,19 +15,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { ArrowLeft, Plus, UserPlus, Loader2, Users, Settings } from 'lucide-react';
 import { toast } from 'sonner';
@@ -43,6 +35,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
   const { data: members } = useProjectMembers(projectId);
   const { data: ownerProfile } = useProjectOwner(project?.owner_id);
   const { data: columns, isLoading: columnsLoading } = useKanbanColumns(projectId);
+  const { data: taskAssignees = [] } = useTaskAssigneesForProject(projectId);
+  const { data: taskTimeMap } = useTaskTimeForProject(projectId);
   const updateTaskColumn = useUpdateTaskColumn();
   const addMember = useAddProjectMember();
   
@@ -59,34 +53,31 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
   const isAdmin = isOwner || currentUserMember?.role === 'admin';
   const isMember = isOwner || !!currentUserMember;
 
-  // Combine owner with members for assignee lists
   const allMembers = useMemo(() => {
     const membersList: { user_id: string; role: string; profiles: Profile }[] = [];
-    
-    // Add owner first
     if (ownerProfile && project?.owner_id) {
-      membersList.push({
-        user_id: project.owner_id,
-        role: 'owner',
-        profiles: ownerProfile,
-      });
+      membersList.push({ user_id: project.owner_id, role: 'owner', profiles: ownerProfile });
     }
-    
-    // Add regular members
     if (members) {
       members.forEach(m => {
         if (m.profiles) {
-          membersList.push({
-            user_id: m.user_id,
-            role: m.role,
-            profiles: m.profiles as Profile,
-          });
+          membersList.push({ user_id: m.user_id, role: m.role, profiles: m.profiles as Profile });
         }
       });
     }
-    
     return membersList;
   }, [members, ownerProfile, project?.owner_id]);
+
+  // Group assignees by task
+  const assigneesByTask = useMemo(() => {
+    const map = new Map<string, { user_id: string; profile: Profile }[]>();
+    taskAssignees.forEach(a => {
+      const list = map.get(a.task_id) || [];
+      list.push({ user_id: a.user_id, profile: a.profile });
+      map.set(a.task_id, list);
+    });
+    return map;
+  }, [taskAssignees]);
 
   const handleDrop = async (taskId: string, columnId: string) => {
     try {
@@ -98,13 +89,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
 
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
-      await addMember.mutateAsync({
-        projectId,
-        email: newMemberEmail,
-        role: newMemberRole,
-      });
+      await addMember.mutateAsync({ projectId, email: newMemberEmail, role: newMemberRole });
       toast.success('Member added!');
       setMemberDialogOpen(false);
       setNewMemberEmail('');
@@ -125,8 +111,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            <ArrowLeft className="h-4 w-4 mr-2" /> Back
           </Button>
           <div>
             <h1 className="text-2xl font-bold">{project?.name}</h1>
@@ -136,59 +121,38 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
         
         <div className="flex items-center gap-2">
           {allMembers.length > 0 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="gap-1 text-muted-foreground"
-              onClick={() => setSettingsOpen(true)}
-            >
-              <Users className="h-4 w-4" />
-              {allMembers.length} members
+            <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground" onClick={() => setSettingsOpen(true)}>
+              <Users className="h-4 w-4" /> {allMembers.length} members
             </Button>
           )}
-          
           {isAdmin && (
             <>
               <Button variant="outline" size="sm" onClick={() => setColumnManagerOpen(true)}>
-                <Settings className="h-4 w-4 mr-2" />
-                Columns
+                <Settings className="h-4 w-4 mr-2" /> Columns
               </Button>
-              
               <Dialog open={memberDialogOpen} onOpenChange={setMemberDialogOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm">
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Add Member
+                    <UserPlus className="h-4 w-4 mr-2" /> Add Member
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Add Team Member</DialogTitle>
-                    <DialogDescription>
-                      Invite a user to this project by their email address.
-                    </DialogDescription>
+                    <DialogDescription>Invite a user to this project by their email address.</DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleAddMember} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="member-email">Email Address</Label>
-                      <Input
-                        id="member-email"
-                        type="email"
-                        value={newMemberEmail}
-                        onChange={(e) => setNewMemberEmail(e.target.value)}
-                        placeholder="user@example.com"
-                        required
-                      />
+                      <Input id="member-email" type="email" value={newMemberEmail} onChange={(e) => setNewMemberEmail(e.target.value)} placeholder="user@example.com" required />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="member-role">Role</Label>
                       <Select value={newMemberRole} onValueChange={(v) => setNewMemberRole(v as 'admin' | 'member')}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select role" />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="admin">Admin (can manage tasks & members)</SelectItem>
-                          <SelectItem value="member">Member (can work on tasks)</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="member">Member</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -201,11 +165,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
               </Dialog>
             </>
           )}
-          
           {isMember && (
             <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Task
+              <Plus className="h-4 w-4 mr-2" /> Add Task
             </Button>
           )}
         </div>
@@ -216,24 +178,17 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div 
-          className="grid gap-4"
-          style={{ 
-            gridTemplateColumns: `repeat(${columns?.length || 3}, minmax(280px, 1fr))` 
-          }}
-        >
+        <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${columns?.length || 3}, minmax(280px, 1fr))` }}>
           {columns?.map((column) => (
-            <KanbanColumn
-              key={column.id}
-              column={column}
-              onDrop={handleDrop}
-            >
+            <KanbanColumn key={column.id} column={column} onDrop={handleDrop}>
               {getTasksByColumn(column.id).map((task) => (
                 <TaskCard
                   key={task.id}
                   task={task}
                   columnName={column.name}
                   onClick={() => setSelectedTask(task)}
+                  assignees={assigneesByTask.get(task.id)}
+                  timeSpent={taskTimeMap?.get(task.id)}
                 />
               ))}
             </KanbanColumn>
@@ -241,32 +196,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
         </div>
       )}
 
-      <CreateTaskDialog
-        projectId={projectId}
-        columns={columns}
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        members={allMembers}
-      />
-
-      <TaskDetailSheet
-        task={selectedTask}
-        projectId={projectId}
-        columns={columns}
-        onClose={() => setSelectedTask(null)}
-      />
-
-      <ColumnManager
-        projectId={projectId}
-        open={columnManagerOpen}
-        onOpenChange={setColumnManagerOpen}
-      />
-
-      <ProjectSettings
-        projectId={projectId}
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-      />
+      <CreateTaskDialog projectId={projectId} columns={columns} open={createDialogOpen} onOpenChange={setCreateDialogOpen} members={allMembers} />
+      <TaskDetailSheet task={selectedTask} projectId={projectId} columns={columns} onClose={() => setSelectedTask(null)} />
+      <ColumnManager projectId={projectId} open={columnManagerOpen} onOpenChange={setColumnManagerOpen} />
+      <ProjectSettings projectId={projectId} open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 };
