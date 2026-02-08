@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, AuthProvider } from '@/contexts/AuthContext';
 import { OrganizationProvider, useOrganization } from '@/contexts/OrganizationContext';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { AuthPage } from '@/components/auth/AuthPage';
 import { Header, ViewType } from '@/components/layout/Header';
 import { BottomNavigation } from '@/components/layout/BottomNavigation';
@@ -9,16 +10,17 @@ import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { PersonalDashboard } from '@/components/personal/PersonalDashboard';
 import { TimeTrackingPage } from '@/components/personal/TimeTrackingPage';
 import { OrganizationPage } from '@/components/organizations/OrganizationPage';
-import { Loader2 } from 'lucide-react';
+import { Loader2, BellRing, X } from 'lucide-react';
 import { ProfileSettings } from '@/components/profile/ProfileSettings';
+import { Button } from '@/components/ui/button';
 
 const Dashboard: React.FC = () => {
   const { user, loading } = useAuth();
   const { isLoading: orgLoading } = useOrganization();
+  const { shouldShowPrompt, requestPermission, dismissPrompt } = usePushNotifications();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<ViewType>('personal');
   const [profileSettingsOpen, setProfileSettingsOpen] = useState(false);
-  // Track which view opened the kanban board
   const [kanbanSource, setKanbanSource] = useState<ViewType>('projects');
 
   useEffect(() => {
@@ -76,6 +78,22 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {shouldShowPrompt && (
+        <div className="border-b bg-primary/10 px-4 py-3">
+          <div className="container flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm">
+              <BellRing className="h-4 w-4 text-primary flex-shrink-0" />
+              <span>Enable push notifications to stay updated on tasks and deadlines.</span>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button size="sm" onClick={requestPermission}>Enable</Button>
+              <Button size="sm" variant="ghost" onClick={dismissPrompt}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       <Header 
         currentView={currentView}
         onViewChange={handleViewChange}
