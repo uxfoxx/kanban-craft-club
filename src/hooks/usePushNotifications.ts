@@ -1,14 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 
 const PUSH_ENABLED_KEY = 'push-notifications-enabled';
+const PUSH_PROMPTED_KEY = 'push-notifications-prompted';
 
 export const usePushNotifications = () => {
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>('default');
+  const [hasBeenPrompted, setHasBeenPrompted] = useState(true); // default true to avoid flash
 
   useEffect(() => {
-    const supported = 'Notification' in window && 'serviceWorker' in navigator;
+    // Check support outside iframe restrictions
+    const supported = typeof window !== 'undefined' && 
+      'Notification' in window && 
+      'serviceWorker' in navigator;
     setIsSupported(supported);
 
     if (supported) {
@@ -17,11 +22,15 @@ export const usePushNotifications = () => {
         Notification.permission === 'granted' && 
         localStorage.getItem(PUSH_ENABLED_KEY) === 'true'
       );
+      setHasBeenPrompted(localStorage.getItem(PUSH_PROMPTED_KEY) === 'true');
     }
   }, []);
 
   const requestPermission = useCallback(async () => {
     if (!isSupported) return false;
+
+    localStorage.setItem(PUSH_PROMPTED_KEY, 'true');
+    setHasBeenPrompted(true);
 
     try {
       const result = await Notification.requestPermission();
@@ -38,11 +47,15 @@ export const usePushNotifications = () => {
     return false;
   }, [isSupported]);
 
+  const dismissPrompt = useCallback(() => {
+    localStorage.setItem(PUSH_PROMPTED_KEY, 'true');
+    setHasBeenPrompted(true);
+  }, []);
+
   const sendLocalNotification = useCallback((title: string, options?: NotificationOptions) => {
     if (!isSupported || Notification.permission !== 'granted') return;
 
     try {
-      // Try service worker notification first (works in background)
       if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
         navigator.serviceWorker.ready.then(registration => {
           registration.showNotification(title, {
@@ -51,7 +64,6 @@ export const usePushNotifications = () => {
             ...options,
           });
         }).catch(() => {
-          // Fallback to Notification API
           new Notification(title, { icon: '/pwa-192x192.png', ...options });
         });
       } else {
@@ -67,11 +79,16 @@ export const usePushNotifications = () => {
     setIsSubscribed(false);
   }, []);
 
+  // Should show a visible prompt banner
+  const shouldShowPrompt = isSupported && !isSubscribed && !hasBeenPrompted && permission === 'default';
+
   return {
     isSupported,
     isSubscribed,
     permission,
+    shouldShowPrompt,
     requestPermission,
+    dismissPrompt,
     sendLocalNotification,
     unsubscribe,
   };
