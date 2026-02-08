@@ -112,7 +112,7 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onSelectProj
       {/* Main content */}
       {currentOrganization ? (
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <TabsList>
               <TabsTrigger value="projects" className="gap-1.5">
                 <FolderOpen className="h-4 w-4" /> Projects

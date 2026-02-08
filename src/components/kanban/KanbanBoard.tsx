@@ -108,32 +108,32 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4 mr-2" /> Back
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold">{project?.name}</h1>
-            <p className="text-sm text-muted-foreground">{project?.description}</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl md:text-2xl font-bold truncate">{project?.name}</h1>
+            <p className="text-sm text-muted-foreground truncate">{project?.description}</p>
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {allMembers.length > 0 && (
             <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground" onClick={() => setSettingsOpen(true)}>
-              <Users className="h-4 w-4" /> {allMembers.length} members
+              <Users className="h-4 w-4" /> {allMembers.length}
             </Button>
           )}
           {isAdmin && (
             <>
               <Button variant="outline" size="sm" onClick={() => setColumnManagerOpen(true)}>
-                <Settings className="h-4 w-4 mr-2" /> Columns
+                <Settings className="h-4 w-4 md:mr-2" /><span className="hidden md:inline">Columns</span>
               </Button>
               <Dialog open={memberDialogOpen} onOpenChange={setMemberDialogOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm">
-                    <UserPlus className="h-4 w-4 mr-2" /> Add Member
+                    <UserPlus className="h-4 w-4 md:mr-2" /><span className="hidden md:inline">Add Member</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -167,7 +167,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
           )}
           {isMember && (
             <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" /> Add Task
+              <Plus className="h-4 w-4 md:mr-2" /><span className="hidden md:inline">Add Task</span>
             </Button>
           )}
         </div>
@@ -178,21 +178,25 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${columns?.length || 3}, minmax(280px, 1fr))` }}>
-          {columns?.map((column) => (
-            <KanbanColumn key={column.id} column={column} onDrop={handleDrop}>
-              {getTasksByColumn(column.id).map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  columnName={column.name}
-                  onClick={() => setSelectedTask(task)}
-                  assignees={assigneesByTask.get(task.id)}
-                  timeSpent={taskTimeMap?.get(task.id)}
-                />
-              ))}
-            </KanbanColumn>
-          ))}
+        <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 pb-4">
+          <div className="flex md:grid gap-4 md:gap-4" style={{ gridTemplateColumns: `repeat(${columns?.length || 3}, minmax(280px, 1fr))` }}>
+            {columns?.map((column) => (
+              <div key={column.id} className="min-w-[280px] w-[75vw] md:w-auto flex-shrink-0 md:flex-shrink">
+                <KanbanColumn column={column} onDrop={handleDrop}>
+                  {getTasksByColumn(column.id).map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      columnName={column.name}
+                      onClick={() => setSelectedTask(task)}
+                      assignees={assigneesByTask.get(task.id)}
+                      timeSpent={taskTimeMap?.get(task.id)}
+                    />
+                  ))}
+                </KanbanColumn>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

@@ -71,10 +71,10 @@ export const ProjectList: React.FC<ProjectListProps> = ({ onSelectProject }) => 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">Projects</h1>
-          <p className="text-muted-foreground">Manage your personal and organization projects</p>
+          <h1 className="text-2xl md:text-3xl font-bold">Projects</h1>
+          <p className="text-sm text-muted-foreground">Manage your personal and organization projects</p>
         </div>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -124,13 +124,15 @@ export const ProjectList: React.FC<ProjectListProps> = ({ onSelectProject }) => 
       </div>
 
       {/* Filter tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="all">All ({allProjects?.length || 0})</TabsTrigger>
-          <TabsTrigger value="personal">Personal ({personalProjects.length})</TabsTrigger>
-          <TabsTrigger value="organization">Organization ({orgProjects.length})</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="all">All ({allProjects?.length || 0})</TabsTrigger>
+            <TabsTrigger value="personal">Personal ({personalProjects.length})</TabsTrigger>
+            <TabsTrigger value="organization">Org ({orgProjects.length})</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
 
       {displayProjects?.length === 0 ? (
         <Card className="border-dashed">
