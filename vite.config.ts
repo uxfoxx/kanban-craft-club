@@ -46,6 +46,9 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: "autoUpdate",
+        devOptions: {
+          enabled: false,
+        },
         includeAssets: ["favicon.ico", "apple-touch-icon.png", "pwa-192x192.png", "pwa-512x512.png"],
         manifest: {
           name: "TaskFlow - Project Management",
@@ -77,6 +80,8 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
+          skipWaiting: true,
+          clientsClaim: true,
           globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,woff,ttf}"],
           navigateFallback: "index.html",
           navigateFallbackDenylist: [/^\/api/],
