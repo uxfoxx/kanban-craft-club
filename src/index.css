@@ -234,15 +234,16 @@ All colors MUST be HSL.
   }
 
   .deadline-warning {
-    @apply ring-2;
-    ring-color: hsl(var(--chart-4));
-    background: linear-gradient(
-      90deg,
-      hsl(var(--chart-4) / 0.04),
-      hsl(var(--chart-4) / 0.12),
-      hsl(var(--chart-4) / 0.04)
-    );
-    background-size: 200% 100%;
-    animation: gradient-flow-warning 3s ease-in-out infinite;
-  }
+  @apply ring-2;
+  ring-color: #FF524D;
+  background: linear-gradient(
+    90deg,
+    rgb(255 82 77 / 0.04),
+    rgb(255 82 77 / 0.12),
+    rgb(255 82 77 / 0.04)
+  );
+  background-size: 200% 100%;
+  animation: gradient-flow-warning 3s ease-in-out infinite;
+}
+
 }
