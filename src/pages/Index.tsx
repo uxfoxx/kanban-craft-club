@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 const Dashboard: React.FC = () => {
   const { user, loading } = useAuth();
   const { isLoading: orgLoading } = useOrganization();
-  const { shouldShowPrompt, requestPermission, dismissPrompt } = usePushNotifications();
+  const { shouldShowPrompt, needsInstall, requestPermission, dismissPrompt } = usePushNotifications();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<ViewType>('personal');
   const [profileSettingsOpen, setProfileSettingsOpen] = useState(false);
@@ -83,10 +83,16 @@ const Dashboard: React.FC = () => {
           <div className="container flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-sm">
               <BellRing className="h-4 w-4 text-primary flex-shrink-0" />
-              <span>Enable push notifications to stay updated on tasks and deadlines.</span>
+              <span>
+                {needsInstall
+                  ? 'Install this app to your home screen to enable push notifications.'
+                  : 'Enable push notifications to stay updated on tasks and deadlines.'}
+              </span>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <Button size="sm" onClick={requestPermission}>Enable</Button>
+              {!needsInstall && (
+                <Button size="sm" onClick={requestPermission}>Enable</Button>
+              )}
               <Button size="sm" variant="ghost" onClick={dismissPrompt}>
                 <X className="h-4 w-4" />
               </Button>
