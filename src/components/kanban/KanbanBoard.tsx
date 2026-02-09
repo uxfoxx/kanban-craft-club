@@ -10,6 +10,7 @@ import { TaskCard } from './TaskCard';
 import { CreateTaskDialog } from './CreateTaskDialog';
 import { TaskDetailSheet } from './TaskDetailSheet';
 import { ColumnManager } from './ColumnManager';
+import { KanbanFilters, KanbanFilterState } from './KanbanFilters';
 import { ProjectSettings } from '@/components/projects/ProjectSettings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import { ArrowLeft, Plus, UserPlus, Loader2, Users, Settings } from 'lucide-react';
 import { toast } from 'sonner';
+import { isPast, differenceInHours } from 'date-fns';
 
 interface KanbanBoardProps {
   projectId: string;
@@ -47,6 +49,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newMemberRole, setNewMemberRole] = useState<'admin' | 'member'>('member');
+  const [filters, setFilters] = useState<KanbanFilterState>({
+    assigneeIds: [],
+    priorities: [],
+    deadlineStatuses: [],
+  });
 
   const isOwner = project?.owner_id === user?.id;
   const currentUserMember = members?.find(m => m.user_id === user?.id);
@@ -100,8 +107,42 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
     }
   };
 
+  const getDeadlineStatus = (task: Task) => {
+    const isDone = task.column_id === columns?.find(c => c.name.toLowerCase() === 'done')?.id || task.status === 'done';
+    if (!task.due_date || isDone) return null;
+    const dueDate = new Date(task.due_date);
+    const now = new Date();
+    if (isPast(dueDate)) return 'overdue';
+    const hoursUntilDue = differenceInHours(dueDate, now);
+    if (hoursUntilDue <= 24) return 'urgent';
+    if (hoursUntilDue <= 48) return 'warning';
+    return null;
+  };
+
+  const matchesFilters = (task: Task): boolean => {
+    if (filters.assigneeIds.length > 0) {
+      const taskAssignees = assigneesByTask.get(task.id) || [];
+      const hasMatchingAssignee = taskAssignees.some(a => filters.assigneeIds.includes(a.user_id));
+      if (!hasMatchingAssignee) return false;
+    }
+
+    if (filters.priorities.length > 0) {
+      if (!filters.priorities.includes(task.priority)) return false;
+    }
+
+    if (filters.deadlineStatuses.length > 0) {
+      const deadlineStatus = getDeadlineStatus(task);
+      if (!deadlineStatus || !filters.deadlineStatuses.includes(deadlineStatus)) {
+        const hasNoDeadline = !task.due_date || task.status === 'done';
+        if (hasNoDeadline) return false;
+      }
+    }
+
+    return true;
+  };
+
   const getTasksByColumn = (columnId: string): Task[] => {
-    return tasks?.filter((task) => task.column_id === columnId) || [];
+    return tasks?.filter((task) => task.column_id === columnId && matchesFilters(task)) || [];
   };
 
   const isLoading = tasksLoading || columnsLoading;
@@ -171,6 +212,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
             </Button>
           )}
         </div>
+
+        <KanbanFilters
+          members={allMembers}
+          filters={filters}
+          onFiltersChange={setFilters}
+        />
       </div>
 
       {isLoading ? (

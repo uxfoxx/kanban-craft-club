@@ -169,3 +169,80 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes gradient-flow-overdue {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes gradient-flow-urgent {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes gradient-flow-warning {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@layer components {
+  .deadline-overdue {
+    @apply ring-2;
+    ring-color: hsl(var(--destructive));
+    background: linear-gradient(
+      90deg,
+      hsl(var(--destructive) / 0.05),
+      hsl(var(--destructive) / 0.15),
+      hsl(var(--destructive) / 0.05)
+    );
+    background-size: 200% 100%;
+    animation: gradient-flow-overdue 2s ease-in-out infinite;
+  }
+
+  .deadline-urgent {
+    @apply ring-2;
+    ring-color: hsl(var(--destructive) / 0.7);
+    background: linear-gradient(
+      90deg,
+      hsl(var(--destructive) / 0.03),
+      hsl(var(--destructive) / 0.1),
+      hsl(var(--destructive) / 0.03)
+    );
+    background-size: 200% 100%;
+    animation: gradient-flow-urgent 2.5s ease-in-out infinite;
+  }
+
+  .deadline-warning {
+    @apply ring-2;
+    ring-color: hsl(var(--chart-4));
+    background: linear-gradient(
+      90deg,
+      hsl(var(--chart-4) / 0.04),
+      hsl(var(--chart-4) / 0.12),
+      hsl(var(--chart-4) / 0.04)
+    );
+    background-size: 200% 100%;
+    animation: gradient-flow-warning 3s ease-in-out infinite;
+  }
+}

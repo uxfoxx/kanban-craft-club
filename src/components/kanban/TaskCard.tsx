@@ -70,9 +70,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
       className={cn(
         'cursor-grab active:cursor-grabbing transition-all hover:shadow-md bg-card',
         isTimerActive && 'ring-2 ring-primary',
-        deadlineStatus === 'overdue' && 'animate-pulse ring-2 ring-destructive shadow-[0_0_15px_hsl(var(--destructive)/0.5)]',
-        deadlineStatus === 'urgent' && 'animate-pulse ring-2 ring-destructive/70 shadow-[0_0_10px_hsl(var(--destructive)/0.3)]',
-        deadlineStatus === 'warning' && 'ring-2 ring-chart-4 shadow-[0_0_10px_hsl(var(--chart-4)/0.3)]'
+        deadlineStatus === 'overdue' && 'deadline-overdue',
+        deadlineStatus === 'urgent' && 'deadline-urgent',
+        deadlineStatus === 'warning' && 'deadline-warning'
       )}
       draggable
       onDragStart={handleDragStart}
