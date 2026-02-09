@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 const Dashboard: React.FC = () => {
   const { user, loading } = useAuth();
   const { isLoading: orgLoading } = useOrganization();
-  const { shouldShowPrompt, requestPermission, dismissPrompt } = usePushNotifications();
+  const { shouldShowPrompt, needsInstall, requestPermission, dismissPrompt } = usePushNotifications();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<ViewType>('personal');
   const [profileSettingsOpen, setProfileSettingsOpen] = useState(false);
