@@ -3,15 +3,17 @@ import { useAuth, AuthProvider } from '@/contexts/AuthContext';
 import { OrganizationProvider, useOrganization } from '@/contexts/OrganizationContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { AuthPage } from '@/components/auth/AuthPage';
-import { Header, ViewType } from '@/components/layout/Header';
-import { BottomNavigation } from '@/components/layout/BottomNavigation';
+import { AppSidebar, ViewType } from '@/components/layout/AppSidebar';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { ActiveTimer } from '@/components/time/ActiveTimer';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { ProjectList } from '@/components/projects/ProjectList';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { PersonalDashboard } from '@/components/personal/PersonalDashboard';
 import { TimeTrackingPage } from '@/components/personal/TimeTrackingPage';
 import { OrganizationPage } from '@/components/organizations/OrganizationPage';
-import { Loader2, BellRing, X } from 'lucide-react';
 import { ProfileSettings } from '@/components/profile/ProfileSettings';
+import { Loader2, BellRing, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Dashboard: React.FC = () => {
@@ -52,7 +54,6 @@ const Dashboard: React.FC = () => {
   };
 
   const renderContent = () => {
-    // If a project is selected, show Kanban regardless of view
     if (selectedProjectId) {
       return (
         <KanbanBoard
@@ -77,41 +78,57 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {shouldShowPrompt && (
-        <div className="border-b bg-primary/10 px-4 py-3">
-          <div className="container flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-sm">
-              <BellRing className="h-4 w-4 text-primary flex-shrink-0" />
-              <span>
-                {needsInstall
-                  ? 'Install this app to your home screen to enable push notifications.'
-                  : 'Enable push notifications to stay updated on tasks and deadlines.'}
-              </span>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <AppSidebar
+          currentView={currentView}
+          onViewChange={handleViewChange}
+          onOpenProfileSettings={() => setProfileSettingsOpen(true)}
+        />
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Top bar */}
+          <header className="border-b bg-card h-14 flex items-center justify-between px-4 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger />
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {!needsInstall && (
-                <Button size="sm" onClick={requestPermission}>Enable</Button>
-              )}
-              <Button size="sm" variant="ghost" onClick={dismissPrompt}>
-                <X className="h-4 w-4" />
-              </Button>
+            <div className="flex items-center gap-2 md:gap-3">
+              <ActiveTimer />
+              <NotificationBell />
             </div>
-          </div>
+          </header>
+
+          {/* Push notification banner */}
+          {shouldShowPrompt && (
+            <div className="border-b bg-primary/10 px-4 py-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <BellRing className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span>
+                    {needsInstall
+                      ? 'Install this app to your home screen to enable push notifications.'
+                      : 'Enable push notifications to stay updated on tasks and deadlines.'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {!needsInstall && (
+                    <Button size="sm" onClick={requestPermission}>Enable</Button>
+                  )}
+                  <Button size="sm" variant="ghost" onClick={dismissPrompt}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Main content */}
+          <main className="flex-1 overflow-auto p-4 md:p-6">
+            {renderContent()}
+          </main>
         </div>
-      )}
-      <Header 
-        currentView={currentView}
-        onViewChange={handleViewChange}
-        profileSettingsOpen={profileSettingsOpen}
-        setProfileSettingsOpen={setProfileSettingsOpen}
-      />
-      <main className="container py-4 md:py-8 pb-20 md:pb-8">
-        {renderContent()}
-      </main>
-      <BottomNavigation currentView={currentView} onViewChange={handleViewChange} />
+      </div>
       <ProfileSettings open={profileSettingsOpen} onOpenChange={setProfileSettingsOpen} />
-    </div>
+    </SidebarProvider>
   );
 };
 
