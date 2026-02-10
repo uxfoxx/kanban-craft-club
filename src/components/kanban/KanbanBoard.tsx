@@ -75,7 +75,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
     return membersList;
   }, [members, ownerProfile, project?.owner_id]);
 
-  // Group assignees by task
   const assigneesByTask = useMemo(() => {
     const map = new Map<string, { user_id: string; profile: Profile }[]>();
     taskAssignees.forEach(a => {
@@ -91,6 +90,15 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
       await updateTaskColumn.mutateAsync({ taskId, columnId, projectId });
     } catch (error) {
       toast.error('Failed to update task');
+    }
+  };
+
+  const handleMoveToColumn = async (taskId: string, columnId: string) => {
+    try {
+      await updateTaskColumn.mutateAsync({ taskId, columnId, projectId });
+      toast.success('Task moved');
+    } catch (error) {
+      toast.error('Failed to move task');
     }
   };
 
@@ -125,11 +133,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
       const hasMatchingAssignee = taskAssignees.some(a => filters.assigneeIds.includes(a.user_id));
       if (!hasMatchingAssignee) return false;
     }
-
     if (filters.priorities.length > 0) {
       if (!filters.priorities.includes(task.priority)) return false;
     }
-
     if (filters.deadlineStatuses.length > 0) {
       const deadlineStatus = getDeadlineStatus(task);
       if (!deadlineStatus || !filters.deadlineStatuses.includes(deadlineStatus)) {
@@ -137,7 +143,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
         if (hasNoDeadline) return false;
       }
     }
-
     return true;
   };
 
@@ -148,8 +153,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
   const isLoading = tasksLoading || columnsLoading;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4">
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={onBack}>
             <ArrowLeft className="h-4 w-4" />
@@ -226,9 +231,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
         </div>
       ) : (
         <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 pb-4">
-          <div className="flex md:grid gap-4 md:gap-4" style={{ gridTemplateColumns: `repeat(${columns?.length || 3}, minmax(280px, 1fr))` }}>
+          <div
+            className="flex md:grid gap-4 snap-x snap-mandatory md:snap-none"
+            style={{ gridTemplateColumns: `repeat(${columns?.length || 3}, minmax(280px, 1fr))` }}
+          >
             {columns?.map((column) => (
-              <div key={column.id} className="min-w-[280px] w-[75vw] md:w-auto flex-shrink-0 md:flex-shrink">
+              <div key={column.id} className="min-w-[280px] w-[80vw] md:w-auto flex-shrink-0 md:flex-shrink snap-center">
                 <KanbanColumn column={column} onDrop={handleDrop}>
                   {getTasksByColumn(column.id).map((task) => (
                     <TaskCard
@@ -238,6 +246,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
                       onClick={() => setSelectedTask(task)}
                       assignees={assigneesByTask.get(task.id)}
                       timeSpent={taskTimeMap?.get(task.id)}
+                      columns={columns}
+                      onMoveToColumn={handleMoveToColumn}
                     />
                   ))}
                 </KanbanColumn>

@@ -4,6 +4,7 @@ import { useCreateOrganization } from '@/hooks/useOrganizations';
 import { useProjects, useCreateProject } from '@/hooks/useProjects';
 import { OrganizationSettings } from './OrganizationSettings';
 import { TeamAnalyticsPage } from './TeamAnalyticsPage';
+import { TeamActivityTab } from './TeamActivityTab';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { Building2, Check, Plus, Loader2, Settings, FolderOpen, BarChart3 } from 'lucide-react';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { Building2, Plus, Loader2, Settings, FolderOpen, BarChart3, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface OrganizationPageProps {
@@ -70,43 +74,45 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onSelectProj
 
   return (
     <div className="space-y-6">
-      {/* Header with org switcher */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold">Organization</h1>
-            <p className="text-muted-foreground">Manage your team, projects and analytics</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setCreateOrgDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-1" /> New Org
-            </Button>
-            {currentOrganization && (
-              <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
-                <Settings className="h-4 w-4" />
-              </Button>
-            )}
+      {/* Header with org switcher dropdown */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold">Organization</h1>
+            <p className="text-sm text-muted-foreground">Manage your team, projects and analytics</p>
           </div>
         </div>
-
-        {/* Org switcher pills */}
-        {organizations.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {organizations.map((org) => (
-              <Button
-                key={org.id}
-                variant={currentOrganization?.id === org.id ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setCurrentOrganization(org)}
-                className="gap-1.5"
-              >
-                <Building2 className="h-3.5 w-3.5" />
-                <span className="truncate max-w-[120px]">{org.name}</span>
-                {currentOrganization?.id === org.id && <Check className="h-3.5 w-3.5" />}
-              </Button>
-            ))}
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {organizations.length > 0 && (
+            <Select
+              value={currentOrganization?.id || ''}
+              onValueChange={(val) => {
+                const org = organizations.find(o => o.id === val);
+                if (org) setCurrentOrganization(org);
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                <Building2 className="h-4 w-4 mr-2 flex-shrink-0" />
+                <SelectValue placeholder="Select org" />
+              </SelectTrigger>
+              <SelectContent>
+                {organizations.map((org) => (
+                  <SelectItem key={org.id} value={org.id}>
+                    {org.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Button variant="outline" size="sm" onClick={() => setCreateOrgDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> New
+          </Button>
+          {currentOrganization && (
+            <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)}>
+              <Settings className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Main content */}
@@ -116,6 +122,9 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onSelectProj
             <TabsList>
               <TabsTrigger value="projects" className="gap-1.5">
                 <FolderOpen className="h-4 w-4" /> Projects
+              </TabsTrigger>
+              <TabsTrigger value="activity" className="gap-1.5">
+                <Activity className="h-4 w-4" /> Activity
               </TabsTrigger>
               <TabsTrigger value="analytics" className="gap-1.5">
                 <BarChart3 className="h-4 w-4" /> Analytics
@@ -158,6 +167,10 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onSelectProj
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="activity" className="mt-4">
+            <TeamActivityTab />
           </TabsContent>
 
           <TabsContent value="analytics" className="mt-4">

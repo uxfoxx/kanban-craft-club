@@ -1,14 +1,21 @@
 import React from 'react';
-import { Task, Profile } from '@/types/database';
+import { Task, Profile, KanbanColumn } from '@/types/database';
 import { useStartTimeEntry, useActiveTimeEntry, formatDuration } from '@/hooks/useTimeTracking';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Play, Calendar, Flag, Clock } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Play, Calendar, Flag, Clock, ArrowRightLeft } from 'lucide-react';
 import { format, differenceInHours, isPast } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface TaskCardProps {
   task: Task;
@@ -16,11 +23,14 @@ interface TaskCardProps {
   onClick: () => void;
   assignees?: { user_id: string; profile: Profile }[];
   timeSpent?: number;
+  columns?: KanbanColumn[];
+  onMoveToColumn?: (taskId: string, columnId: string) => void;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, assignees = [], timeSpent }) => {
+export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, assignees = [], timeSpent, columns, onMoveToColumn }) => {
   const startTimer = useStartTimeEntry();
   const { data: activeEntry } = useActiveTimeEntry();
+  const isMobile = useIsMobile();
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('taskId', task.id);
@@ -36,14 +46,19 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
     }
   };
 
+  const handleMoveToColumn = (e: React.MouseEvent, columnId: string) => {
+    e.stopPropagation();
+    onMoveToColumn?.(task.id, columnId);
+  };
+
   const isTimerActive = activeEntry?.task_id === task.id;
 
   const getPriorityColor = () => {
     switch (task.priority) {
-      case 'high': return 'text-destructive';
-      case 'medium': return 'text-chart-4';
-      case 'low': return 'text-chart-5';
-      default: return 'text-muted-foreground';
+      case 'high': return 'border-l-destructive';
+      case 'medium': return 'border-l-chart-4';
+      case 'low': return 'border-l-chart-5';
+      default: return 'border-l-muted-foreground';
     }
   };
 
@@ -65,27 +80,59 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
   const getInitials = (name: string) =>
     name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
+  const otherColumns = columns?.filter(c => c.id !== task.column_id) || [];
+
   return (
     <Card
       className={cn(
-        'cursor-grab active:cursor-grabbing transition-all hover:shadow-md bg-card',
+        'transition-all hover:shadow-md bg-card border-l-4',
+        getPriorityColor(),
+        !isMobile && 'cursor-grab active:cursor-grabbing',
         isTimerActive && 'ring-2 ring-primary',
         deadlineStatus === 'overdue' && 'deadline-overdue',
         deadlineStatus === 'urgent' && 'deadline-urgent',
         deadlineStatus === 'warning' && 'deadline-warning'
       )}
-      draggable
-      onDragStart={handleDragStart}
+      draggable={!isMobile}
+      onDragStart={!isMobile ? handleDragStart : undefined}
       onClick={onClick}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-2 mb-2">
+      <CardContent className="p-3">
+        <div className="flex items-start justify-between gap-2 mb-1.5">
           <h4 className="font-medium text-sm line-clamp-2 flex-1">{task.title}</h4>
-          <Flag className={cn('h-4 w-4 flex-shrink-0', getPriorityColor())} />
+          {/* Move-to-column dropdown for mobile */}
+          {isMobile && otherColumns.length > 0 && onMoveToColumn && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 flex-shrink-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ArrowRightLeft className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {otherColumns.map((col) => (
+                  <DropdownMenuItem
+                    key={col.id}
+                    onClick={(e) => handleMoveToColumn(e as any, col.id)}
+                  >
+                    <div
+                      className="w-2 h-2 rounded-full mr-2 flex-shrink-0"
+                      style={{ backgroundColor: col.color || '#6366f1' }}
+                    />
+                    Move to {col.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
         
         {task.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+          <p className="text-xs text-muted-foreground line-clamp-1 mb-2">
             {task.description}
           </p>
         )}
@@ -128,7 +175,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
 
         {/* Assignee avatars */}
         {assignees.length > 0 && (
-          <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border/50">
+          <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border/50">
             <div className="flex -space-x-2">
               {assignees.slice(0, 4).map(a => (
                 <Tooltip key={a.user_id}>
