@@ -81,6 +81,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
     return membersList;
   }, [members, ownerProfile, project?.owner_id]);
 
+  const leadMember = allMembers.find(m => m.user_id === project?.lead_id);
+
   const assigneesByTask = useMemo(() => {
     const map = new Map<string, { user_id: string; profile: Profile }[]>();
     taskAssignees.forEach(a => {
