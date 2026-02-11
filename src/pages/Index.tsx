@@ -92,8 +92,14 @@ const Dashboard: React.FC = () => {
         return <PersonalDashboard onViewTimeTracking={() => setCurrentView('timetracking')} />;
       case 'workspace':
         return <WorkspacePage onSelectProject={(id) => handleSelectProject(id, 'workspace')} />;
+      case 'calendar':
+        return <PersonalCalendar />;
       case 'timetracking':
         return <TimeTrackingPage onBack={() => setCurrentView('personal')} />;
+      case 'financials':
+        return <FinancialsTab />;
+      case 'plugin-settings':
+        return <PluginSettingsPage />;
       default:
         return null;
     }
