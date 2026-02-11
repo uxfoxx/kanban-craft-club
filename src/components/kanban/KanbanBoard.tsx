@@ -5,6 +5,8 @@ import { useKanbanColumns } from '@/hooks/useKanbanColumns';
 import { useTaskAssigneesForProject, useTaskTimeForProject } from '@/hooks/useTaskAssigneesForProject';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task, Profile } from '@/types/database';
+import { useIsPluginEnabled } from '@/hooks/useOrganizationPlugins';
+import { ProjectFinancials } from '@/components/projects/ProjectFinancials';
 import { KanbanColumn } from './KanbanColumn';
 import { TaskCard } from './TaskCard';
 import { CreateTaskDialog } from './CreateTaskDialog';
