@@ -28,7 +28,7 @@ interface OrganizationPageProps {
 export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onSelectProject }) => {
   const { currentOrganization, organizations, setCurrentOrganization } = useOrganization();
   const createOrganization = useCreateOrganization();
-  const { data: orgProjects, isLoading: projectsLoading } = useProjects(currentOrganization?.id);
+  
   const createProject = useCreateProject();
 
   const [createOrgDialogOpen, setCreateOrgDialogOpen] = useState(false);
