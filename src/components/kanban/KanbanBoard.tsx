@@ -243,6 +243,17 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
           filters={filters}
           onFiltersChange={setFilters}
         />
+
+        {/* Financial Summary - Plugin Gated */}
+        {expensesEnabled && project && project.budget > 0 && (
+          <ProjectFinancials
+            projectId={projectId}
+            budget={project.budget}
+            companyPct={project.company_share_pct}
+            teamPct={project.team_share_pct}
+            finderPct={project.finder_commission_pct}
+          />
+        )}
       </div>
 
       {isLoading ? (
