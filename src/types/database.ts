@@ -181,6 +181,7 @@ export interface TaskCommission {
   user_id: string;
   amount: number;
   status: 'pending' | 'confirmed' | 'frozen';
+  manual_override: boolean;
   created_at: string;
   updated_at: string;
 }
