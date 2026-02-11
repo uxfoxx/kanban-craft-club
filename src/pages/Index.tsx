@@ -107,7 +107,10 @@ const Dashboard: React.FC = () => {
             <PageTitle currentView={currentView} selectedProjectId={selectedProjectId} />
             <div className="flex items-center gap-2 md:gap-3">
               <ActiveTimer />
-              <NotificationBell />
+              <NotificationBell onNavigateToProject={(projectId) => {
+                setCurrentView('workspace');
+                handleSelectProject(projectId, 'workspace');
+              }} />
               {profile && (
                 <button onClick={() => setProfileSettingsOpen(true)} className="rounded-full">
                   <Avatar className="h-8 w-8">

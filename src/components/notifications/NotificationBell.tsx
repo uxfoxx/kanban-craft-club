@@ -13,7 +13,11 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 
-export const NotificationBell: React.FC = () => {
+interface NotificationBellProps {
+  onNavigateToProject?: (projectId: string) => void;
+}
+
+export const NotificationBell: React.FC<NotificationBellProps> = ({ onNavigateToProject }) => {
   const [open, setOpen] = useState(false);
   const { data: notifications = [] } = useNotifications();
   const { data: unreadCount = 0 } = useUnreadCount();
@@ -123,6 +127,10 @@ export const NotificationBell: React.FC = () => {
                   onClick={() => {
                     if (!notification.read) {
                       markAsRead.mutate(notification.id);
+                    }
+                    if (notification.project_id && onNavigateToProject) {
+                      onNavigateToProject(notification.project_id);
+                      setOpen(false);
                     }
                   }}
                 >
