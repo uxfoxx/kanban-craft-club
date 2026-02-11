@@ -1,129 +1,85 @@
 
-# Combine Projects and Organization into a Unified Workspace
+
+# Make Commission Calculations Editable with Manual Override
 
 ## Overview
-Currently "Projects" and "Organization" are separate sidebar views. This plan merges them into a single **Workspace** page that shows the organization context with projects, team activity, analytics, and financial records all in one place. The User Wallet moves from the personal dashboard into the organization context since earnings come from org projects.
+Currently, all commission amounts and statuses are computed automatically by the `recalculate_project_financials` database function and cannot be changed by users. This plan adds the ability for project owners/org admins to manually override any commission amount or status, while keeping the automatic algorithm as the default. Manual overrides are preserved across recalculations.
 
 ---
 
-## Navigation Changes
+## 1. Database Changes (Migration)
 
-### Sidebar (AppSidebar.tsx)
-Current nav items:
-- Dashboard | Projects | Organization | Time Tracking
+### Add `manual_override` column to `task_commissions`
+| Column | Type | Default | Notes |
+|--------|------|---------|-------|
+| manual_override | boolean | false | When true, recalculation skips this row |
 
-New nav items:
-- **Dashboard** -- personal tasks, time card (wallet removed from here)
-- **Workspace** -- replaces both "Projects" and "Organization"
-- **Time Tracking** -- unchanged
+### Add RLS policy for UPDATE on `task_commissions`
+- Project owners and org members (admins) can UPDATE task_commissions for their projects
+- Regular users cannot edit commissions
 
-The `ViewType` changes from `'personal' | 'projects' | 'team' | 'timetracking'` to `'personal' | 'workspace' | 'timetracking'`.
-
-### Index.tsx
-- Remove the separate `projects` and `team` cases from `renderContent()`
-- Add single `workspace` case that renders the new `WorkspacePage` component
-- Update `viewTitles` accordingly
-
----
-
-## New Unified Workspace Page
-
-### New file: `src/components/workspace/WorkspacePage.tsx`
-
-This is the main combined view. At the top: org switcher + create org + settings button + create project button. Below: a tabbed layout.
-
-**Layout:**
-```text
-+----------------------------------------------------------+
-| [Org Switcher Dropdown]  [+ New Org] [Settings]          |
-+----------------------------------------------------------+
-| [Projects] [Activity] [Analytics] [Financials]           |
-+----------------------------------------------------------+
-|                                                          |
-|  (Tab content area)                                      |
-|                                                          |
-+----------------------------------------------------------+
-```
-
-**Tabs:**
-
-1. **Projects** (default) -- Shows project cards for the selected org (and personal projects when no org). Includes the "New Project" button. Filter chips: All | Personal | Organization. Reuses existing `ProjectCard` component.
-
-2. **Activity** -- Reuses existing `TeamActivityTab` showing who is working on what, active timers, etc.
-
-3. **Analytics** -- Reuses existing `TeamAnalyticsPage` showing team time summaries and member details.
-
-4. **Financials** (plugin-gated, only visible when expenses plugin is enabled) -- New tab showing:
-   - **User Wallet card** at the top (balance, this month earnings, monthly target)
-   - **Organization Financial Summary**: total budget across all org projects, total expenses, total gross profit
-   - **Per-Project Financial Breakdown**: a table/card list showing each project's budget, expenses, profit, commission pool, frozen status
-   - **Commission Records**: a table showing individual task commissions with user, task, amount, status (pending/confirmed/frozen), date
-   - **Percentage Splits**: visual breakdown of company/team/finder shares
+### Update `recalculate_project_financials` function
+The key change: when distributing commissions, the function now:
+1. Only reverts wallet balances for **non-overridden** confirmed commissions
+2. Only deletes **non-overridden** commissions before recalculating
+3. Skips inserting new commissions for task+user combos that have `manual_override = true`
+4. Manually overridden commissions remain untouched through recalculations
+5. When freezing (gross profit negative), overridden commissions are still frozen (safety measure) but their `manual_override` flag is preserved so they restore correctly when profit recovers
 
 ---
 
-## Financials Tab Detail
+## 2. Frontend: Editable Commission Records
 
-### New file: `src/components/workspace/FinancialsTab.tsx`
+### Modify: `src/components/workspace/FinancialsTab.tsx`
+In the Commission Records table (Section D), add inline editing:
+- Each commission row gets an "Edit" icon button (pencil icon)
+- Clicking it turns the amount into an editable input and the status into a dropdown
+- "Save" and "Cancel" buttons appear inline
+- Only visible to project owners / org admins
+- A small "Manual" badge appears on overridden commissions to distinguish them from auto-calculated ones
+- A "Reset to Auto" button on overridden commissions to remove the override and let the algorithm recalculate
 
-Sections within this tab:
+Also in the per-project breakdown (Section C), the task commission sub-table gets the same edit capability.
 
-**A. My Wallet** (top)
-- Reuses the `UserWallet` component (moved from personal dashboard)
-- Shows balance, this month's earnings, monthly target progress
+### Modify: `src/components/kanban/TaskDetailSheet.tsx`
+In the commission display area (already plugin-gated), allow the project owner to click and edit the commission amount for that specific task's assignees.
 
-**B. Organization Overview Cards** (row of summary cards)
-- Total Budget (sum of all org project budgets)
-- Total Expenses (sum of all project total_expenses)
-- Total Gross Profit (sum of all project gross_profits)
-- Frozen Projects count
+---
 
-**C. Project Financial Table**
-- Collapsible card/accordion per project showing:
-  - Project name, budget, direct expenses, overhead, gross profit
-  - Company/Team/Finder split amounts and percentages
-  - Frozen badge if applicable
-  - Click to expand shows task-level commission breakdown
+## 3. New Hook for Commission Editing
 
-**D. Commission Records**
-- Sortable/filterable table showing:
-  - Task name, assignee, amount, status, date
-  - Filter by status (all/confirmed/pending/frozen)
-  - Filter by project
-
-### New file: `src/hooks/useOrgFinancials.ts`
-- `useOrgProjectFinancials(orgId)` -- fetches all project_financials for projects in an org
-- `useOrgCommissions(orgId)` -- fetches all task_commissions for the org's projects
-- Uses existing tables, no schema changes needed
+### New file: `src/hooks/useUpdateCommission.ts`
+- `useUpdateCommission()` -- mutation that updates a task_commission's amount, status, and sets `manual_override = true`
+- `useResetCommissionOverride(commissionId)` -- sets `manual_override = false` then triggers a recalculation by touching the project (a no-op update to trigger the recalc trigger)
 
 ---
 
 ## Files Summary
 
-### New files (3):
-1. `src/components/workspace/WorkspacePage.tsx` -- unified workspace with tabs
-2. `src/components/workspace/FinancialsTab.tsx` -- financial records, analytics, wallet
-3. `src/hooks/useOrgFinancials.ts` -- hooks for org-level financial data
+### New files (1):
+1. `src/hooks/useUpdateCommission.ts` -- mutation hooks for editing/resetting commissions
 
-### Modified files (4):
-1. `src/components/layout/AppSidebar.tsx` -- change nav items: remove "Projects" and "Organization", add "Workspace"
-2. `src/pages/Index.tsx` -- update ViewType, remove `projects`/`team` cases, add `workspace` case, update viewTitles
-3. `src/components/personal/PersonalDashboard.tsx` -- remove UserWallet import and component (it moves to Financials tab)
-4. `src/components/organizations/OrganizationPage.tsx` -- no longer used as a standalone page (kept for reference but not rendered)
+### Modified files (3):
+1. `src/components/workspace/FinancialsTab.tsx` -- inline edit on commission rows with Manual badge and Reset button
+2. `src/components/kanban/TaskDetailSheet.tsx` -- editable commission amount for task assignees
+3. `src/types/database.ts` -- add `manual_override` to TaskCommission interface
 
-### No database changes needed
-All data is already available in existing tables (project_financials, task_commissions, user_wallets, projects, organization_plugins). The new hooks simply query across projects for a given organization.
+### Database migration:
+- Add `manual_override` boolean column to `task_commissions`
+- Add UPDATE RLS policy on `task_commissions` for project owners/org admins
+- Replace `recalculate_project_financials` function to skip manually overridden commissions during recalculation
 
 ---
 
 ## Key Design Decisions
 
-1. **Single "Workspace" replaces two nav items**: reduces navigation complexity. The org switcher at the top gives context, and tabs give access to everything -- projects, people, analytics, and money.
+1. **Override flag, not separate table**: A simple `manual_override` boolean on the existing `task_commissions` table is the cleanest approach. No need for a separate overrides table.
 
-2. **Wallet lives under Financials tab**: since earnings come from organization project commissions, it makes sense contextually. The personal dashboard remains focused on tasks and time.
+2. **Overrides survive recalculation**: The recalc function explicitly skips rows where `manual_override = true`, so manual edits are never lost when tasks are moved, costs change, or budgets are updated.
 
-3. **Financials tab is plugin-gated**: only shows when the expenses plugin is enabled for the selected org. No clutter for orgs that don't use financial tracking.
+3. **Safety freeze still applies**: Even manually overridden commissions get frozen when gross profit goes negative. This prevents paying out money that does not exist, regardless of manual edits.
 
-4. **Commission records table**: provides full transparency into who earned what, on which task, with what status -- the "records analysis and percentages and everything" the user asked for.
+4. **Reset to auto**: Users can easily remove an override and let the algorithm take over again, keeping the workflow flexible.
 
-5. **No database migration needed**: all the data structures already exist. This is purely a UI reorganization with new query hooks.
+5. **Visual distinction**: A "Manual" badge on overridden commissions makes it clear which values are auto-calculated vs manually set, preventing confusion.
+
