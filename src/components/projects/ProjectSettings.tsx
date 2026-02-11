@@ -94,6 +94,7 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
   const startEditing = () => {
     setEditedName(project?.name || '');
     setEditedDescription(project?.description || '');
+    setEditedStartDate(project?.start_date ? new Date(project.start_date) : undefined);
     setIsEditingProject(true);
   };
 
