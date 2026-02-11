@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { TodayTimeCard } from './TodayTimeCard';
 import { TaskDueToday } from './TaskDueToday';
 import { QuickAddTask } from './QuickAddTask';
+import { UserWallet } from './UserWallet';
 
 interface PersonalDashboardProps {
   onViewTimeTracking: () => void;
