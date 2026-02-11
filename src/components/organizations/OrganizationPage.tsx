@@ -38,7 +38,7 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onSelectProj
   const [orgDescription, setOrgDescription] = useState('');
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
-  const [activeTab, setActiveTab] = useState('projects');
+  const [activeTab, setActiveTab] = useState('activity');
 
   const handleCreateOrganization = async (e: React.FormEvent) => {
     e.preventDefault();
