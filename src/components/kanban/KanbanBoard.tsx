@@ -59,6 +59,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newMemberRole, setNewMemberRole] = useState<'admin' | 'member'>('member');
+  const [viewMode, setViewMode] = useState<ProjectViewMode>('kanban');
   const [filters, setFilters] = useState<KanbanFilterState>({
     assigneeIds: [],
     priorities: [],
