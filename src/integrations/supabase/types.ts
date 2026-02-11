@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          mentions: string[] | null
+          subtask_id: string | null
+          task_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          mentions?: string[] | null
+          subtask_id?: string | null
+          task_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          mentions?: string[] | null
+          subtask_id?: string | null
+          task_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_subtask_id_fkey"
+            columns: ["subtask_id"]
+            isOneToOne: false
+            referencedRelation: "subtasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kanban_columns: {
         Row: {
           color: string | null
@@ -273,6 +321,7 @@ export type Database = {
           name: string
           organization_id: string | null
           owner_id: string
+          start_date: string | null
           updated_at: string
         }
         Insert: {
@@ -282,6 +331,7 @@ export type Database = {
           name: string
           organization_id?: string | null
           owner_id: string
+          start_date?: string | null
           updated_at?: string
         }
         Update: {
@@ -291,6 +341,7 @@ export type Database = {
           name?: string
           organization_id?: string | null
           owner_id?: string
+          start_date?: string | null
           updated_at?: string
         }
         Relationships: [
