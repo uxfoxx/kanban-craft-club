@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useCreateOrganization } from '@/hooks/useOrganizations';
-import { useCreateProject } from '@/hooks/useProjects';
+
 import { OrganizationSettings } from './OrganizationSettings';
 import { TeamAnalyticsPage } from './TeamAnalyticsPage';
 import { TeamActivityTab } from './TeamActivityTab';
