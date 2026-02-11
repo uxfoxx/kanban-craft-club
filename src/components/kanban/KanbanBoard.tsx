@@ -160,8 +160,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
     return true;
   };
 
+  const filteredTasks = useMemo(() => tasks?.filter(matchesFilters) || [], [tasks, filters, assigneesByTask, columns]);
+
   const getTasksByColumn = (columnId: string): Task[] => {
-    return tasks?.filter((task) => task.column_id === columnId && matchesFilters(task)) || [];
+    return filteredTasks.filter((task) => task.column_id === columnId);
   };
 
   const isLoading = tasksLoading || columnsLoading;
