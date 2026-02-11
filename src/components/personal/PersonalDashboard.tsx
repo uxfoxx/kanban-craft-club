@@ -4,7 +4,6 @@ import { format } from 'date-fns';
 import { TodayTimeCard } from './TodayTimeCard';
 import { TaskDueToday } from './TaskDueToday';
 import { QuickAddTask } from './QuickAddTask';
-import { UserWallet } from './UserWallet';
 
 interface PersonalDashboardProps {
   onViewTimeTracking: () => void;
@@ -39,10 +38,9 @@ export const PersonalDashboard: React.FC<PersonalDashboardProps> = ({ onViewTime
           <TaskDueToday />
         </div>
         
-        {/* Secondary: Time & Wallet */}
+        {/* Secondary: Time */}
         <div className="space-y-4">
           <TodayTimeCard onViewHistory={onViewTimeTracking} />
-          <UserWallet />
         </div>
       </div>
     </div>

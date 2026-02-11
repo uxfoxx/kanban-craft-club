@@ -7,11 +7,10 @@ import { AppSidebar, ViewType } from '@/components/layout/AppSidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { ActiveTimer } from '@/components/time/ActiveTimer';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
-import { ProjectList } from '@/components/projects/ProjectList';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { PersonalDashboard } from '@/components/personal/PersonalDashboard';
 import { TimeTrackingPage } from '@/components/personal/TimeTrackingPage';
-import { OrganizationPage } from '@/components/organizations/OrganizationPage';
+import { WorkspacePage } from '@/components/workspace/WorkspacePage';
 import { ProfileSettings } from '@/components/profile/ProfileSettings';
 import { useProject } from '@/hooks/useProjects';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -19,8 +18,7 @@ import { Loader2 } from 'lucide-react';
 
 const viewTitles: Record<ViewType, string> = {
   personal: 'Dashboard',
-  projects: 'Projects',
-  team: 'Organization',
+  workspace: 'Workspace',
   timetracking: 'Time Tracking',
 };
 
@@ -40,10 +38,10 @@ const Dashboard: React.FC = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<ViewType>('personal');
   const [profileSettingsOpen, setProfileSettingsOpen] = useState(false);
-  const [kanbanSource, setKanbanSource] = useState<ViewType>('projects');
+  const [kanbanSource, setKanbanSource] = useState<ViewType>('workspace');
 
   useEffect(() => {
-    if (currentView !== 'projects' && currentView !== 'team') {
+    if (currentView !== 'workspace') {
       setSelectedProjectId(null);
     }
   }, [currentView]);
@@ -65,7 +63,7 @@ const Dashboard: React.FC = () => {
     setSelectedProjectId(null);
   };
 
-  const handleSelectProject = (projectId: string, source: ViewType = 'projects') => {
+  const handleSelectProject = (projectId: string, source: ViewType = 'workspace') => {
     setSelectedProjectId(projectId);
     setKanbanSource(source);
   };
@@ -86,10 +84,8 @@ const Dashboard: React.FC = () => {
     switch (currentView) {
       case 'personal':
         return <PersonalDashboard onViewTimeTracking={() => setCurrentView('timetracking')} />;
-      case 'projects':
-        return <ProjectList onSelectProject={(id) => handleSelectProject(id, 'projects')} />;
-      case 'team':
-        return <OrganizationPage onSelectProject={(id) => handleSelectProject(id, 'team')} />;
+      case 'workspace':
+        return <WorkspacePage onSelectProject={(id) => handleSelectProject(id, 'workspace')} />;
       case 'timetracking':
         return <TimeTrackingPage onBack={() => setCurrentView('personal')} />;
       default:
