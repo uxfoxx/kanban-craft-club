@@ -66,6 +66,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         priority,
         columnId: columnId || defaultColumn?.id,
         dueDate: dueDate || undefined,
+        cost: cost ? parseFloat(cost) : undefined,
       });
 
       // Add assignees
