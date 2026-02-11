@@ -71,6 +71,7 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
         projectId,
         name: editedName.trim(),
         description: editedDescription.trim() || undefined,
+        startDate: editedStartDate ? format(editedStartDate, 'yyyy-MM-dd') : null,
       });
       toast.success('Project updated');
       setIsEditingProject(false);
