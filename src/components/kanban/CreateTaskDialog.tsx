@@ -30,6 +30,7 @@ interface CreateTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   members?: { user_id: string; role: string; profiles: Profile }[];
+  expensesEnabled?: boolean;
 }
 
 export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
