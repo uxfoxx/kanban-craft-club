@@ -13,22 +13,27 @@ import { CreateTaskDialog } from './CreateTaskDialog';
 import { TaskDetailSheet } from './TaskDetailSheet';
 import { ColumnManager } from './ColumnManager';
 import { KanbanFilters, KanbanFilterState } from './KanbanFilters';
+import { ListView } from './ListView';
+import { GanttView } from './GanttView';
 import { ProjectSettings } from '@/components/projects/ProjectSettings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Plus, UserPlus, Loader2, Users, Settings, UserCheck } from 'lucide-react';
+import { Plus, UserPlus, Loader2, Users, Settings, UserCheck, Columns3, List, GanttChart } from 'lucide-react';
 import {
   Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage,
 } from '@/components/ui/breadcrumb';
 import { toast } from 'sonner';
 import { isPast, differenceInHours } from 'date-fns';
+
+type ProjectViewMode = 'kanban' | 'list' | 'gantt';
 
 interface KanbanBoardProps {
   projectId: string;
