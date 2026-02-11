@@ -82,11 +82,37 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
         name: editedName.trim(),
         description: editedDescription.trim() || undefined,
         startDate: editedStartDate ? format(editedStartDate, 'yyyy-MM-dd') : null,
+        leadId: editedLeadId === 'none' ? null : editedLeadId || undefined,
       });
       toast.success('Project updated');
       setIsEditingProject(false);
     } catch (error) {
       toast.error('Failed to update project');
+    }
+  };
+
+  const handleSaveFinancials = async () => {
+    const company = parseFloat(editedCompanyPct);
+    const team = parseFloat(editedTeamPct);
+    const finder = parseFloat(editedFinderPct);
+    if (Math.abs(company + team + finder - 100) > 0.01) {
+      toast.error('Share percentages must sum to 100%');
+      return;
+    }
+    try {
+      await updateProject.mutateAsync({
+        projectId,
+        name: project?.name || '',
+        budget: parseFloat(editedBudget) || 0,
+        overheadExpenses: parseFloat(editedOverhead) || 0,
+        companySharePct: company,
+        teamSharePct: team,
+        finderCommissionPct: finder,
+      });
+      toast.success('Financials updated');
+      setIsEditingFinancials(false);
+    } catch {
+      toast.error('Failed to update financials');
     }
   };
 
