@@ -38,6 +38,7 @@ export interface Project {
   description: string | null;
   owner_id: string;
   organization_id: string | null;
+  start_date: string | null;
   created_at: string;
   updated_at: string;
 }
