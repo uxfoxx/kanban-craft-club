@@ -63,7 +63,7 @@ const Dashboard: React.FC = () => {
     setSelectedProjectId(null);
   };
 
-  const handleSelectProject = (projectId: string, source: ViewType = 'projects') => {
+  const handleSelectProject = (projectId: string, source: ViewType = 'workspace') => {
     setSelectedProjectId(projectId);
     setKanbanSource(source);
   };
