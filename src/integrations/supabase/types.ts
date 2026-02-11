@@ -214,6 +214,38 @@ export type Database = {
           },
         ]
       }
+      organization_plugins: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          organization_id: string
+          plugin_name: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          organization_id: string
+          plugin_name: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          organization_id?: string
+          plugin_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_plugins_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string
@@ -274,6 +306,50 @@ export type Database = {
         }
         Relationships: []
       }
+      project_financials: {
+        Row: {
+          company_earnings: number
+          finder_commission: number
+          gross_profit: number
+          id: string
+          is_frozen: boolean
+          project_id: string
+          team_pool: number
+          total_expenses: number
+          updated_at: string
+        }
+        Insert: {
+          company_earnings?: number
+          finder_commission?: number
+          gross_profit?: number
+          id?: string
+          is_frozen?: boolean
+          project_id: string
+          team_pool?: number
+          total_expenses?: number
+          updated_at?: string
+        }
+        Update: {
+          company_earnings?: number
+          finder_commission?: number
+          gross_profit?: number
+          id?: string
+          is_frozen?: boolean
+          project_id?: string
+          team_pool?: number
+          total_expenses?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_financials_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_members: {
         Row: {
           created_at: string
@@ -315,33 +391,57 @@ export type Database = {
       }
       projects: {
         Row: {
+          budget: number
+          company_share_pct: number
           created_at: string
           description: string | null
+          direct_expenses: number
+          finder_commission_pct: number
           id: string
+          lead_id: string | null
           name: string
           organization_id: string | null
+          overhead_expenses: number
           owner_id: string
+          project_type: string | null
           start_date: string | null
+          team_share_pct: number
           updated_at: string
         }
         Insert: {
+          budget?: number
+          company_share_pct?: number
           created_at?: string
           description?: string | null
+          direct_expenses?: number
+          finder_commission_pct?: number
           id?: string
+          lead_id?: string | null
           name: string
           organization_id?: string | null
+          overhead_expenses?: number
           owner_id: string
+          project_type?: string | null
           start_date?: string | null
+          team_share_pct?: number
           updated_at?: string
         }
         Update: {
+          budget?: number
+          company_share_pct?: number
           created_at?: string
           description?: string | null
+          direct_expenses?: number
+          finder_commission_pct?: number
           id?: string
+          lead_id?: string | null
           name?: string
           organization_id?: string | null
+          overhead_expenses?: number
           owner_id?: string
+          project_type?: string | null
           start_date?: string | null
+          team_share_pct?: number
           updated_at?: string
         }
         Relationships: [
@@ -505,10 +605,59 @@ export type Database = {
           },
         ]
       }
+      task_commissions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          project_id: string
+          status: string
+          task_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          project_id: string
+          status?: string
+          task_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          project_id?: string
+          status?: string
+          task_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_commissions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_commissions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assignee_id: string | null
           column_id: string | null
+          cost: number
           created_at: string
           created_by: string
           description: string | null
@@ -519,10 +668,12 @@ export type Database = {
           status: string
           title: string
           updated_at: string
+          weight_pct: number | null
         }
         Insert: {
           assignee_id?: string | null
           column_id?: string | null
+          cost?: number
           created_at?: string
           created_by: string
           description?: string | null
@@ -533,10 +684,12 @@ export type Database = {
           status?: string
           title: string
           updated_at?: string
+          weight_pct?: number | null
         }
         Update: {
           assignee_id?: string | null
           column_id?: string | null
+          cost?: number
           created_at?: string
           created_by?: string
           description?: string | null
@@ -547,6 +700,7 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+          weight_pct?: number | null
         }
         Relationships: [
           {
@@ -606,6 +760,33 @@ export type Database = {
           },
         ]
       }
+      user_wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          monthly_target: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          monthly_target?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          monthly_target?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -634,6 +815,10 @@ export type Database = {
       is_project_owner: {
         Args: { p_project_id: string; p_user_id: string }
         Returns: boolean
+      }
+      recalculate_project_financials: {
+        Args: { p_project_id: string }
+        Returns: undefined
       }
     }
     Enums: {
