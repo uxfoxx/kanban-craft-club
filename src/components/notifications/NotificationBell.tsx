@@ -128,6 +128,10 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onNavigateTo
                     if (!notification.read) {
                       markAsRead.mutate(notification.id);
                     }
+                    if (notification.project_id && onNavigateToProject) {
+                      onNavigateToProject(notification.project_id);
+                      setOpen(false);
+                    }
                   }}
                 >
                   <div className="flex gap-3">
