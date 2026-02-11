@@ -157,31 +157,6 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onSelectProj
         </DialogContent>
       </Dialog>
 
-      {/* Create Project Dialog */}
-      <Dialog open={createProjectDialogOpen} onOpenChange={setCreateProjectDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create Project</DialogTitle>
-            <DialogDescription>
-              Create a new project for {currentOrganization?.name}.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleCreateProject} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="proj-name">Project Name</Label>
-              <Input id="proj-name" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="New Project" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="proj-description">Description</Label>
-              <Textarea id="proj-description" value={projectDescription} onChange={(e) => setProjectDescription(e.target.value)} placeholder="What's this project about?" rows={3} />
-            </div>
-            <Button type="submit" className="w-full" disabled={createProject.isPending}>
-              {createProject.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Project
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* Settings */}
       {currentOrganization && (
