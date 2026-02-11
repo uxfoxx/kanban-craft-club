@@ -52,23 +52,8 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onSelectProj
     }
   };
 
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentOrganization) return;
-    try {
-      await createProject.mutateAsync({
-        name: projectName,
-        description: projectDescription,
-        organizationId: currentOrganization.id,
-      });
-      toast.success('Project created!');
-      setCreateProjectDialogOpen(false);
-      setProjectName('');
-      setProjectDescription('');
-    } catch {
-      toast.error('Failed to create project');
-    }
-  };
+
+
 
   return (
     <div className="space-y-6">
