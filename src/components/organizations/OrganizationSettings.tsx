@@ -71,6 +71,27 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
   const [newMemberRole, setNewMemberRole] = useState<'admin' | 'member'>('member');
   const [isAddingMember, setIsAddingMember] = useState(false);
 
+  const { data: plugins = [] } = useOrganizationPlugins(organizationId);
+  const togglePlugin = useTogglePlugin();
+
+  const AVAILABLE_PLUGINS = [
+    {
+      name: 'expenses',
+      label: 'Expenses & Commissions',
+      description: 'Track project budgets, expenses, and team commissions',
+      icon: DollarSign,
+    },
+  ];
+
+  const handleTogglePlugin = async (pluginName: string, enabled: boolean) => {
+    try {
+      await togglePlugin.mutateAsync({ organizationId, pluginName, enabled });
+      toast.success(enabled ? 'Plugin enabled' : 'Plugin disabled');
+    } catch {
+      toast.error('Failed to update plugin');
+    }
+  };
+
   const isOwner = organization?.owner_id === user?.id;
   const currentUserMember = members?.find(m => m.user_id === user?.id);
   const isAdmin = isOwner || currentUserMember?.role === 'admin';
