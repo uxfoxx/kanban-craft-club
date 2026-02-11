@@ -30,6 +30,7 @@ interface CreateTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   members?: { user_id: string; role: string; profiles: Profile }[];
+  expensesEnabled?: boolean;
 }
 
 export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
@@ -38,6 +39,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   open,
   onOpenChange,
   members,
+  expensesEnabled,
 }) => {
   const createTask = useCreateTask();
   const addAssignee = useAddTaskAssignee();
@@ -48,6 +50,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [columnId, setColumnId] = useState<string>('');
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [dueDate, setDueDate] = useState('');
+  const [cost, setCost] = useState('');
 
   // Get default column (first one or one marked as default)
   const defaultColumn = columns?.find(c => c.is_default) || columns?.[0];
@@ -63,6 +66,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         priority,
         columnId: columnId || defaultColumn?.id,
         dueDate: dueDate || undefined,
+        cost: cost ? parseFloat(cost) : undefined,
       });
 
       // Add assignees
@@ -85,6 +89,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setColumnId('');
     setSelectedAssignees([]);
     setDueDate('');
+    setCost('');
   };
 
   const toggleAssignee = (userId: string) => {
@@ -151,7 +156,22 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 onChange={(e) => setDueDate(e.target.value)}
               />
             </div>
-          </div>
+            </div>
+
+          {expensesEnabled && (
+            <div className="space-y-2">
+              <Label htmlFor="task-cost">Cost ($)</Label>
+              <Input
+                id="task-cost"
+                type="number"
+                value={cost}
+                onChange={(e) => setCost(e.target.value)}
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+              />
+            </div>
+          )}
 
           {columns && columns.length > 0 && (
             <div className="space-y-2">

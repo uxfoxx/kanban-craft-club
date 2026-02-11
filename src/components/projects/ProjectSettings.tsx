@@ -12,6 +12,13 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -30,9 +37,10 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Trash2, Crown, Shield, User, Pencil, Save, XCircle, Building2, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, Trash2, Crown, Shield, User, Pencil, Save, XCircle, Building2, Calendar as CalendarIcon, DollarSign, UserCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { useIsPluginEnabled } from '@/hooks/useOrganizationPlugins';
 
 interface ProjectSettingsProps {
   projectId: string;
@@ -58,8 +66,16 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
   const [editedName, setEditedName] = useState('');
   const [editedDescription, setEditedDescription] = useState('');
   const [editedStartDate, setEditedStartDate] = useState<Date | undefined>();
+  const [editedLeadId, setEditedLeadId] = useState<string>('');
+  const [isEditingFinancials, setIsEditingFinancials] = useState(false);
+  const [editedBudget, setEditedBudget] = useState('');
+  const [editedOverhead, setEditedOverhead] = useState('');
+  const [editedCompanyPct, setEditedCompanyPct] = useState('');
+  const [editedTeamPct, setEditedTeamPct] = useState('');
+  const [editedFinderPct, setEditedFinderPct] = useState('');
 
   const isOwner = project?.owner_id === user?.id;
+  const expensesEnabled = useIsPluginEnabled(project?.organization_id, 'expenses');
 
   const handleSaveProject = async () => {
     if (!editedName.trim()) {
@@ -73,11 +89,37 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
         name: editedName.trim(),
         description: editedDescription.trim() || undefined,
         startDate: editedStartDate ? format(editedStartDate, 'yyyy-MM-dd') : null,
+        leadId: editedLeadId === 'none' ? null : editedLeadId || undefined,
       });
       toast.success('Project updated');
       setIsEditingProject(false);
     } catch (error) {
       toast.error('Failed to update project');
+    }
+  };
+
+  const handleSaveFinancials = async () => {
+    const company = parseFloat(editedCompanyPct);
+    const team = parseFloat(editedTeamPct);
+    const finder = parseFloat(editedFinderPct);
+    if (Math.abs(company + team + finder - 100) > 0.01) {
+      toast.error('Share percentages must sum to 100%');
+      return;
+    }
+    try {
+      await updateProject.mutateAsync({
+        projectId,
+        name: project?.name || '',
+        budget: parseFloat(editedBudget) || 0,
+        overheadExpenses: parseFloat(editedOverhead) || 0,
+        companySharePct: company,
+        teamSharePct: team,
+        finderCommissionPct: finder,
+      });
+      toast.success('Financials updated');
+      setIsEditingFinancials(false);
+    } catch {
+      toast.error('Failed to update financials');
     }
   };
 
@@ -96,8 +138,20 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
     setEditedName(project?.name || '');
     setEditedDescription(project?.description || '');
     setEditedStartDate(project?.start_date ? new Date(project.start_date) : undefined);
+    setEditedLeadId(project?.lead_id || '');
     setIsEditingProject(true);
   };
+
+  const startEditingFinancials = () => {
+    setEditedBudget(String(project?.budget || 0));
+    setEditedOverhead(String(project?.overhead_expenses || 0));
+    setEditedCompanyPct(String(project?.company_share_pct || 50));
+    setEditedTeamPct(String(project?.team_share_pct || 40));
+    setEditedFinderPct(String(project?.finder_commission_pct || 10));
+    setIsEditingFinancials(true);
+  };
+
+  const leadProfile = orgMembers?.find(m => m.user_id === project?.lead_id);
 
   const getInitials = (name: string) => {
     return name
@@ -184,6 +238,25 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
                         </PopoverContent>
                       </Popover>
                     </div>
+                    {/* Project Lead */}
+                    {orgMembers && orgMembers.length > 0 && (
+                      <div className="space-y-2">
+                        <Label>Project Lead</Label>
+                        <Select value={editedLeadId || 'none'} onValueChange={setEditedLeadId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select lead" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">No lead</SelectItem>
+                            {orgMembers.map((m) => (
+                              <SelectItem key={m.user_id} value={m.user_id}>
+                                {m.profiles?.full_name || m.profiles?.email || 'Unknown'}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     <div className="flex gap-2">
                       <Button size="sm" onClick={handleSaveProject} disabled={updateProject.isPending}>
                         {updateProject.isPending ? (
@@ -200,11 +273,17 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
                     </div>
                   </div>
                 ) : (
-                  <div className="p-3 rounded-lg bg-muted/50 space-y-1">
+                  <div className="p-3 rounded-lg bg-muted/50 space-y-2">
                     <p className="font-medium">{project?.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {project?.description || 'No description'}
                     </p>
+                    {leadProfile && (
+                      <div className="flex items-center gap-1.5">
+                        <UserCheck className="h-3 w-3 text-primary" />
+                        <span className="text-xs text-muted-foreground">Lead: {leadProfile.profiles?.full_name}</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -303,6 +382,74 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
               </p>
             )}
           </div>
+
+          {/* Financials - Plugin Gated */}
+          {expensesEnabled && isOwner && (
+            <>
+              <Separator />
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-primary" />
+                    Financials
+                  </h3>
+                  {!isEditingFinancials && (
+                    <Button variant="ghost" size="sm" onClick={startEditingFinancials}>
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                  )}
+                </div>
+                {isEditingFinancials ? (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>Budget</Label>
+                      <Input type="number" value={editedBudget} onChange={(e) => setEditedBudget(e.target.value)} min="0" step="0.01" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Overhead Expenses</Label>
+                      <Input type="number" value={editedOverhead} onChange={(e) => setEditedOverhead(e.target.value)} min="0" step="0.01" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Company %</Label>
+                        <Input type="number" value={editedCompanyPct} onChange={(e) => setEditedCompanyPct(e.target.value)} min="0" max="100" step="0.01" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Team %</Label>
+                        <Input type="number" value={editedTeamPct} onChange={(e) => setEditedTeamPct(e.target.value)} min="0" max="100" step="0.01" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Finder %</Label>
+                        <Input type="number" value={editedFinderPct} onChange={(e) => setEditedFinderPct(e.target.value)} min="0" max="100" step="0.01" />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleSaveFinancials} disabled={updateProject.isPending}>
+                        {updateProject.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                        Save
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setIsEditingFinancials(false)}>Cancel</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-lg bg-muted/50 space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Budget</span>
+                      <span className="font-medium">${Number(project?.budget || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Overhead</span>
+                      <span className="font-medium">${Number(project?.overhead_expenses || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Company {project?.company_share_pct}% / Team {project?.team_share_pct}% / Finder {project?.finder_commission_pct}%</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           {/* Delete Project */}
           {isOwner && (

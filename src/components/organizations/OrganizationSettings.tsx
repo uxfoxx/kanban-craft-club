@@ -34,9 +34,12 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Trash2, Crown, Shield, User, Pencil, Save, XCircle, UserPlus } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, Trash2, Crown, Shield, User, Pencil, Save, XCircle, UserPlus, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useOrganizationPlugins, useTogglePlugin } from '@/hooks/useOrganizationPlugins';
 
 interface OrganizationSettingsProps {
   organizationId: string;
@@ -67,6 +70,27 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newMemberRole, setNewMemberRole] = useState<'admin' | 'member'>('member');
   const [isAddingMember, setIsAddingMember] = useState(false);
+
+  const { data: plugins = [] } = useOrganizationPlugins(organizationId);
+  const togglePlugin = useTogglePlugin();
+
+  const AVAILABLE_PLUGINS = [
+    {
+      name: 'expenses',
+      label: 'Expenses & Commissions',
+      description: 'Track project budgets, expenses, and team commissions',
+      icon: DollarSign,
+    },
+  ];
+
+  const handleTogglePlugin = async (pluginName: string, enabled: boolean) => {
+    try {
+      await togglePlugin.mutateAsync({ organizationId, pluginName, enabled });
+      toast.success(enabled ? 'Plugin enabled' : 'Plugin disabled');
+    } catch {
+      toast.error('Failed to update plugin');
+    }
+  };
 
   const isOwner = organization?.owner_id === user?.id;
   const currentUserMember = members?.find(m => m.user_id === user?.id);
@@ -412,6 +436,42 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
               </div>
             )}
           </div>
+
+          {/* Plugins */}
+          {isAdmin && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="text-sm font-medium mb-4">Plugins</h3>
+                <div className="space-y-3">
+                  {AVAILABLE_PLUGINS.map((plugin) => {
+                    const isEnabled = plugins.find(p => p.plugin_name === plugin.name)?.enabled ?? false;
+                    const Icon = plugin.icon;
+                    return (
+                      <Card key={plugin.name}>
+                        <CardHeader className="p-4 pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm flex items-center gap-2">
+                              <Icon className="h-4 w-4 text-primary" />
+                              {plugin.label}
+                            </CardTitle>
+                            <Switch
+                              checked={isEnabled}
+                              onCheckedChange={(checked) => handleTogglePlugin(plugin.name, checked)}
+                              disabled={togglePlugin.isPending}
+                            />
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                          <CardDescription className="text-xs">{plugin.description}</CardDescription>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Delete Organization */}
           {isOwner && (

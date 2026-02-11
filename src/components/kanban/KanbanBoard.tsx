@@ -5,6 +5,8 @@ import { useKanbanColumns } from '@/hooks/useKanbanColumns';
 import { useTaskAssigneesForProject, useTaskTimeForProject } from '@/hooks/useTaskAssigneesForProject';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task, Profile } from '@/types/database';
+import { useIsPluginEnabled } from '@/hooks/useOrganizationPlugins';
+import { ProjectFinancials } from '@/components/projects/ProjectFinancials';
 import { KanbanColumn } from './KanbanColumn';
 import { TaskCard } from './TaskCard';
 import { CreateTaskDialog } from './CreateTaskDialog';
@@ -21,7 +23,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Plus, UserPlus, Loader2, Users, Settings } from 'lucide-react';
+import { Plus, UserPlus, Loader2, Users, Settings, UserCheck } from 'lucide-react';
 import {
   Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage,
 } from '@/components/ui/breadcrumb';
@@ -62,6 +64,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
   const currentUserMember = members?.find(m => m.user_id === user?.id);
   const isAdmin = isOwner || currentUserMember?.role === 'admin';
   const isMember = isOwner || !!currentUserMember;
+  const expensesEnabled = useIsPluginEnabled(project?.organization_id, 'expenses');
 
   const allMembers = useMemo(() => {
     const membersList: { user_id: string; role: string; profiles: Profile }[] = [];
@@ -77,6 +80,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
     }
     return membersList;
   }, [members, ownerProfile, project?.owner_id]);
+
+  const leadMember = allMembers.find(m => m.user_id === project?.lead_id);
 
   const assigneesByTask = useMemo(() => {
     const map = new Map<string, { user_id: string; profile: Profile }[]>();
@@ -173,6 +178,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
           {project?.description && (
             <p className="text-sm text-muted-foreground truncate">{project?.description}</p>
           )}
+          {leadMember && (
+            <div className="flex items-center gap-1.5">
+              <UserCheck className="h-3 w-3 text-primary" />
+              <span className="text-xs text-muted-foreground">Lead: {leadMember.profiles.full_name}</span>
+            </div>
+          )}
         </div>
         
         <div className="flex items-center gap-2 flex-wrap">
@@ -233,6 +244,17 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
           filters={filters}
           onFiltersChange={setFilters}
         />
+
+        {/* Financial Summary - Plugin Gated */}
+        {expensesEnabled && project && project.budget > 0 && (
+          <ProjectFinancials
+            projectId={projectId}
+            budget={project.budget}
+            companyPct={project.company_share_pct}
+            teamPct={project.team_share_pct}
+            finderPct={project.finder_commission_pct}
+          />
+        )}
       </div>
 
       {isLoading ? (
@@ -267,8 +289,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
         </div>
       )}
 
-      <CreateTaskDialog projectId={projectId} columns={columns} open={createDialogOpen} onOpenChange={setCreateDialogOpen} members={allMembers} />
-      <TaskDetailSheet task={selectedTask} projectId={projectId} columns={columns} onClose={() => setSelectedTask(null)} />
+      <CreateTaskDialog projectId={projectId} columns={columns} open={createDialogOpen} onOpenChange={setCreateDialogOpen} members={allMembers} expensesEnabled={expensesEnabled} />
+      <TaskDetailSheet task={selectedTask} projectId={projectId} columns={columns} onClose={() => setSelectedTask(null)} expensesEnabled={expensesEnabled} />
       <ColumnManager projectId={projectId} open={columnManagerOpen} onOpenChange={setColumnManagerOpen} />
       <ProjectSettings projectId={projectId} open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>

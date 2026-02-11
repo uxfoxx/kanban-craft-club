@@ -40,7 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Clock, ListTodo, Flag, Calendar as CalendarIcon, Users, X, Trash2, Pencil, Check, XCircle } from 'lucide-react';
+import { Plus, Clock, ListTodo, Flag, Calendar as CalendarIcon, Users, X, Trash2, Pencil, Check, XCircle, DollarSign, Weight } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -50,6 +50,7 @@ interface TaskDetailSheetProps {
   projectId: string;
   columns?: KanbanColumn[];
   onClose: () => void;
+  expensesEnabled?: boolean;
 }
 
 export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
@@ -57,6 +58,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   projectId,
   columns,
   onClose,
+  expensesEnabled,
 }) => {
   const { data: subtasks } = useSubtasks(task?.id);
   const { data: timeEntries } = useTimeEntries(task?.id);
@@ -424,6 +426,54 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                   )}
                 </div>
               </div>
+              
+              {/* Cost & Weight - Plugin Gated */}
+              {expensesEnabled && (
+                <>
+                  <Separator />
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      <h4 className="text-sm font-medium">Cost & Weight</h4>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">Task Cost ($)</label>
+                        <Input
+                          type="number"
+                          value={task.cost || ''}
+                          onChange={async (e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            try {
+                              await updateTask.mutateAsync({ taskId: task.id, updates: { cost: val } as any, projectId });
+                            } catch {}
+                          }}
+                          min="0"
+                          step="0.01"
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">Weight %</label>
+                        <Input
+                          type="number"
+                          value={task.weight_pct ?? ''}
+                          onChange={async (e) => {
+                            const val = e.target.value ? parseFloat(e.target.value) : null;
+                            try {
+                              await updateTask.mutateAsync({ taskId: task.id, updates: { weight_pct: val } as any, projectId });
+                            } catch {}
+                          }}
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
               
               <Separator />
               
