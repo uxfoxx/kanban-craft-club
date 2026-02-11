@@ -1,252 +1,129 @@
 
-
-# Project Lead, Plugin System, Financial Engine, and User Wallet
+# Combine Projects and Organization into a Unified Workspace
 
 ## Overview
-This plan updates the previously approved financial/commission system with three key changes from user feedback:
-1. The expense/financial features are gated behind an **organization-level plugin toggle** (extensible for future plugins)
-2. Commissions are **confirmed when a task is marked done** (not via a separate payment toggle)
-3. A **user wallet** is added showing current balance, monthly available amount, and target progress
+Currently "Projects" and "Organization" are separate sidebar views. This plan merges them into a single **Workspace** page that shows the organization context with projects, team activity, analytics, and financial records all in one place. The User Wallet moves from the personal dashboard into the organization context since earnings come from org projects.
 
 ---
 
-## 1. Database Changes (Single Migration)
+## Navigation Changes
 
-### New table: `organization_plugins`
-| Column | Type | Default | Notes |
-|--------|------|---------|-------|
-| id | uuid | gen_random_uuid() | PK |
-| organization_id | uuid | NOT NULL | FK to organizations(id) ON DELETE CASCADE |
-| plugin_name | text | NOT NULL | e.g. 'expenses', future: 'invoicing', 'reports' |
-| enabled | boolean | false | Toggle on/off |
-| created_at | timestamptz | now() | |
+### Sidebar (AppSidebar.tsx)
+Current nav items:
+- Dashboard | Projects | Organization | Time Tracking
 
-- UNIQUE constraint on (organization_id, plugin_name)
-- RLS: org members can SELECT; org owners/admins can INSERT/UPDATE/DELETE
+New nav items:
+- **Dashboard** -- personal tasks, time card (wallet removed from here)
+- **Workspace** -- replaces both "Projects" and "Organization"
+- **Time Tracking** -- unchanged
 
-### New columns on `projects` table
-| Column | Type | Default | Notes |
-|--------|------|---------|-------|
-| lead_id | uuid, nullable | NULL | The project lead (references profiles user_id) |
-| budget | numeric(12,2) | 0 | Total project budget |
-| project_type | text, nullable | NULL | e.g. "Branding", "Campaign" |
-| direct_expenses | numeric(12,2) | 0 | Auto-calculated sum of task costs |
-| overhead_expenses | numeric(12,2) | 0 | Manually set |
-| company_share_pct | numeric(5,2) | 50 | % of gross profit |
-| team_share_pct | numeric(5,2) | 40 | % of gross profit |
-| finder_commission_pct | numeric(5,2) | 10 | % for lead/finder |
+The `ViewType` changes from `'personal' | 'projects' | 'team' | 'timetracking'` to `'personal' | 'workspace' | 'timetracking'`.
 
-### New columns on `tasks` table
-| Column | Type | Default | Notes |
-|--------|------|---------|-------|
-| cost | numeric(12,2) | 0 | Task-level expense |
-| weight_pct | numeric(5,2), nullable | NULL | For weighted commission split |
-
-### New table: `project_financials` (computed snapshot)
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| project_id | uuid | FK, UNIQUE |
-| total_expenses | numeric(12,2) | direct + overhead |
-| gross_profit | numeric(12,2) | budget - total_expenses |
-| company_earnings | numeric(12,2) | |
-| team_pool | numeric(12,2) | |
-| finder_commission | numeric(12,2) | |
-| is_frozen | boolean | true if gross_profit <= 0 |
-| updated_at | timestamptz | |
-
-### New table: `task_commissions`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| project_id | uuid | FK |
-| task_id | uuid | FK |
-| user_id | uuid | The assignee earning commission |
-| amount | numeric(12,2) | |
-| status | text | 'pending' or 'confirmed' or 'frozen' |
-| created_at / updated_at | timestamptz | |
-
-### New table: `user_wallets`
-| Column | Type | Default | Notes |
-|--------|------|---------|-------|
-| id | uuid | PK | |
-| user_id | uuid | NOT NULL, UNIQUE | |
-| balance | numeric(12,2) | 0 | Total confirmed earnings |
-| monthly_target | numeric(12,2) | 0 | User-set monthly goal |
-| created_at | timestamptz | now() | |
-| updated_at | timestamptz | now() | |
-
-- RLS: users can only view/update their own wallet
-- A trigger auto-creates a wallet row when a profile is created
-
-### Database function: `recalculate_project_financials(p_project_id uuid)`
-SECURITY DEFINER function that:
-1. Sums all task costs into direct_expenses on the project
-2. Computes gross_profit = budget - (direct_expenses + overhead_expenses)
-3. If gross_profit <= 0: sets is_frozen = true, zeros out splits, sets all task_commissions to 'frozen'
-4. Otherwise: computes company/team/finder splits
-5. For each completed task (in the "Done" column) with assignees: distributes team_pool by weight_pct (or equal split if no weights set)
-6. Sets commission status to 'confirmed' for completed tasks (commission is confirmed when done)
-7. When a commission goes from pending/frozen to confirmed, adds the amount to the user's wallet balance via UPDATE on user_wallets
-8. Upserts into project_financials
-
-### Triggers
-- **After INSERT/UPDATE on tasks** (when cost, column_id, or weight_pct changes): calls recalculate_project_financials
-- **After UPDATE on projects** (when budget, overhead_expenses, or share pcts change): calls recalculate_project_financials
-- **After UPDATE on projects** (when lead_id changes): inserts notification for the new lead with type 'lead_assigned'
-- **After INSERT on profiles**: auto-create a user_wallets row
-
-### RLS Policies
-- `organization_plugins`: org members can SELECT; owners/admins can manage
-- `project_financials`: same access as projects (project members can view)
-- `task_commissions`: users can view their own; project owners/admins can view all for their project
-- `user_wallets`: users can SELECT and UPDATE their own row only
-
-### Notification types
-- Add `'lead_assigned'` to the system
+### Index.tsx
+- Remove the separate `projects` and `team` cases from `renderContent()`
+- Add single `workspace` case that renders the new `WorkspacePage` component
+- Update `viewTitles` accordingly
 
 ---
 
-## 2. Organization Plugin System
+## New Unified Workspace Page
 
-### New file: `src/hooks/useOrganizationPlugins.ts`
-- `useOrganizationPlugins(orgId)` -- fetches all plugins for the org
-- `useIsPluginEnabled(orgId, pluginName)` -- boolean check
-- `useTogglePlugin()` -- mutation to enable/disable a plugin
+### New file: `src/components/workspace/WorkspacePage.tsx`
 
-### Modify: `src/components/organizations/OrganizationSettings.tsx`
-- Add a "Plugins" section (between Team Members and Danger Zone)
-- Shows available plugins as cards with toggle switches
-- First plugin: "Expenses & Commissions" with description "Track project budgets, expenses, and team commissions"
-- Future-proof: the list is data-driven so new plugins just need a name/description entry
+This is the main combined view. At the top: org switcher + create org + settings button + create project button. Below: a tabbed layout.
 
----
+**Layout:**
+```text
++----------------------------------------------------------+
+| [Org Switcher Dropdown]  [+ New Org] [Settings]          |
++----------------------------------------------------------+
+| [Projects] [Activity] [Analytics] [Financials]           |
++----------------------------------------------------------+
+|                                                          |
+|  (Tab content area)                                      |
+|                                                          |
++----------------------------------------------------------+
+```
 
-## 3. Project Lead Feature
+**Tabs:**
 
-### Modify: `src/types/database.ts`
-- Add to Project interface: `lead_id`, `budget`, `project_type`, `direct_expenses`, `overhead_expenses`, `company_share_pct`, `team_share_pct`, `finder_commission_pct`
-- Add to Task interface: `cost`, `weight_pct`
-- Add new interfaces: `ProjectFinancials`, `TaskCommission`, `UserWallet`, `OrganizationPlugin`
-- Add `'lead_assigned'` to NotificationType
+1. **Projects** (default) -- Shows project cards for the selected org (and personal projects when no org). Includes the "New Project" button. Filter chips: All | Personal | Organization. Reuses existing `ProjectCard` component.
 
-### Modify: `src/components/projects/ProjectSettings.tsx`
-- Add "Project Lead" dropdown selector (from org members) in the project details section
-- Show lead name badge in read-only view
+2. **Activity** -- Reuses existing `TeamActivityTab` showing who is working on what, active timers, etc.
 
-### Modify: `src/components/projects/ProjectCard.tsx`
-- Show project lead name if set (small badge/text)
+3. **Analytics** -- Reuses existing `TeamAnalyticsPage` showing team time summaries and member details.
 
-### Modify: `src/hooks/useProjects.ts`
-- Add `leadId` to `useUpdateProject` mutation
-
----
-
-## 4. Financial Settings (Plugin-Gated)
-
-### Modify: `src/components/projects/ProjectSettings.tsx`
-- Add a "Financials" section that only renders when the expenses plugin is enabled for the project's organization
-- Fields: Budget, Project Type, Overhead Expenses, Company/Team/Finder share percentages (validated to sum to 100)
-
-### New file: `src/components/projects/ProjectFinancials.tsx`
-A summary card displayed in the Kanban board (only when plugin enabled):
-- Budget vs Expenses progress bar
-- Gross Profit display (green/red based on positive/negative)
-- Company / Team / Finder split breakdown
-- "Frozen" warning banner if profit is negative
-- Compact and clean design fitting within the board header area
-
-### New file: `src/hooks/useProjectFinancials.ts`
-- `useProjectFinancials(projectId)` -- fetches from project_financials
-- `useTaskCommissions(projectId)` -- fetches from task_commissions
-- Realtime subscriptions for live updates
+4. **Financials** (plugin-gated, only visible when expenses plugin is enabled) -- New tab showing:
+   - **User Wallet card** at the top (balance, this month earnings, monthly target)
+   - **Organization Financial Summary**: total budget across all org projects, total expenses, total gross profit
+   - **Per-Project Financial Breakdown**: a table/card list showing each project's budget, expenses, profit, commission pool, frozen status
+   - **Commission Records**: a table showing individual task commissions with user, task, amount, status (pending/confirmed/frozen), date
+   - **Percentage Splits**: visual breakdown of company/team/finder shares
 
 ---
 
-## 5. Task Cost and Commission (Plugin-Gated)
+## Financials Tab Detail
 
-### Modify: `src/components/kanban/CreateTaskDialog.tsx`
-- Add "Cost" input field (only shown when expenses plugin enabled)
+### New file: `src/components/workspace/FinancialsTab.tsx`
 
-### Modify: `src/components/kanban/TaskDetailSheet.tsx`
-- Add "Cost" editable field (plugin-gated)
-- Add "Weight %" field (plugin-gated)
-- Show calculated commission for this task if available
+Sections within this tab:
 
-### Modify: `src/hooks/useTasks.ts`
-- Include `cost` and `weight_pct` in create/update mutations
+**A. My Wallet** (top)
+- Reuses the `UserWallet` component (moved from personal dashboard)
+- Shows balance, this month's earnings, monthly target progress
 
----
+**B. Organization Overview Cards** (row of summary cards)
+- Total Budget (sum of all org project budgets)
+- Total Expenses (sum of all project total_expenses)
+- Total Gross Profit (sum of all project gross_profits)
+- Frozen Projects count
 
-## 6. User Wallet
+**C. Project Financial Table**
+- Collapsible card/accordion per project showing:
+  - Project name, budget, direct expenses, overhead, gross profit
+  - Company/Team/Finder split amounts and percentages
+  - Frozen badge if applicable
+  - Click to expand shows task-level commission breakdown
 
-### New file: `src/components/personal/UserWallet.tsx`
-A card on the Personal Dashboard showing:
-- **Current Balance**: total confirmed earnings
-- **This Month**: earnings confirmed in the current calendar month (computed client-side from task_commissions)
-- **Monthly Target**: user-settable goal with a progress bar showing percentage achieved
-- Edit button to set/update the monthly target
-- Clean, card-based design matching existing dashboard cards
+**D. Commission Records**
+- Sortable/filterable table showing:
+  - Task name, assignee, amount, status, date
+  - Filter by status (all/confirmed/pending/frozen)
+  - Filter by project
 
-### New file: `src/hooks/useUserWallet.ts`
-- `useUserWallet()` -- fetches wallet for current user
-- `useUpdateWalletTarget()` -- mutation to update monthly_target
-- `useMonthlyEarnings()` -- fetches task_commissions for current month where status = 'confirmed'
-
-### Modify: `src/components/personal/PersonalDashboard.tsx`
-- Add UserWallet card to the dashboard grid (alongside TodayTimeCard)
-
----
-
-## 7. Kanban Board Integration
-
-### Modify: `src/components/kanban/KanbanBoard.tsx`
-- Show `ProjectFinancials` card below breadcrumb (only when plugin enabled)
-- Show project lead badge next to owner in the header area
-- When a task is moved to "Done" column, the DB trigger auto-recalculates and confirms commissions
+### New file: `src/hooks/useOrgFinancials.ts`
+- `useOrgProjectFinancials(orgId)` -- fetches all project_financials for projects in an org
+- `useOrgCommissions(orgId)` -- fetches all task_commissions for the org's projects
+- Uses existing tables, no schema changes needed
 
 ---
 
 ## Files Summary
 
-### New files (5):
-1. `src/hooks/useOrganizationPlugins.ts`
-2. `src/components/projects/ProjectFinancials.tsx`
-3. `src/hooks/useProjectFinancials.ts`
-4. `src/hooks/useUserWallet.ts`
-5. `src/components/personal/UserWallet.tsx`
+### New files (3):
+1. `src/components/workspace/WorkspacePage.tsx` -- unified workspace with tabs
+2. `src/components/workspace/FinancialsTab.tsx` -- financial records, analytics, wallet
+3. `src/hooks/useOrgFinancials.ts` -- hooks for org-level financial data
 
-### Modified files (9):
-1. `src/types/database.ts` -- new interfaces/fields
-2. `src/components/organizations/OrganizationSettings.tsx` -- plugins section
-3. `src/components/projects/ProjectSettings.tsx` -- lead selector, financials section
-4. `src/components/projects/ProjectCard.tsx` -- show lead
-5. `src/components/projects/ProjectList.tsx` -- budget input (plugin-gated)
-6. `src/components/kanban/KanbanBoard.tsx` -- financials card, lead badge
-7. `src/components/kanban/CreateTaskDialog.tsx` -- cost input
-8. `src/components/kanban/TaskDetailSheet.tsx` -- cost/weight/commission display
-9. `src/components/personal/PersonalDashboard.tsx` -- wallet card
-10. `src/hooks/useProjects.ts` -- lead/budget in mutations
-11. `src/hooks/useTasks.ts` -- cost/weight in mutations
+### Modified files (4):
+1. `src/components/layout/AppSidebar.tsx` -- change nav items: remove "Projects" and "Organization", add "Workspace"
+2. `src/pages/Index.tsx` -- update ViewType, remove `projects`/`team` cases, add `workspace` case, update viewTitles
+3. `src/components/personal/PersonalDashboard.tsx` -- remove UserWallet import and component (it moves to Financials tab)
+4. `src/components/organizations/OrganizationPage.tsx` -- no longer used as a standalone page (kept for reference but not rendered)
 
-### Database migration:
-- Add columns to projects and tasks
-- Create organization_plugins, project_financials, task_commissions, user_wallets tables with RLS
-- Create recalculate_project_financials function
-- Create triggers for auto-recalculation, lead notification, wallet auto-creation
-- Enable realtime on project_financials, task_commissions, user_wallets
+### No database changes needed
+All data is already available in existing tables (project_financials, task_commissions, user_wallets, projects, organization_plugins). The new hooks simply query across projects for a given organization.
 
 ---
 
 ## Key Design Decisions
 
-1. **Plugin gating**: All financial UI checks `useIsPluginEnabled(orgId, 'expenses')` before rendering. If disabled, zero financial UI appears -- clean experience.
+1. **Single "Workspace" replaces two nav items**: reduces navigation complexity. The org switcher at the top gives context, and tabs give access to everything -- projects, people, analytics, and money.
 
-2. **Commission on task done**: When a task moves to the "Done" column, the trigger recalculates and sets commissions to 'confirmed', immediately crediting the user's wallet. No separate payment confirmation step.
+2. **Wallet lives under Financials tab**: since earnings come from organization project commissions, it makes sense contextually. The personal dashboard remains focused on tasks and time.
 
-3. **Frozen commissions**: If gross profit goes negative, all commissions freeze (status = 'frozen', amount = 0). They unfreeze automatically when profit recovers.
+3. **Financials tab is plugin-gated**: only shows when the expenses plugin is enabled for the selected org. No clutter for orgs that don't use financial tracking.
 
-4. **Wallet is read-heavy**: The balance is updated by the DB function, not by the frontend. The frontend only reads the wallet and can update the monthly_target.
+4. **Commission records table**: provides full transparency into who earned what, on which task, with what status -- the "records analysis and percentages and everything" the user asked for.
 
-5. **Future plugins**: The organization_plugins table is generic. Adding a new plugin only requires a new row and corresponding UI gating -- no schema changes needed.
-
+5. **No database migration needed**: all the data structures already exist. This is purely a UI reorganization with new query hooks.
