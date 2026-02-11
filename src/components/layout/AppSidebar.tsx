@@ -19,7 +19,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, Home, FolderOpen, Building2, Clock, LogOut, Settings, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { LayoutDashboard, Home, Building2, Clock, LogOut, Settings, PanelLeftClose, PanelLeft } from 'lucide-react';
 
 export type ViewType = 'personal' | 'workspace' | 'timetracking';
 
