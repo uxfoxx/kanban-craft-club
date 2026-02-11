@@ -97,29 +97,6 @@ const Dashboard: React.FC = () => {
             </div>
           </header>
 
-          {/* Push notification banner */}
-          {shouldShowPrompt && (
-            <div className="border-b bg-primary/10 px-4 py-2.5">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <BellRing className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span>
-                    {needsInstall
-                      ? 'Install this app to your home screen to enable push notifications.'
-                      : 'Enable push notifications to stay updated on tasks and deadlines.'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {!needsInstall && (
-                    <Button size="sm" onClick={requestPermission}>Enable</Button>
-                  )}
-                  <Button size="sm" variant="ghost" onClick={dismissPrompt}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Main content */}
           <main className="flex-1 overflow-auto p-4 md:p-6">
