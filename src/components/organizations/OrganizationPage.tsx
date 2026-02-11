@@ -5,7 +5,7 @@ import { useCreateProject } from '@/hooks/useProjects';
 import { OrganizationSettings } from './OrganizationSettings';
 import { TeamAnalyticsPage } from './TeamAnalyticsPage';
 import { TeamActivityTab } from './TeamActivityTab';
-import { ProjectCard } from '@/components/projects/ProjectCard';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
