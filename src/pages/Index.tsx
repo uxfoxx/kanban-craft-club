@@ -18,8 +18,7 @@ import { Loader2 } from 'lucide-react';
 
 const viewTitles: Record<ViewType, string> = {
   personal: 'Dashboard',
-  projects: 'Projects',
-  team: 'Organization',
+  workspace: 'Workspace',
   timetracking: 'Time Tracking',
 };
 
