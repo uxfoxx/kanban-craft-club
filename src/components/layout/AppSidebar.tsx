@@ -16,6 +16,9 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { LayoutDashboard, Home, FolderOpen, Building2, Clock, LogOut, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
