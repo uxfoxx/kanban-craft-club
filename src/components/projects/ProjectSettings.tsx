@@ -56,6 +56,7 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
   const [isEditingProject, setIsEditingProject] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [editedDescription, setEditedDescription] = useState('');
+  const [editedStartDate, setEditedStartDate] = useState<Date | undefined>();
 
   const isOwner = project?.owner_id === user?.id;
 
