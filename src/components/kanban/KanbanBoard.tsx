@@ -288,7 +288,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
         </div>
       )}
 
-      <CreateTaskDialog projectId={projectId} columns={columns} open={createDialogOpen} onOpenChange={setCreateDialogOpen} members={allMembers} />
+      <CreateTaskDialog projectId={projectId} columns={columns} open={createDialogOpen} onOpenChange={setCreateDialogOpen} members={allMembers} expensesEnabled={expensesEnabled} />
       <TaskDetailSheet task={selectedTask} projectId={projectId} columns={columns} onClose={() => setSelectedTask(null)} />
       <ColumnManager projectId={projectId} open={columnManagerOpen} onOpenChange={setColumnManagerOpen} />
       <ProjectSettings projectId={projectId} open={settingsOpen} onOpenChange={setSettingsOpen} />

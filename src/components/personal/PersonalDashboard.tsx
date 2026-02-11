@@ -39,9 +39,10 @@ export const PersonalDashboard: React.FC<PersonalDashboardProps> = ({ onViewTime
           <TaskDueToday />
         </div>
         
-        {/* Secondary: Time info */}
-        <div>
+        {/* Secondary: Time & Wallet */}
+        <div className="space-y-4">
           <TodayTimeCard onViewHistory={onViewTimeTracking} />
+          <UserWallet />
         </div>
       </div>
     </div>

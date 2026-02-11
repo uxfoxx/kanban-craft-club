@@ -156,7 +156,22 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 onChange={(e) => setDueDate(e.target.value)}
               />
             </div>
-          </div>
+            </div>
+
+          {expensesEnabled && (
+            <div className="space-y-2">
+              <Label htmlFor="task-cost">Cost ($)</Label>
+              <Input
+                id="task-cost"
+                type="number"
+                value={cost}
+                onChange={(e) => setCost(e.target.value)}
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+              />
+            </div>
+          )}
 
           {columns && columns.length > 0 && (
             <div className="space-y-2">
