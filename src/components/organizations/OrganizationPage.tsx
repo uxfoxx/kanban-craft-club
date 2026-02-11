@@ -118,56 +118,14 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onSelectProj
       {/* Main content */}
       {currentOrganization ? (
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <TabsList>
-              <TabsTrigger value="projects" className="gap-1.5">
-                <FolderOpen className="h-4 w-4" /> Projects
-              </TabsTrigger>
-              <TabsTrigger value="activity" className="gap-1.5">
-                <Activity className="h-4 w-4" /> Activity
-              </TabsTrigger>
-              <TabsTrigger value="analytics" className="gap-1.5">
-                <BarChart3 className="h-4 w-4" /> Analytics
-              </TabsTrigger>
-            </TabsList>
-            {activeTab === 'projects' && (
-              <Button size="sm" onClick={() => setCreateProjectDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-1" /> New Project
-              </Button>
-            )}
-          </div>
-
-          <TabsContent value="projects" className="mt-4">
-            {projectsLoading ? (
-              <div className="flex items-center justify-center h-48">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : orgProjects?.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
-                  <p className="text-muted-foreground text-center mb-4">
-                    Create the first project for {currentOrganization.name}.
-                  </p>
-                  <Button onClick={() => setCreateProjectDialogOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" /> Create Project
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {orgProjects?.map((project) => (
-                  <ProjectCard
-                    key={project.id}
-                    project={project}
-                    onSelect={onSelectProject || (() => {})}
-                    organizationName={currentOrganization.name}
-                  />
-                ))}
-              </div>
-            )}
-          </TabsContent>
+          <TabsList>
+            <TabsTrigger value="activity" className="gap-1.5">
+              <Activity className="h-4 w-4" /> Activity
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="gap-1.5">
+              <BarChart3 className="h-4 w-4" /> Analytics
+            </TabsTrigger>
+          </TabsList>
 
           <TabsContent value="activity" className="mt-4">
             <TeamActivityTab />
