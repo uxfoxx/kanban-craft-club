@@ -193,6 +193,21 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
         </div>
         
         <div className="flex items-center gap-2 flex-wrap">
+          {/* View Mode Toggle */}
+          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as ProjectViewMode)} size="sm">
+            <ToggleGroupItem value="kanban" aria-label="Kanban view">
+              <Columns3 className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="list" aria-label="List view">
+              <List className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="gantt" aria-label="Timeline view">
+              <GanttChart className="h-4 w-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
+
+          <div className="w-px h-6 bg-border" />
+
           {allMembers.length > 0 && (
             <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground" onClick={() => setSettingsOpen(true)}>
               <Users className="h-4 w-4" /> {allMembers.length}
@@ -200,9 +215,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
           )}
           {isAdmin && (
             <>
-              <Button variant="outline" size="sm" onClick={() => setColumnManagerOpen(true)}>
-                <Settings className="h-4 w-4 md:mr-2" /><span className="hidden md:inline">Columns</span>
-              </Button>
+              {viewMode === 'kanban' && (
+                <Button variant="outline" size="sm" onClick={() => setColumnManagerOpen(true)}>
+                  <Settings className="h-4 w-4 md:mr-2" /><span className="hidden md:inline">Columns</span>
+                </Button>
+              )}
               <Dialog open={memberDialogOpen} onOpenChange={setMemberDialogOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm">
