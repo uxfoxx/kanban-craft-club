@@ -39,6 +39,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   open,
   onOpenChange,
   members,
+  expensesEnabled,
 }) => {
   const createTask = useCreateTask();
   const addAssignee = useAddTaskAssignee();
