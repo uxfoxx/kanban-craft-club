@@ -376,6 +376,74 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
             )}
           </div>
 
+          {/* Financials - Plugin Gated */}
+          {expensesEnabled && isOwner && (
+            <>
+              <Separator />
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-primary" />
+                    Financials
+                  </h3>
+                  {!isEditingFinancials && (
+                    <Button variant="ghost" size="sm" onClick={startEditingFinancials}>
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                  )}
+                </div>
+                {isEditingFinancials ? (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>Budget</Label>
+                      <Input type="number" value={editedBudget} onChange={(e) => setEditedBudget(e.target.value)} min="0" step="0.01" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Overhead Expenses</Label>
+                      <Input type="number" value={editedOverhead} onChange={(e) => setEditedOverhead(e.target.value)} min="0" step="0.01" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Company %</Label>
+                        <Input type="number" value={editedCompanyPct} onChange={(e) => setEditedCompanyPct(e.target.value)} min="0" max="100" step="0.01" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Team %</Label>
+                        <Input type="number" value={editedTeamPct} onChange={(e) => setEditedTeamPct(e.target.value)} min="0" max="100" step="0.01" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Finder %</Label>
+                        <Input type="number" value={editedFinderPct} onChange={(e) => setEditedFinderPct(e.target.value)} min="0" max="100" step="0.01" />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleSaveFinancials} disabled={updateProject.isPending}>
+                        {updateProject.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                        Save
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setIsEditingFinancials(false)}>Cancel</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-lg bg-muted/50 space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Budget</span>
+                      <span className="font-medium">${Number(project?.budget || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Overhead</span>
+                      <span className="font-medium">${Number(project?.overhead_expenses || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Company {project?.company_share_pct}% / Team {project?.team_share_pct}% / Finder {project?.finder_commission_pct}%</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
           {/* Delete Project */}
           {isOwner && (
             <>

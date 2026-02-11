@@ -437,6 +437,42 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
             )}
           </div>
 
+          {/* Plugins */}
+          {isAdmin && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="text-sm font-medium mb-4">Plugins</h3>
+                <div className="space-y-3">
+                  {AVAILABLE_PLUGINS.map((plugin) => {
+                    const isEnabled = plugins.find(p => p.plugin_name === plugin.name)?.enabled ?? false;
+                    const Icon = plugin.icon;
+                    return (
+                      <Card key={plugin.name}>
+                        <CardHeader className="p-4 pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm flex items-center gap-2">
+                              <Icon className="h-4 w-4 text-primary" />
+                              {plugin.label}
+                            </CardTitle>
+                            <Switch
+                              checked={isEnabled}
+                              onCheckedChange={(checked) => handleTogglePlugin(plugin.name, checked)}
+                              disabled={togglePlugin.isPending}
+                            />
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                          <CardDescription className="text-xs">{plugin.description}</CardDescription>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
           {/* Delete Organization */}
           {isOwner && (
             <>
