@@ -131,8 +131,20 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
     setEditedName(project?.name || '');
     setEditedDescription(project?.description || '');
     setEditedStartDate(project?.start_date ? new Date(project.start_date) : undefined);
+    setEditedLeadId(project?.lead_id || '');
     setIsEditingProject(true);
   };
+
+  const startEditingFinancials = () => {
+    setEditedBudget(String(project?.budget || 0));
+    setEditedOverhead(String(project?.overhead_expenses || 0));
+    setEditedCompanyPct(String(project?.company_share_pct || 50));
+    setEditedTeamPct(String(project?.team_share_pct || 40));
+    setEditedFinderPct(String(project?.finder_commission_pct || 10));
+    setIsEditingFinancials(true);
+  };
+
+  const leadProfile = orgMembers?.find(m => m.user_id === project?.lead_id);
 
   const getInitials = (name: string) => {
     return name
