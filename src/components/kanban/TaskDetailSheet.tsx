@@ -50,6 +50,7 @@ interface TaskDetailSheetProps {
   projectId: string;
   columns?: KanbanColumn[];
   onClose: () => void;
+  expensesEnabled?: boolean;
 }
 
 export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
