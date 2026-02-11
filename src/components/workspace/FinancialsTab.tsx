@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useOrgProjectFinancials, useOrgCommissions } from '@/hooks/useOrgFinancials';
 import { useProjects } from '@/hooks/useProjects';
+import { useUpdateCommission } from '@/hooks/useUpdateCommission';
 import { UserWallet } from '@/components/personal/UserWallet';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,29 +10,128 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { DollarSign, TrendingUp, TrendingDown, Snowflake, ChevronDown, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { DollarSign, TrendingUp, TrendingDown, Snowflake, ChevronDown, ChevronRight, Pencil, X, Check, RotateCcw } from 'lucide-react';
+import { TaskCommission } from '@/types/database';
 
 const fmt = (n: number) => `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+interface EditingState {
+  id: string;
+  amount: string;
+  status: string;
+}
+
+const CommissionRow: React.FC<{
+  commission: TaskCommission;
+  projectName?: string;
+  showProject?: boolean;
+  onEdit: (c: TaskCommission) => void;
+  editing: EditingState | null;
+  onSave: () => void;
+  onCancel: () => void;
+  onChangeAmount: (v: string) => void;
+  onChangeStatus: (v: string) => void;
+  onReset: (c: TaskCommission) => void;
+  isUpdating: boolean;
+}> = ({ commission: c, projectName, showProject, onEdit, editing, onSave, onCancel, onChangeAmount, onChangeStatus, onReset, isUpdating }) => {
+  const isEditing = editing?.id === c.id;
+
+  return (
+    <TableRow key={c.id}>
+      {showProject && <TableCell className="text-sm">{projectName || '—'}</TableCell>}
+      <TableCell className="text-sm font-mono">{c.task_id.slice(0, 8)}…</TableCell>
+      <TableCell className="text-sm font-medium">
+        {isEditing ? (
+          <Input
+            type="number"
+            step="0.01"
+            value={editing.amount}
+            onChange={e => onChangeAmount(e.target.value)}
+            className="w-24 h-7 text-sm"
+          />
+        ) : (
+          fmt(c.amount)
+        )}
+      </TableCell>
+      <TableCell>
+        {isEditing ? (
+          <Select value={editing.status} onValueChange={onChangeStatus}>
+            <SelectTrigger className="w-[110px] h-7 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="confirmed">Confirmed</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="frozen">Frozen</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : (
+          <div className="flex items-center gap-1">
+            <Badge
+              variant={c.status === 'confirmed' ? 'default' : c.status === 'frozen' ? 'destructive' : 'secondary'}
+              className="text-xs"
+            >
+              {c.status}
+            </Badge>
+            {c.manual_override && (
+              <Badge variant="outline" className="text-[10px]">Manual</Badge>
+            )}
+          </div>
+        )}
+      </TableCell>
+      {showProject && (
+        <TableCell className="text-xs text-muted-foreground">
+          {new Date(c.created_at).toLocaleDateString()}
+        </TableCell>
+      )}
+      <TableCell className="text-right">
+        {isEditing ? (
+          <div className="flex items-center gap-1 justify-end">
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onSave} disabled={isUpdating}>
+              <Check className="h-3.5 w-3.5" />
+            </Button>
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onCancel}>
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 justify-end">
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onEdit(c)}>
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+            {c.manual_override && (
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onReset(c)} title="Reset to auto">
+                <RotateCcw className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+        )}
+      </TableCell>
+    </TableRow>
+  );
+};
 
 export const FinancialsTab: React.FC = () => {
   const { currentOrganization } = useOrganization();
   const { data: financials = [], isLoading: finLoading } = useOrgProjectFinancials(currentOrganization?.id);
   const { data: commissions = [], isLoading: comLoading } = useOrgCommissions(currentOrganization?.id);
   const { data: allProjects = [] } = useProjects();
+  const { updateCommission, resetCommission, isUpdating } = useUpdateCommission();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [projectFilter, setProjectFilter] = useState<string>('all');
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+  const [editing, setEditing] = useState<EditingState | null>(null);
 
   const orgProjects = allProjects.filter(p => p.organization_id === currentOrganization?.id);
   const projectMap = new Map(orgProjects.map(p => [p.id, p]));
 
-  // Aggregates
   const totalBudget = orgProjects.reduce((s, p) => s + Number(p.budget || 0), 0);
   const totalExpenses = financials.reduce((s, f) => s + Number(f.total_expenses || 0), 0);
   const totalProfit = financials.reduce((s, f) => s + Number(f.gross_profit || 0), 0);
   const frozenCount = financials.filter(f => f.is_frozen).length;
 
-  // Filtered commissions
   const filtered = commissions.filter(c => {
     if (statusFilter !== 'all' && c.status !== statusFilter) return false;
     if (projectFilter !== 'all' && c.project_id !== projectFilter) return false;
@@ -46,16 +146,33 @@ export const FinancialsTab: React.FC = () => {
     });
   };
 
+  const startEdit = (c: TaskCommission) => {
+    setEditing({ id: c.id, amount: String(c.amount), status: c.status });
+  };
+
+  const saveEdit = (c: TaskCommission) => {
+    if (!editing) return;
+    updateCommission({
+      commissionId: editing.id,
+      amount: parseFloat(editing.amount) || 0,
+      status: editing.status,
+    });
+    setEditing(null);
+  };
+
+  const handleReset = (c: TaskCommission) => {
+    resetCommission({ commissionId: c.id, projectId: c.project_id });
+  };
+
   if (finLoading || comLoading) {
     return <div className="space-y-4"><Skeleton className="h-32" /><Skeleton className="h-48" /><Skeleton className="h-64" /></div>;
   }
 
   return (
     <div className="space-y-6">
-      {/* A. My Wallet */}
       <UserWallet />
 
-      {/* B. Organization Overview */}
+      {/* Organization Overview */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
@@ -91,13 +208,11 @@ export const FinancialsTab: React.FC = () => {
               <Snowflake className="h-4 w-4" /> Frozen Projects
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{frozenCount}</p>
-          </CardContent>
+          <CardContent><p className="text-2xl font-bold">{frozenCount}</p></CardContent>
         </Card>
       </div>
 
-      {/* C. Per-Project Financial Breakdown */}
+      {/* Per-Project Breakdown */}
       <div className="space-y-3">
         <h3 className="text-base font-semibold">Project Breakdown</h3>
         {orgProjects.length === 0 ? (
@@ -131,7 +246,6 @@ export const FinancialsTab: React.FC = () => {
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <CardContent className="pt-0 space-y-4">
-                      {/* Financial details */}
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                         <div>
                           <p className="text-muted-foreground text-xs">Budget</p>
@@ -147,7 +261,6 @@ export const FinancialsTab: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Splits */}
                       {fin && !fin.is_frozen && (
                         <div className="grid grid-cols-3 gap-3 text-sm">
                           <div className="rounded-lg bg-muted/50 p-3 text-center">
@@ -165,7 +278,6 @@ export const FinancialsTab: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Task commissions for this project */}
                       {projectCommissions.length > 0 && (
                         <div className="border rounded-md overflow-hidden">
                           <Table>
@@ -174,22 +286,24 @@ export const FinancialsTab: React.FC = () => {
                                 <TableHead className="text-xs">Task</TableHead>
                                 <TableHead className="text-xs">Amount</TableHead>
                                 <TableHead className="text-xs">Status</TableHead>
+                                <TableHead className="text-xs text-right">Actions</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               {projectCommissions.map(c => (
-                                <TableRow key={c.id}>
-                                  <TableCell className="text-xs">{c.task_id.slice(0, 8)}…</TableCell>
-                                  <TableCell className="text-xs font-medium">{fmt(c.amount)}</TableCell>
-                                  <TableCell>
-                                    <Badge
-                                      variant={c.status === 'confirmed' ? 'default' : c.status === 'frozen' ? 'destructive' : 'secondary'}
-                                      className="text-[10px]"
-                                    >
-                                      {c.status}
-                                    </Badge>
-                                  </TableCell>
-                                </TableRow>
+                                <CommissionRow
+                                  key={c.id}
+                                  commission={c}
+                                  showProject={false}
+                                  onEdit={startEdit}
+                                  editing={editing}
+                                  onSave={() => saveEdit(c)}
+                                  onCancel={() => setEditing(null)}
+                                  onChangeAmount={v => setEditing(prev => prev ? { ...prev, amount: v } : null)}
+                                  onChangeStatus={v => setEditing(prev => prev ? { ...prev, status: v } : null)}
+                                  onReset={handleReset}
+                                  isUpdating={isUpdating}
+                                />
                               ))}
                             </TableBody>
                           </Table>
@@ -204,7 +318,7 @@ export const FinancialsTab: React.FC = () => {
         )}
       </div>
 
-      {/* D. Commission Records */}
+      {/* Commission Records */}
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h3 className="text-base font-semibold">Commission Records</h3>
@@ -246,26 +360,25 @@ export const FinancialsTab: React.FC = () => {
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map(c => (
-                  <TableRow key={c.id}>
-                    <TableCell className="text-sm">{projectMap.get(c.project_id)?.name || '—'}</TableCell>
-                    <TableCell className="text-sm font-mono">{c.task_id.slice(0, 8)}…</TableCell>
-                    <TableCell className="text-sm font-medium">{fmt(c.amount)}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={c.status === 'confirmed' ? 'default' : c.status === 'frozen' ? 'destructive' : 'secondary'}
-                        className="text-xs"
-                      >
-                        {c.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {new Date(c.created_at).toLocaleDateString()}
-                    </TableCell>
-                  </TableRow>
+                  <CommissionRow
+                    key={c.id}
+                    commission={c}
+                    projectName={projectMap.get(c.project_id)?.name}
+                    showProject={true}
+                    onEdit={startEdit}
+                    editing={editing}
+                    onSave={() => saveEdit(c)}
+                    onCancel={() => setEditing(null)}
+                    onChangeAmount={v => setEditing(prev => prev ? { ...prev, amount: v } : null)}
+                    onChangeStatus={v => setEditing(prev => prev ? { ...prev, status: v } : null)}
+                    onReset={handleReset}
+                    isUpdating={isUpdating}
+                  />
                 ))}
               </TableBody>
             </Table>
