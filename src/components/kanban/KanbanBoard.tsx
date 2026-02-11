@@ -284,6 +284,20 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
+      ) : viewMode === 'list' ? (
+        <ListView
+          tasks={filteredTasks}
+          columns={columns || []}
+          assigneesByTask={assigneesByTask}
+          onTaskClick={setSelectedTask}
+        />
+      ) : viewMode === 'gantt' ? (
+        <GanttView
+          tasks={filteredTasks}
+          columns={columns || []}
+          assigneesByTask={assigneesByTask}
+          onTaskClick={setSelectedTask}
+        />
       ) : (
         <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 pb-4">
           <div
