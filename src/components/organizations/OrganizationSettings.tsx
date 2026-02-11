@@ -34,9 +34,12 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Trash2, Crown, Shield, User, Pencil, Save, XCircle, UserPlus } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, Trash2, Crown, Shield, User, Pencil, Save, XCircle, UserPlus, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useOrganizationPlugins, useTogglePlugin } from '@/hooks/useOrganizationPlugins';
 
 interface OrganizationSettingsProps {
   organizationId: string;
