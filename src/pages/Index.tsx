@@ -13,8 +13,7 @@ import { PersonalDashboard } from '@/components/personal/PersonalDashboard';
 import { TimeTrackingPage } from '@/components/personal/TimeTrackingPage';
 import { OrganizationPage } from '@/components/organizations/OrganizationPage';
 import { ProfileSettings } from '@/components/profile/ProfileSettings';
-import { Loader2, BellRing, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { user, loading } = useAuth();
