@@ -38,10 +38,10 @@ const Dashboard: React.FC = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<ViewType>('personal');
   const [profileSettingsOpen, setProfileSettingsOpen] = useState(false);
-  const [kanbanSource, setKanbanSource] = useState<ViewType>('projects');
+  const [kanbanSource, setKanbanSource] = useState<ViewType>('workspace');
 
   useEffect(() => {
-    if (currentView !== 'projects' && currentView !== 'team') {
+    if (currentView !== 'workspace') {
       setSelectedProjectId(null);
     }
   }, [currentView]);
