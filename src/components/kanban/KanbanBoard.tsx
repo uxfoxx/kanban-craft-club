@@ -65,7 +65,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
   const isAdmin = isOwner || currentUserMember?.role === 'admin';
   const isMember = isOwner || !!currentUserMember;
   const expensesEnabled = useIsPluginEnabled(project?.organization_id, 'expenses');
-  const leadMember = allMembers.find(m => m.user_id === project?.lead_id);
 
   const allMembers = useMemo(() => {
     const membersList: { user_id: string; role: string; profiles: Profile }[] = [];
