@@ -162,6 +162,27 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
                         rows={3}
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label>Start Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className={cn('w-full justify-start text-left font-normal', !editedStartDate && 'text-muted-foreground')}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {editedStartDate ? format(editedStartDate, 'PPP') : 'Pick a start date'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={editedStartDate} onSelect={setEditedStartDate} initialFocus />
+                          {editedStartDate && (
+                            <div className="p-2 border-t">
+                              <Button variant="ghost" size="sm" className="w-full text-destructive" onClick={() => setEditedStartDate(undefined)}>
+                                Remove start date
+                              </Button>
+                            </div>
+                          )}
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                     <div className="flex gap-2">
                       <Button size="sm" onClick={handleSaveProject} disabled={updateProject.isPending}>
                         {updateProject.isPending ? (

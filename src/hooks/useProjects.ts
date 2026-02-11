@@ -196,10 +196,10 @@ export const useUpdateProject = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ projectId, name, description }: { projectId: string; name: string; description?: string }) => {
+    mutationFn: async ({ projectId, name, description, startDate }: { projectId: string; name: string; description?: string; startDate?: string | null }) => {
       const { data, error } = await supabase
         .from('projects')
-        .update({ name, description })
+        .update({ name, description, start_date: startDate !== undefined ? startDate : undefined })
         .eq('id', projectId)
         .select()
         .single();
