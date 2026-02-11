@@ -203,9 +203,9 @@ All colors MUST be HSL.
     ring-color: hsl(var(--destructive));
     background: linear-gradient(
       90deg,
-      hsl(var(--destructive) / 0.05),
       hsl(var(--destructive) / 0.15),
-      hsl(var(--destructive) / 0.05)
+      hsl(var(--destructive) / 0.30),
+      hsl(var(--destructive) / 0.15)
     );
     background-size: 200% 100%;
     animation: gradient-flow-overdue 2s ease-in-out infinite;
@@ -213,28 +213,28 @@ All colors MUST be HSL.
 
   .deadline-urgent {
     @apply ring-2;
-    ring-color: hsl(var(--destructive) / 0.7);
+    ring-color: hsl(var(--destructive) / 0.8);
     background: linear-gradient(
       90deg,
-      hsl(var(--destructive) / 0.03),
-      hsl(var(--destructive) / 0.1),
-      hsl(var(--destructive) / 0.03)
+      hsl(var(--destructive) / 0.10),
+      hsl(var(--destructive) / 0.22),
+      hsl(var(--destructive) / 0.10)
     );
     background-size: 200% 100%;
     animation: gradient-flow-urgent 2.5s ease-in-out infinite;
   }
 
   .deadline-warning {
-  @apply ring-2;
-  ring-color: #FF524D;
-  background: linear-gradient(
-    90deg,
-    rgb(255 82 77 / 0.04),
-    rgb(255 82 77 / 0.12),
-    rgb(255 82 77 / 0.04)
-  );
-  background-size: 200% 100%;
-  animation: gradient-flow-warning 3s ease-in-out infinite;
-}
+    @apply ring-2;
+    ring-color: hsl(var(--primary) / 0.8);
+    background: linear-gradient(
+      90deg,
+      hsl(var(--primary) / 0.08),
+      hsl(var(--primary) / 0.18),
+      hsl(var(--primary) / 0.08)
+    );
+    background-size: 200% 100%;
+    animation: gradient-flow-warning 3s ease-in-out infinite;
+  }
 
 }

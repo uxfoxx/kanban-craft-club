@@ -85,8 +85,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
   return (
     <Card
       className={cn(
-        'transition-all hover:shadow-md bg-card border-l-4',
+        'transition-all hover:shadow-md border-l-4',
         getPriorityColor(),
+        !deadlineStatus && 'bg-card',
         !isMobile && 'cursor-grab active:cursor-grabbing',
         isTimerActive && 'ring-2 ring-primary',
         deadlineStatus === 'overdue' && 'deadline-overdue',
