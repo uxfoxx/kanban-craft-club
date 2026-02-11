@@ -58,6 +58,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   projectId,
   columns,
   onClose,
+  expensesEnabled,
 }) => {
   const { data: subtasks } = useSubtasks(task?.id);
   const { data: timeEntries } = useTimeEntries(task?.id);
