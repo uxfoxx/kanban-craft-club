@@ -5,6 +5,7 @@ import { useTimeEntries, formatDuration, useDeleteTimeEntry } from '@/hooks/useT
 import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee } from '@/hooks/useAssignees';
 import { useOrganizationMembersForProject } from '@/hooks/useOrganizations';
 import { TimeEntryDialog } from '@/components/time/TimeEntryDialog';
+import { CommentSection } from '@/components/comments/CommentSection';
 import { SubtaskRow } from './SubtaskRow';
 import {
   Sheet,
