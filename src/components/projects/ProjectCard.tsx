@@ -95,9 +95,16 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onSelect, org
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">
-              Created {format(new Date(project.created_at), 'MMM d, yyyy')}
-            </p>
+            <div className="flex flex-wrap gap-x-3 gap-y-1">
+              {project.start_date && (
+                <p className="text-xs text-muted-foreground">
+                  Started {format(new Date(project.start_date), 'MMM d, yyyy')}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Created {format(new Date(project.created_at), 'MMM d, yyyy')}
+              </p>
+            </div>
           </CardContent>
         </div>
       </Card>

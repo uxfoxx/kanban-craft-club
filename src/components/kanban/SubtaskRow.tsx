@@ -5,6 +5,7 @@ import { useSubtaskTimeEntries, useDeleteSubtaskTimeEntry, useActiveSubtaskTimeE
 import { formatDuration } from '@/hooks/useTimeTracking';
 import { useSubtaskAssignees, useAddSubtaskAssignee, useRemoveSubtaskAssignee } from '@/hooks/useAssignees';
 import { SubtaskTimeEntryDialog } from '@/components/time/SubtaskTimeEntryDialog';
+import { CommentSection } from '@/components/comments/CommentSection';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -334,6 +335,18 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
             ) : (
               <p className="text-xs text-muted-foreground">No time entries</p>
             )}
+          </div>
+
+          {/* Comments */}
+          <div className="space-y-2">
+            <CommentSection
+              subtaskId={subtask.id}
+              members={organizationMembers?.map(m => ({
+                user_id: m.user_id,
+                full_name: m.profiles?.full_name || 'Unknown',
+                email: m.profiles?.email || '',
+              })) || []}
+            />
           </div>
         </CollapsibleContent>
       </Collapsible>

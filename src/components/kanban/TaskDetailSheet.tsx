@@ -5,6 +5,7 @@ import { useTimeEntries, formatDuration, useDeleteTimeEntry } from '@/hooks/useT
 import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee } from '@/hooks/useAssignees';
 import { useOrganizationMembersForProject } from '@/hooks/useOrganizations';
 import { TimeEntryDialog } from '@/components/time/TimeEntryDialog';
+import { CommentSection } from '@/components/comments/CommentSection';
 import { SubtaskRow } from './SubtaskRow';
 import {
   Sheet,
@@ -535,6 +536,18 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                   )}
                 </div>
               </div>
+
+              <Separator />
+
+              {/* Comments */}
+              <CommentSection
+                taskId={task.id}
+                members={organizationMembers.map(m => ({
+                  user_id: m.user_id,
+                  full_name: m.profiles?.full_name || 'Unknown',
+                  email: m.profiles?.email || '',
+                }))}
+              />
 
               <Separator />
 

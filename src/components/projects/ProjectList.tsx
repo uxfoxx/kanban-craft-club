@@ -7,6 +7,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
@@ -14,8 +16,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, FolderOpen, Loader2 } from 'lucide-react';
+import { Plus, FolderOpen, Loader2, Calendar as CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface ProjectListProps {
   organizationId?: string;
@@ -23,7 +27,6 @@ interface ProjectListProps {
 }
 
 export const ProjectList: React.FC<ProjectListProps> = ({ onSelectProject }) => {
-  // Fetch ALL projects the user can see (no org filter)
   const { data: allProjects, isLoading } = useProjects();
   const { organizations } = useOrganization();
   const createProject = useCreateProject();
@@ -32,6 +35,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({ onSelectProject }) => 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedOrgId, setSelectedOrgId] = useState<string>('personal');
+  const [startDate, setStartDate] = useState<Date | undefined>();
   const [activeTab, setActiveTab] = useState('all');
 
   const orgMap = new Map(organizations.map(o => [o.id, o.name]));
@@ -50,12 +54,14 @@ export const ProjectList: React.FC<ProjectListProps> = ({ onSelectProject }) => 
         name,
         description,
         organizationId: selectedOrgId === 'personal' ? undefined : selectedOrgId,
+        startDate: startDate ? format(startDate, 'yyyy-MM-dd') : undefined,
       });
       toast.success('Project created!');
       setDialogOpen(false);
       setName('');
       setDescription('');
       setSelectedOrgId('personal');
+      setStartDate(undefined);
     } catch (error) {
       toast.error('Failed to create project');
     }
@@ -99,6 +105,20 @@ export const ProjectList: React.FC<ProjectListProps> = ({ onSelectProject }) => 
               <div className="space-y-2">
                 <Label htmlFor="project-description">Description</Label>
                 <Textarea id="project-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What's this project about?" rows={3} />
+              </div>
+              <div className="space-y-2">
+                <Label>Start Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn('w-full justify-start text-left font-normal', !startDate && 'text-muted-foreground')}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDate ? format(startDate, 'PPP') : 'Pick a start date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-2">
                 <Label>Owner</Label>

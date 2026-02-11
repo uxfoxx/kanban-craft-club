@@ -2,7 +2,7 @@ export type MemberRole = 'admin' | 'member';
 export type OrganizationRole = 'owner' | 'admin' | 'member';
 export type TaskStatus = 'todo' | 'in_progress' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high';
-export type NotificationType = 'project_invite' | 'assignment' | 'deadline' | 'deadline_warning';
+export type NotificationType = 'project_invite' | 'assignment' | 'deadline' | 'deadline_warning' | 'mention';
 
 export interface Profile {
   id: string;
@@ -38,6 +38,7 @@ export interface Project {
   description: string | null;
   owner_id: string;
   organization_id: string | null;
+  start_date: string | null;
   created_at: string;
   updated_at: string;
 }

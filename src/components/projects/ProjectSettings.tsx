@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -27,7 +30,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Trash2, Crown, Shield, User, Pencil, Save, XCircle, Building2 } from 'lucide-react';
+import { Loader2, Trash2, Crown, Shield, User, Pencil, Save, XCircle, Building2, Calendar as CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 interface ProjectSettingsProps {
@@ -53,6 +57,7 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
   const [isEditingProject, setIsEditingProject] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [editedDescription, setEditedDescription] = useState('');
+  const [editedStartDate, setEditedStartDate] = useState<Date | undefined>();
 
   const isOwner = project?.owner_id === user?.id;
 
@@ -67,6 +72,7 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
         projectId,
         name: editedName.trim(),
         description: editedDescription.trim() || undefined,
+        startDate: editedStartDate ? format(editedStartDate, 'yyyy-MM-dd') : null,
       });
       toast.success('Project updated');
       setIsEditingProject(false);
@@ -89,6 +95,7 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
   const startEditing = () => {
     setEditedName(project?.name || '');
     setEditedDescription(project?.description || '');
+    setEditedStartDate(project?.start_date ? new Date(project.start_date) : undefined);
     setIsEditingProject(true);
   };
 
@@ -155,6 +162,27 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
                         placeholder="Project description (optional)"
                         rows={3}
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Start Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className={cn('w-full justify-start text-left font-normal', !editedStartDate && 'text-muted-foreground')}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {editedStartDate ? format(editedStartDate, 'PPP') : 'Pick a start date'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={editedStartDate} onSelect={setEditedStartDate} initialFocus />
+                          {editedStartDate && (
+                            <div className="p-2 border-t">
+                              <Button variant="ghost" size="sm" className="w-full text-destructive" onClick={() => setEditedStartDate(undefined)}>
+                                Remove start date
+                              </Button>
+                            </div>
+                          )}
+                        </PopoverContent>
+                      </Popover>
                     </div>
                     <div className="flex gap-2">
                       <Button size="sm" onClick={handleSaveProject} disabled={updateProject.isPending}>

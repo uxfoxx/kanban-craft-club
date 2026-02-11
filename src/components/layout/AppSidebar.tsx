@@ -1,6 +1,5 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useOrganization } from '@/contexts/OrganizationContext';
 import {
   Sidebar,
   SidebarContent,
@@ -19,8 +18,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LayoutDashboard, Home, FolderOpen, Building2, Clock, LogOut, Settings } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { LayoutDashboard, Home, FolderOpen, Building2, Clock, LogOut, Settings, PanelLeftClose, PanelLeft } from 'lucide-react';
 
 export type ViewType = 'personal' | 'projects' | 'team' | 'timetracking';
 
@@ -43,7 +42,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   onOpenProfileSettings,
 }) => {
   const { profile, signOut } = useAuth();
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === 'collapsed';
 
   const getInitials = (name: string) =>
@@ -52,9 +51,23 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <LayoutDashboard className="h-6 w-6 text-primary flex-shrink-0" />
-          {!isCollapsed && <span className="text-lg font-bold truncate">TaskFlow</span>}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <LayoutDashboard className="h-6 w-6 text-primary flex-shrink-0" />
+            {!isCollapsed && <span className="text-lg font-bold truncate">TaskFlow</span>}
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 flex-shrink-0"
+            onClick={toggleSidebar}
+          >
+            {isCollapsed ? (
+              <PanelLeft className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
+          </Button>
         </div>
       </SidebarHeader>
 
@@ -85,15 +98,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       <SidebarSeparator />
 
       <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton onClick={onOpenProfileSettings} tooltip="Settings">
-              <Settings className="h-4 w-4" />
-              <span>Settings</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-
         {profile && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
