@@ -85,7 +85,7 @@ export const useCreateProject = () => {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ name, description, organizationId }: { name: string; description?: string; organizationId?: string }) => {
+    mutationFn: async ({ name, description, organizationId, startDate }: { name: string; description?: string; organizationId?: string; startDate?: string }) => {
       const { data, error } = await supabase
         .from('projects')
         .insert({
@@ -93,6 +93,7 @@ export const useCreateProject = () => {
           description,
           owner_id: user!.id,
           organization_id: organizationId || null,
+          start_date: startDate || null,
         })
         .select()
         .single();
