@@ -95,17 +95,11 @@
    
    return (
      <div className="space-y-6">
-       {/* Header */}
-       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-         <Button variant="ghost" onClick={onBack} className="w-fit">
-           <ArrowLeft className="h-4 w-4 mr-2" />
-           Back to Dashboard
-         </Button>
-         
-         <div className="flex-1">
-           <h1 className="text-2xl md:text-3xl font-bold">Time Tracking</h1>
-         </div>
-       </div>
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold">Time Tracking</h1>
+        <p className="text-sm text-muted-foreground">Track and review your work hours</p>
+      </div>
        
        {/* Filters & Summary */}
        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">

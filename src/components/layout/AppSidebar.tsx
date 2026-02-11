@@ -16,6 +16,9 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { LayoutDashboard, Home, FolderOpen, Building2, Clock, LogOut, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -89,30 +92,34 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               <span>Settings</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={signOut}
-              tooltip="Sign out"
-              className="text-destructive hover:text-destructive"
-            >
-              <LogOut className="h-4 w-4" />
-              <span>Sign out</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
         </SidebarMenu>
 
-        {!isCollapsed && profile && (
-          <div className="flex items-center gap-2 px-2 py-2">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                {getInitials(profile.full_name)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col min-w-0">
-              <span className="text-sm font-medium truncate">{profile.full_name}</span>
-              <span className="text-xs text-muted-foreground truncate">{profile.email}</span>
-            </div>
-          </div>
+        {profile && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 px-2 py-2 w-full rounded-md hover:bg-sidebar-accent transition-colors">
+                <Avatar className="h-8 w-8 flex-shrink-0">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                    {getInitials(profile.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+                {!isCollapsed && (
+                  <div className="flex flex-col min-w-0 text-left">
+                    <span className="text-sm font-medium truncate">{profile.full_name}</span>
+                    <span className="text-xs text-muted-foreground truncate">{profile.email}</span>
+                  </div>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" className="w-48">
+              <DropdownMenuItem onClick={onOpenProfileSettings}>
+                <Settings className="h-4 w-4 mr-2" /> Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
+                <LogOut className="h-4 w-4 mr-2" /> Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </SidebarFooter>
     </Sidebar>

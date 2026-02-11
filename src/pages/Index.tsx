@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, AuthProvider } from '@/contexts/AuthContext';
 import { OrganizationProvider, useOrganization } from '@/contexts/OrganizationContext';
-import { usePushNotifications } from '@/hooks/usePushNotifications';
+
 import { AuthPage } from '@/components/auth/AuthPage';
 import { AppSidebar, ViewType } from '@/components/layout/AppSidebar';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
@@ -13,13 +13,12 @@ import { PersonalDashboard } from '@/components/personal/PersonalDashboard';
 import { TimeTrackingPage } from '@/components/personal/TimeTrackingPage';
 import { OrganizationPage } from '@/components/organizations/OrganizationPage';
 import { ProfileSettings } from '@/components/profile/ProfileSettings';
-import { Loader2, BellRing, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { user, loading } = useAuth();
   const { isLoading: orgLoading } = useOrganization();
-  const { shouldShowPrompt, needsInstall, requestPermission, dismissPrompt } = usePushNotifications();
+  
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<ViewType>('personal');
   const [profileSettingsOpen, setProfileSettingsOpen] = useState(false);
@@ -97,29 +96,6 @@ const Dashboard: React.FC = () => {
             </div>
           </header>
 
-          {/* Push notification banner */}
-          {shouldShowPrompt && (
-            <div className="border-b bg-primary/10 px-4 py-2.5">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <BellRing className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span>
-                    {needsInstall
-                      ? 'Install this app to your home screen to enable push notifications.'
-                      : 'Enable push notifications to stay updated on tasks and deadlines.'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {!needsInstall && (
-                    <Button size="sm" onClick={requestPermission}>Enable</Button>
-                  )}
-                  <Button size="sm" variant="ghost" onClick={dismissPrompt}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Main content */}
           <main className="flex-1 overflow-auto p-4 md:p-6">
