@@ -40,7 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Clock, ListTodo, Flag, Calendar as CalendarIcon, Users, X, Trash2, Pencil, Check, XCircle } from 'lucide-react';
+import { Plus, Clock, ListTodo, Flag, Calendar as CalendarIcon, Users, X, Trash2, Pencil, Check, XCircle, DollarSign, Weight } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
