@@ -231,6 +231,25 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
                         </PopoverContent>
                       </Popover>
                     </div>
+                    {/* Project Lead */}
+                    {orgMembers && orgMembers.length > 0 && (
+                      <div className="space-y-2">
+                        <Label>Project Lead</Label>
+                        <Select value={editedLeadId || 'none'} onValueChange={setEditedLeadId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select lead" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">No lead</SelectItem>
+                            {orgMembers.map((m) => (
+                              <SelectItem key={m.user_id} value={m.user_id}>
+                                {m.profiles?.full_name || m.profiles?.email || 'Unknown'}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     <div className="flex gap-2">
                       <Button size="sm" onClick={handleSaveProject} disabled={updateProject.isPending}>
                         {updateProject.isPending ? (
@@ -247,11 +266,17 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
                     </div>
                   </div>
                 ) : (
-                  <div className="p-3 rounded-lg bg-muted/50 space-y-1">
+                  <div className="p-3 rounded-lg bg-muted/50 space-y-2">
                     <p className="font-medium">{project?.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {project?.description || 'No description'}
                     </p>
+                    {leadProfile && (
+                      <div className="flex items-center gap-1.5">
+                        <UserCheck className="h-3 w-3 text-primary" />
+                        <span className="text-xs text-muted-foreground">Lead: {leadProfile.profiles?.full_name}</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
