@@ -9,8 +9,11 @@ import { ActiveTimer } from '@/components/time/ActiveTimer';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { PersonalDashboard } from '@/components/personal/PersonalDashboard';
+import { PersonalCalendar } from '@/components/personal/PersonalCalendar';
 import { TimeTrackingPage } from '@/components/personal/TimeTrackingPage';
 import { WorkspacePage } from '@/components/workspace/WorkspacePage';
+import { FinancialsTab } from '@/components/workspace/FinancialsTab';
+import { PluginSettingsPage } from '@/components/workspace/PluginSettingsPage';
 import { ProfileSettings } from '@/components/profile/ProfileSettings';
 import { useProject } from '@/hooks/useProjects';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -19,7 +22,10 @@ import { Loader2 } from 'lucide-react';
 const viewTitles: Record<ViewType, string> = {
   personal: 'Dashboard',
   workspace: 'Workspace',
+  calendar: 'Calendar',
   timetracking: 'Time Tracking',
+  financials: 'Financials',
+  'plugin-settings': 'Plugin Settings',
 };
 
 const PageTitle: React.FC<{ currentView: ViewType; selectedProjectId: string | null }> = ({ currentView, selectedProjectId }) => {
@@ -86,8 +92,14 @@ const Dashboard: React.FC = () => {
         return <PersonalDashboard onViewTimeTracking={() => setCurrentView('timetracking')} />;
       case 'workspace':
         return <WorkspacePage onSelectProject={(id) => handleSelectProject(id, 'workspace')} />;
+      case 'calendar':
+        return <PersonalCalendar />;
       case 'timetracking':
         return <TimeTrackingPage onBack={() => setCurrentView('personal')} />;
+      case 'financials':
+        return <FinancialsTab />;
+      case 'plugin-settings':
+        return <PluginSettingsPage />;
       default:
         return null;
     }

@@ -1,5 +1,7 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useOrganizationPlugins } from '@/hooks/useOrganizationPlugins';
 import {
   Sidebar,
   SidebarContent,
@@ -19,9 +21,9 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, Home, Building2, Clock, LogOut, Settings, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { LayoutDashboard, Home, Building2, Clock, LogOut, Settings, PanelLeftClose, PanelLeft, CalendarDays, DollarSign, Puzzle } from 'lucide-react';
 
-export type ViewType = 'personal' | 'workspace' | 'timetracking';
+export type ViewType = 'personal' | 'workspace' | 'timetracking' | 'calendar' | 'financials' | 'plugin-settings';
 
 interface AppSidebarProps {
   currentView: ViewType;
@@ -29,11 +31,16 @@ interface AppSidebarProps {
   onOpenProfileSettings: () => void;
 }
 
-const navItems: { view: ViewType; label: string; icon: React.ElementType }[] = [
+const coreNavItems: { view: ViewType; label: string; icon: React.ElementType }[] = [
   { view: 'personal', label: 'Dashboard', icon: Home },
   { view: 'workspace', label: 'Workspace', icon: Building2 },
+  { view: 'calendar', label: 'Calendar', icon: CalendarDays },
   { view: 'timetracking', label: 'Time Tracking', icon: Clock },
 ];
+
+const pluginNavMap: Record<string, { view: ViewType; label: string; icon: React.ElementType }> = {
+  expenses: { view: 'financials', label: 'Financials', icon: DollarSign },
+};
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({
   currentView,
@@ -41,8 +48,12 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   onOpenProfileSettings,
 }) => {
   const { profile, signOut } = useAuth();
+  const { currentOrganization } = useOrganization();
+  const { data: plugins = [] } = useOrganizationPlugins(currentOrganization?.id);
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === 'collapsed';
+
+  const enabledPlugins = plugins.filter(p => p.enabled);
 
   const getInitials = (name: string) =>
     name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
@@ -77,7 +88,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map(({ view, label, icon: Icon }) => (
+              {coreNavItems.map(({ view, label, icon: Icon }) => (
                 <SidebarMenuItem key={view}>
                   <SidebarMenuButton
                     isActive={currentView === view}
@@ -92,6 +103,71 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Plugin nav items */}
+        {enabledPlugins.length > 0 && (
+          <>
+            <SidebarSeparator />
+            <SidebarGroup>
+              <SidebarGroupLabel>Modules</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {enabledPlugins.map(plugin => {
+                    const navInfo = pluginNavMap[plugin.plugin_name];
+                    if (!navInfo) return null;
+                    const Icon = navInfo.icon;
+                    return (
+                      <SidebarMenuItem key={plugin.id}>
+                        <SidebarMenuButton
+                          isActive={currentView === navInfo.view}
+                          onClick={() => onViewChange(navInfo.view)}
+                          tooltip={navInfo.label}
+                        >
+                          <Icon className="h-4 w-4" />
+                          <span>{navInfo.label}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      isActive={currentView === 'plugin-settings'}
+                      onClick={() => onViewChange('plugin-settings')}
+                      tooltip="Plugin Settings"
+                    >
+                      <Puzzle className="h-4 w-4" />
+                      <span>Plugin Settings</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
+
+        {/* Show plugin settings even if no plugins enabled yet */}
+        {enabledPlugins.length === 0 && currentOrganization && (
+          <>
+            <SidebarSeparator />
+            <SidebarGroup>
+              <SidebarGroupLabel>Modules</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      isActive={currentView === 'plugin-settings'}
+                      onClick={() => onViewChange('plugin-settings')}
+                      tooltip="Plugin Settings"
+                    >
+                      <Puzzle className="h-4 w-4" />
+                      <span>Plugin Settings</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
       </SidebarContent>
 
       <SidebarSeparator />

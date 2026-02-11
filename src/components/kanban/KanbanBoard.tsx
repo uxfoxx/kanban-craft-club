@@ -13,22 +13,27 @@ import { CreateTaskDialog } from './CreateTaskDialog';
 import { TaskDetailSheet } from './TaskDetailSheet';
 import { ColumnManager } from './ColumnManager';
 import { KanbanFilters, KanbanFilterState } from './KanbanFilters';
+import { ListView } from './ListView';
+import { GanttView } from './GanttView';
 import { ProjectSettings } from '@/components/projects/ProjectSettings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Plus, UserPlus, Loader2, Users, Settings, UserCheck } from 'lucide-react';
+import { Plus, UserPlus, Loader2, Users, Settings, UserCheck, Columns3, List, GanttChart } from 'lucide-react';
 import {
   Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage,
 } from '@/components/ui/breadcrumb';
 import { toast } from 'sonner';
 import { isPast, differenceInHours } from 'date-fns';
+
+type ProjectViewMode = 'kanban' | 'list' | 'gantt';
 
 interface KanbanBoardProps {
   projectId: string;
@@ -54,6 +59,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newMemberRole, setNewMemberRole] = useState<'admin' | 'member'>('member');
+  const [viewMode, setViewMode] = useState<ProjectViewMode>('kanban');
   const [filters, setFilters] = useState<KanbanFilterState>({
     assigneeIds: [],
     priorities: [],
@@ -154,8 +160,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
     return true;
   };
 
+  const filteredTasks = useMemo(() => tasks?.filter(matchesFilters) || [], [tasks, filters, assigneesByTask, columns]);
+
   const getTasksByColumn = (columnId: string): Task[] => {
-    return tasks?.filter((task) => task.column_id === columnId && matchesFilters(task)) || [];
+    return filteredTasks.filter((task) => task.column_id === columnId);
   };
 
   const isLoading = tasksLoading || columnsLoading;
@@ -187,6 +195,21 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
         </div>
         
         <div className="flex items-center gap-2 flex-wrap">
+          {/* View Mode Toggle */}
+          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as ProjectViewMode)} size="sm">
+            <ToggleGroupItem value="kanban" aria-label="Kanban view">
+              <Columns3 className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="list" aria-label="List view">
+              <List className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="gantt" aria-label="Timeline view">
+              <GanttChart className="h-4 w-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
+
+          <div className="w-px h-6 bg-border" />
+
           {allMembers.length > 0 && (
             <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground" onClick={() => setSettingsOpen(true)}>
               <Users className="h-4 w-4" /> {allMembers.length}
@@ -194,9 +217,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
           )}
           {isAdmin && (
             <>
-              <Button variant="outline" size="sm" onClick={() => setColumnManagerOpen(true)}>
-                <Settings className="h-4 w-4 md:mr-2" /><span className="hidden md:inline">Columns</span>
-              </Button>
+              {viewMode === 'kanban' && (
+                <Button variant="outline" size="sm" onClick={() => setColumnManagerOpen(true)}>
+                  <Settings className="h-4 w-4 md:mr-2" /><span className="hidden md:inline">Columns</span>
+                </Button>
+              )}
               <Dialog open={memberDialogOpen} onOpenChange={setMemberDialogOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm">
@@ -261,6 +286,20 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
+      ) : viewMode === 'list' ? (
+        <ListView
+          tasks={filteredTasks}
+          columns={columns || []}
+          assigneesByTask={assigneesByTask}
+          onTaskClick={setSelectedTask}
+        />
+      ) : viewMode === 'gantt' ? (
+        <GanttView
+          tasks={filteredTasks}
+          columns={columns || []}
+          assigneesByTask={assigneesByTask}
+          onTaskClick={setSelectedTask}
+        />
       ) : (
         <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 pb-4">
           <div
