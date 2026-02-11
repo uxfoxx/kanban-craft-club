@@ -610,6 +610,7 @@ export type Database = {
           amount: number
           created_at: string
           id: string
+          manual_override: boolean
           project_id: string
           status: string
           task_id: string
@@ -620,6 +621,7 @@ export type Database = {
           amount?: number
           created_at?: string
           id?: string
+          manual_override?: boolean
           project_id: string
           status?: string
           task_id: string
@@ -630,6 +632,7 @@ export type Database = {
           amount?: number
           created_at?: string
           id?: string
+          manual_override?: boolean
           project_id?: string
           status?: string
           task_id?: string
