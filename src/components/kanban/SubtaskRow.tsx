@@ -5,6 +5,7 @@ import { useSubtaskTimeEntries, useDeleteSubtaskTimeEntry, useActiveSubtaskTimeE
 import { formatDuration } from '@/hooks/useTimeTracking';
 import { useSubtaskAssignees, useAddSubtaskAssignee, useRemoveSubtaskAssignee } from '@/hooks/useAssignees';
 import { SubtaskTimeEntryDialog } from '@/components/time/SubtaskTimeEntryDialog';
+import { CommentSection } from '@/components/comments/CommentSection';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
