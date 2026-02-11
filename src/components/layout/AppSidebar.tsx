@@ -21,7 +21,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { LayoutDashboard, Home, FolderOpen, Building2, Clock, LogOut, Settings, PanelLeftClose, PanelLeft } from 'lucide-react';
 
-export type ViewType = 'personal' | 'projects' | 'team' | 'timetracking';
+export type ViewType = 'personal' | 'workspace' | 'timetracking';
 
 interface AppSidebarProps {
   currentView: ViewType;
@@ -31,8 +31,7 @@ interface AppSidebarProps {
 
 const navItems: { view: ViewType; label: string; icon: React.ElementType }[] = [
   { view: 'personal', label: 'Dashboard', icon: Home },
-  { view: 'projects', label: 'Projects', icon: FolderOpen },
-  { view: 'team', label: 'Organization', icon: Building2 },
+  { view: 'workspace', label: 'Workspace', icon: Building2 },
   { view: 'timetracking', label: 'Time Tracking', icon: Clock },
 ];
 

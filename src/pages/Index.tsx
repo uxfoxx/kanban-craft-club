@@ -84,10 +84,8 @@ const Dashboard: React.FC = () => {
     switch (currentView) {
       case 'personal':
         return <PersonalDashboard onViewTimeTracking={() => setCurrentView('timetracking')} />;
-      case 'projects':
-        return <ProjectList onSelectProject={(id) => handleSelectProject(id, 'projects')} />;
-      case 'team':
-        return <OrganizationPage onSelectProject={(id) => handleSelectProject(id, 'team')} />;
+      case 'workspace':
+        return <WorkspacePage onSelectProject={(id) => handleSelectProject(id, 'workspace')} />;
       case 'timetracking':
         return <TimeTrackingPage onBack={() => setCurrentView('personal')} />;
       default:
