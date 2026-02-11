@@ -59,8 +59,16 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({
   const [editedName, setEditedName] = useState('');
   const [editedDescription, setEditedDescription] = useState('');
   const [editedStartDate, setEditedStartDate] = useState<Date | undefined>();
+  const [editedLeadId, setEditedLeadId] = useState<string>('');
+  const [isEditingFinancials, setIsEditingFinancials] = useState(false);
+  const [editedBudget, setEditedBudget] = useState('');
+  const [editedOverhead, setEditedOverhead] = useState('');
+  const [editedCompanyPct, setEditedCompanyPct] = useState('');
+  const [editedTeamPct, setEditedTeamPct] = useState('');
+  const [editedFinderPct, setEditedFinderPct] = useState('');
 
   const isOwner = project?.owner_id === user?.id;
+  const expensesEnabled = useIsPluginEnabled(project?.organization_id, 'expenses');
 
   const handleSaveProject = async () => {
     if (!editedName.trim()) {
