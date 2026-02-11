@@ -23,7 +23,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Plus, UserPlus, Loader2, Users, Settings } from 'lucide-react';
+import { Plus, UserPlus, Loader2, Users, Settings, UserCheck } from 'lucide-react';
 import {
   Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage,
 } from '@/components/ui/breadcrumb';
