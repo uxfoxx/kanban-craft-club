@@ -22,7 +22,10 @@ import { Loader2 } from 'lucide-react';
 const viewTitles: Record<ViewType, string> = {
   personal: 'Dashboard',
   workspace: 'Workspace',
+  calendar: 'Calendar',
   timetracking: 'Time Tracking',
+  financials: 'Financials',
+  'plugin-settings': 'Plugin Settings',
 };
 
 const PageTitle: React.FC<{ currentView: ViewType; selectedProjectId: string | null }> = ({ currentView, selectedProjectId }) => {
