@@ -32,7 +32,7 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onSelectProj
   
 
   const [createOrgDialogOpen, setCreateOrgDialogOpen] = useState(false);
-  const [createProjectDialogOpen, setCreateProjectDialogOpen] = useState(false);
+  
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [orgName, setOrgName] = useState('');
   const [orgDescription, setOrgDescription] = useState('');
