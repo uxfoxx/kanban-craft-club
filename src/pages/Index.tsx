@@ -4,7 +4,7 @@ import { OrganizationProvider, useOrganization } from '@/contexts/OrganizationCo
 
 import { AuthPage } from '@/components/auth/AuthPage';
 import { AppSidebar, ViewType } from '@/components/layout/AppSidebar';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import { ActiveTimer } from '@/components/time/ActiveTimer';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { ProjectList } from '@/components/projects/ProjectList';
@@ -13,10 +13,28 @@ import { PersonalDashboard } from '@/components/personal/PersonalDashboard';
 import { TimeTrackingPage } from '@/components/personal/TimeTrackingPage';
 import { OrganizationPage } from '@/components/organizations/OrganizationPage';
 import { ProfileSettings } from '@/components/profile/ProfileSettings';
+import { useProject } from '@/hooks/useProjects';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Loader2 } from 'lucide-react';
 
+const viewTitles: Record<ViewType, string> = {
+  personal: 'Dashboard',
+  projects: 'Projects',
+  team: 'Organization',
+  timetracking: 'Time Tracking',
+};
+
+const PageTitle: React.FC<{ currentView: ViewType; selectedProjectId: string | null }> = ({ currentView, selectedProjectId }) => {
+  const { data: project } = useProject(selectedProjectId || undefined);
+
+  if (selectedProjectId && project) {
+    return <h1 className="text-lg font-semibold truncate">{project.name}</h1>;
+  }
+  return <h1 className="text-lg font-semibold">{viewTitles[currentView]}</h1>;
+};
+
 const Dashboard: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, profile } = useAuth();
   const { isLoading: orgLoading } = useOrganization();
   
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -51,6 +69,9 @@ const Dashboard: React.FC = () => {
     setSelectedProjectId(projectId);
     setKanbanSource(source);
   };
+
+  const getInitials = (name: string) =>
+    name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
 
   const renderContent = () => {
     if (selectedProjectId) {
@@ -87,15 +108,21 @@ const Dashboard: React.FC = () => {
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top bar */}
           <header className="border-b bg-card h-14 flex items-center justify-between px-4 flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger />
-            </div>
+            <PageTitle currentView={currentView} selectedProjectId={selectedProjectId} />
             <div className="flex items-center gap-2 md:gap-3">
               <ActiveTimer />
               <NotificationBell />
+              {profile && (
+                <button onClick={() => setProfileSettingsOpen(true)} className="rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                      {getInitials(profile.full_name)}
+                    </AvatarFallback>
+                  </Avatar>
+                </button>
+              )}
             </div>
           </header>
-
 
           {/* Main content */}
           <main className="flex-1 overflow-auto p-4 md:p-6">

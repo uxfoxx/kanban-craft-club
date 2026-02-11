@@ -336,6 +336,18 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
               <p className="text-xs text-muted-foreground">No time entries</p>
             )}
           </div>
+
+          {/* Comments */}
+          <div className="space-y-2">
+            <CommentSection
+              subtaskId={subtask.id}
+              members={organizationMembers?.map(m => ({
+                user_id: m.user_id,
+                full_name: m.profiles?.full_name || 'Unknown',
+                email: m.profiles?.email || '',
+              })) || []}
+            />
+          </div>
         </CollapsibleContent>
       </Collapsible>
 

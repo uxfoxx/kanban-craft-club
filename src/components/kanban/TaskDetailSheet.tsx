@@ -539,6 +539,18 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
 
               <Separator />
 
+              {/* Comments */}
+              <CommentSection
+                taskId={task.id}
+                members={organizationMembers.map(m => ({
+                  user_id: m.user_id,
+                  full_name: m.profiles?.full_name || 'Unknown',
+                  email: m.profiles?.email || '',
+                }))}
+              />
+
+              <Separator />
+
               {/* Delete Task */}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
