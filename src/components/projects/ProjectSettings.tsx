@@ -30,7 +30,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Trash2, Crown, Shield, User, Pencil, Save, XCircle, Building2 } from 'lucide-react';
+import { Loader2, Trash2, Crown, Shield, User, Pencil, Save, XCircle, Building2, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProjectSettingsProps {
