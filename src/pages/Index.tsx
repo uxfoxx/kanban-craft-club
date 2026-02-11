@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, AuthProvider } from '@/contexts/AuthContext';
 import { OrganizationProvider, useOrganization } from '@/contexts/OrganizationContext';
-import { usePushNotifications } from '@/hooks/usePushNotifications';
+
 import { AuthPage } from '@/components/auth/AuthPage';
 import { AppSidebar, ViewType } from '@/components/layout/AppSidebar';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
