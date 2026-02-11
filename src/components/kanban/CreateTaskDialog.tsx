@@ -89,6 +89,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setColumnId('');
     setSelectedAssignees([]);
     setDueDate('');
+    setCost('');
   };
 
   const toggleAssignee = (userId: string) => {
