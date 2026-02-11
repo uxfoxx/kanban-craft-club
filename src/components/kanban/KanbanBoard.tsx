@@ -177,6 +177,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
           {project?.description && (
             <p className="text-sm text-muted-foreground truncate">{project?.description}</p>
           )}
+          {leadMember && (
+            <div className="flex items-center gap-1.5">
+              <UserCheck className="h-3 w-3 text-primary" />
+              <span className="text-xs text-muted-foreground">Lead: {leadMember.profiles.full_name}</span>
+            </div>
+          )}
         </div>
         
         <div className="flex items-center gap-2 flex-wrap">
