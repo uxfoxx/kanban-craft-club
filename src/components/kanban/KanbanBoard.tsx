@@ -158,14 +158,21 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-xl md:text-2xl font-bold truncate">{project?.name}</h1>
+        <div className="space-y-1">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink className="cursor-pointer" onClick={onBack}>Projects</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{project?.name}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          {project?.description && (
             <p className="text-sm text-muted-foreground truncate">{project?.description}</p>
-          </div>
+          )}
         </div>
         
         <div className="flex items-center gap-2 flex-wrap">

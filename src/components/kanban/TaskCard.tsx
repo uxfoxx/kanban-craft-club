@@ -100,8 +100,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
       <CardContent className="p-3">
         <div className="flex items-start justify-between gap-2 mb-1.5">
           <h4 className="font-medium text-sm line-clamp-2 flex-1">{task.title}</h4>
-          {/* Move-to-column dropdown for mobile */}
-          {isMobile && otherColumns.length > 0 && onMoveToColumn && (
+          {/* Move-to-column dropdown */}
+          {otherColumns.length > 0 && onMoveToColumn && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button

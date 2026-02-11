@@ -18,7 +18,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Building2, Plus, Loader2, Settings, FolderOpen, BarChart3, Activity } from 'lucide-react';
+import { Building2, Plus, Loader2, Settings, BarChart3, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface OrganizationPageProps {

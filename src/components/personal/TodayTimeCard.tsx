@@ -65,14 +65,21 @@ export const TodayTimeCard: React.FC<TodayTimeCardProps> = ({ onViewHistory }) =
            {formatDuration(totalWithActive)}
          </div>
          
-         {activeEntry && (
-           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-             <Timer className="h-4 w-4 animate-pulse text-primary" />
-             <span className="truncate">{activeEntry.tasks?.title || 'Active task'}</span>
-             <span className="font-mono text-primary">{formatDuration(elapsedTime)}</span>
-           </div>
-         )}
-       </CardContent>
-     </Card>
-   );
- };
+          {activeEntry && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Timer className="h-4 w-4 animate-pulse text-primary" />
+              <span className="truncate">{activeEntry.tasks?.title || 'Active task'}</span>
+              <span className="font-mono text-primary">{formatDuration(elapsedTime)}</span>
+            </div>
+          )}
+          
+          {onViewHistory && (
+            <Button variant="ghost" size="sm" className="w-full mt-2 text-muted-foreground" onClick={onViewHistory}>
+              View history
+              <ArrowRight className="h-3.5 w-3.5 ml-1" />
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
