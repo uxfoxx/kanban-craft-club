@@ -23,17 +23,21 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { Check, XCircle, Pencil, Trash2, Clock, ChevronDown, Play, Square, Plus, X } from 'lucide-react';
+import { Check, XCircle, Pencil, Trash2, Clock, ChevronDown, Play, Square, Plus, X, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { OrganizationMemberWithProfile } from '@/hooks/useOrganizations';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SubtaskRowProps {
   subtask: Subtask;
   organizationMembers?: OrganizationMemberWithProfile[];
+  taskBudget?: number;
+  isOrgAdmin?: boolean;
+  expensesEnabled?: boolean;
 }
 
-export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMembers }) => {
+export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMembers, taskBudget = 0, isOrgAdmin = false, expensesEnabled = false }) => {
   const toggleSubtask = useToggleSubtask();
   const deleteSubtask = useDeleteSubtask();
   const updateSubtask = useUpdateSubtask();
@@ -336,6 +340,77 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
               <p className="text-xs text-muted-foreground">No time entries</p>
             )}
           </div>
+
+          {/* Commission Settings - Expenses Plugin Gated */}
+          {expensesEnabled && taskBudget > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-sm font-medium">Commission</span>
+              </div>
+              {isOrgAdmin ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={subtask.commission_type || 'none'}
+                      onValueChange={async (val) => {
+                        const type = val === 'none' ? null : val;
+                        try {
+                          await supabase.from('subtasks').update({ commission_type: type } as any).eq('id', subtask.id);
+                          toast.success('Commission type updated');
+                        } catch { toast.error('Failed to update'); }
+                      }}
+                    >
+                      <SelectTrigger className="h-7 w-[130px] text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No Commission</SelectItem>
+                        <SelectItem value="percentage">Percentage</SelectItem>
+                        <SelectItem value="fixed">Fixed Amount</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {subtask.commission_type && (
+                      <Input
+                        type="number"
+                        value={subtask.commission_value || ''}
+                        onChange={async (e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          try {
+                            await supabase.from('subtasks').update({ commission_value: val } as any).eq('id', subtask.id);
+                          } catch {}
+                        }}
+                        className="h-7 w-20 text-xs"
+                        min="0"
+                        step="0.01"
+                        placeholder={subtask.commission_type === 'percentage' ? '%' : '$'}
+                      />
+                    )}
+                  </div>
+                  {subtask.commission_type && subtask.commission_value > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      = ${(subtask.commission_type === 'percentage'
+                        ? (subtask.commission_value / 100) * taskBudget
+                        : subtask.commission_value
+                      ).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      {subtask.commission_type === 'percentage' && ` (${subtask.commission_value}% of $${taskBudget})`}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                subtask.commission_type && subtask.commission_value > 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    Your commission: ${(subtask.commission_type === 'percentage'
+                      ? (subtask.commission_value / 100) * taskBudget
+                      : subtask.commission_value
+                    ).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">No commission set</p>
+                )
+              )}
+            </div>
+          )}
 
           {/* Comments */}
           <div className="space-y-2">

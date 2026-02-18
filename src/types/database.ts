@@ -81,6 +81,7 @@ export interface Task {
   created_by: string;
   due_date: string | null;
   cost: number;
+  budget: number;
   weight_pct: number | null;
   created_at: string;
   updated_at: string;
@@ -99,6 +100,8 @@ export interface Subtask {
   task_id: string;
   title: string;
   completed: boolean;
+  commission_type: 'percentage' | 'fixed' | null;
+  commission_value: number;
   created_at: string;
 }
 
@@ -178,9 +181,11 @@ export interface TaskCommission {
   id: string;
   project_id: string;
   task_id: string;
+  subtask_id: string | null;
   user_id: string;
   amount: number;
   status: 'pending' | 'confirmed' | 'frozen';
+  commission_source: 'task_manager' | 'subtask' | 'manual';
   manual_override: boolean;
   created_at: string;
   updated_at: string;
@@ -190,6 +195,7 @@ export interface UserWallet {
   id: string;
   user_id: string;
   balance: number;
+  potential_balance: number;
   monthly_target: number;
   created_at: string;
   updated_at: string;
