@@ -536,6 +536,8 @@ export type Database = {
       }
       subtasks: {
         Row: {
+          commission_type: string | null
+          commission_value: number
           completed: boolean
           created_at: string
           id: string
@@ -543,6 +545,8 @@ export type Database = {
           title: string
         }
         Insert: {
+          commission_type?: string | null
+          commission_value?: number
           completed?: boolean
           created_at?: string
           id?: string
@@ -550,6 +554,8 @@ export type Database = {
           title: string
         }
         Update: {
+          commission_type?: string | null
+          commission_value?: number
           completed?: boolean
           created_at?: string
           id?: string
@@ -608,33 +614,39 @@ export type Database = {
       task_commissions: {
         Row: {
           amount: number
+          commission_source: string | null
           created_at: string
           id: string
           manual_override: boolean
           project_id: string
           status: string
+          subtask_id: string | null
           task_id: string
           updated_at: string
           user_id: string
         }
         Insert: {
           amount?: number
+          commission_source?: string | null
           created_at?: string
           id?: string
           manual_override?: boolean
           project_id: string
           status?: string
+          subtask_id?: string | null
           task_id: string
           updated_at?: string
           user_id: string
         }
         Update: {
           amount?: number
+          commission_source?: string | null
           created_at?: string
           id?: string
           manual_override?: boolean
           project_id?: string
           status?: string
+          subtask_id?: string | null
           task_id?: string
           updated_at?: string
           user_id?: string
@@ -645,6 +657,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_commissions_subtask_id_fkey"
+            columns: ["subtask_id"]
+            isOneToOne: false
+            referencedRelation: "subtasks"
             referencedColumns: ["id"]
           },
           {
@@ -659,6 +678,7 @@ export type Database = {
       tasks: {
         Row: {
           assignee_id: string | null
+          budget: number
           column_id: string | null
           cost: number
           created_at: string
@@ -675,6 +695,7 @@ export type Database = {
         }
         Insert: {
           assignee_id?: string | null
+          budget?: number
           column_id?: string | null
           cost?: number
           created_at?: string
@@ -691,6 +712,7 @@ export type Database = {
         }
         Update: {
           assignee_id?: string | null
+          budget?: number
           column_id?: string | null
           cost?: number
           created_at?: string
@@ -769,6 +791,7 @@ export type Database = {
           created_at: string
           id: string
           monthly_target: number
+          potential_balance: number
           updated_at: string
           user_id: string
         }
@@ -777,6 +800,7 @@ export type Database = {
           created_at?: string
           id?: string
           monthly_target?: number
+          potential_balance?: number
           updated_at?: string
           user_id: string
         }
@@ -785,6 +809,7 @@ export type Database = {
           created_at?: string
           id?: string
           monthly_target?: number
+          potential_balance?: number
           updated_at?: string
           user_id?: string
         }

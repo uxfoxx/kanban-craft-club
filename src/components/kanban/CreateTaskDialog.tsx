@@ -50,7 +50,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [columnId, setColumnId] = useState<string>('');
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [dueDate, setDueDate] = useState('');
-  const [cost, setCost] = useState('');
+  const [budget, setBudget] = useState('');
 
   // Get default column (first one or one marked as default)
   const defaultColumn = columns?.find(c => c.is_default) || columns?.[0];
@@ -66,7 +66,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         priority,
         columnId: columnId || defaultColumn?.id,
         dueDate: dueDate || undefined,
-        cost: cost ? parseFloat(cost) : undefined,
+        cost: budget ? parseFloat(budget) : undefined,
+        budget: budget ? parseFloat(budget) : undefined,
       });
 
       // Add assignees
@@ -89,7 +90,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setColumnId('');
     setSelectedAssignees([]);
     setDueDate('');
-    setCost('');
+    setBudget('');
   };
 
   const toggleAssignee = (userId: string) => {
@@ -160,12 +161,12 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
           {expensesEnabled && (
             <div className="space-y-2">
-              <Label htmlFor="task-cost">Cost ($)</Label>
+              <Label htmlFor="task-budget">Task Budget ($)</Label>
               <Input
-                id="task-cost"
+                id="task-budget"
                 type="number"
-                value={cost}
-                onChange={(e) => setCost(e.target.value)}
+                value={budget}
+                onChange={(e) => setBudget(e.target.value)}
                 placeholder="0.00"
                 min="0"
                 step="0.01"

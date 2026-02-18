@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Task, KanbanColumn, TimeEntry } from '@/types/database';
+import { useIsOrgAdmin } from '@/hooks/useIsOrgAdmin';
 import { useSubtasks, useCreateSubtask, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
 import { useTimeEntries, formatDuration, useDeleteTimeEntry } from '@/hooks/useTimeTracking';
 import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee } from '@/hooks/useAssignees';
@@ -61,6 +62,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   expensesEnabled,
 }) => {
   const { data: subtasks } = useSubtasks(task?.id);
+  const { data: isAdmin = false } = useIsOrgAdmin();
   const { data: timeEntries } = useTimeEntries(task?.id);
   const { data: assignees } = useTaskAssignees(task?.id);
   const { data: organizationMembers = [] } = useOrganizationMembersForProject(projectId);
@@ -427,25 +429,25 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                 </div>
               </div>
               
-              {/* Cost & Weight - Plugin Gated */}
+              {/* Budget & Commission - Plugin Gated */}
               {expensesEnabled && (
                 <>
                   <Separator />
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <h4 className="text-sm font-medium">Cost & Weight</h4>
+                      <h4 className="text-sm font-medium">Budget & Commission</h4>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-3">
                       <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">Task Cost ($)</label>
+                        <label className="text-xs text-muted-foreground">Task Budget ($)</label>
                         <Input
                           type="number"
-                          value={task.cost || ''}
+                          value={(task as any).budget || task.cost || ''}
                           onChange={async (e) => {
                             const val = parseFloat(e.target.value) || 0;
                             try {
-                              await updateTask.mutateAsync({ taskId: task.id, updates: { cost: val } as any, projectId });
+                              await updateTask.mutateAsync({ taskId: task.id, updates: { cost: val, budget: val } as any, projectId });
                             } catch {}
                           }}
                           min="0"
@@ -453,6 +455,15 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                           className="h-8 text-sm"
                         />
                       </div>
+                      {/* Task Manager Commission Info */}
+                      {assignees && assignees.length > 0 && (
+                        <div className="p-2 rounded-md bg-muted/50 text-sm">
+                          <p className="text-xs text-muted-foreground mb-1">Task Manager Commission (10%)</p>
+                          <p className="font-medium">
+                            {assignees[0]?.profiles?.full_name || 'First Assignee'}: ${(((task as any).budget || task.cost || 0) * 0.1).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                      )}
                       <div className="space-y-1">
                         <label className="text-xs text-muted-foreground">Weight %</label>
                         <Input
@@ -576,6 +587,9 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                       key={subtask.id}
                       subtask={subtask}
                       organizationMembers={organizationMembers}
+                      taskBudget={(task as any).budget || task.cost || 0}
+                      isOrgAdmin={isAdmin}
+                      expensesEnabled={expensesEnabled}
                     />
                   ))}
 
