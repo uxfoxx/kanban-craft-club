@@ -392,56 +392,41 @@ export type Database = {
       projects: {
         Row: {
           budget: number
-          company_share_pct: number
           created_at: string
           description: string | null
-          direct_expenses: number
-          finder_commission_pct: number
           id: string
           lead_id: string | null
           name: string
           organization_id: string | null
-          overhead_expenses: number
           owner_id: string
           project_type: string | null
           start_date: string | null
-          team_share_pct: number
           updated_at: string
         }
         Insert: {
           budget?: number
-          company_share_pct?: number
           created_at?: string
           description?: string | null
-          direct_expenses?: number
-          finder_commission_pct?: number
           id?: string
           lead_id?: string | null
           name: string
           organization_id?: string | null
-          overhead_expenses?: number
           owner_id: string
           project_type?: string | null
           start_date?: string | null
-          team_share_pct?: number
           updated_at?: string
         }
         Update: {
           budget?: number
-          company_share_pct?: number
           created_at?: string
           description?: string | null
-          direct_expenses?: number
-          finder_commission_pct?: number
           id?: string
           lead_id?: string | null
           name?: string
           organization_id?: string | null
-          overhead_expenses?: number
           owner_id?: string
           project_type?: string | null
           start_date?: string | null
-          team_share_pct?: number
           updated_at?: string
         }
         Relationships: [

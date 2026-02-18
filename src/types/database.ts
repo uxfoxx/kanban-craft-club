@@ -42,11 +42,6 @@ export interface Project {
   lead_id: string | null;
   budget: number;
   project_type: string | null;
-  direct_expenses: number;
-  overhead_expenses: number;
-  company_share_pct: number;
-  team_share_pct: number;
-  finder_commission_pct: number;
   created_at: string;
   updated_at: string;
 }
@@ -163,18 +158,6 @@ export interface OrganizationPlugin {
   plugin_name: string;
   enabled: boolean;
   created_at: string;
-}
-
-export interface ProjectFinancials {
-  id: string;
-  project_id: string;
-  total_expenses: number;
-  gross_profit: number;
-  company_earnings: number;
-  team_pool: number;
-  finder_commission: number;
-  is_frozen: boolean;
-  updated_at: string;
 }
 
 export interface TaskCommission {

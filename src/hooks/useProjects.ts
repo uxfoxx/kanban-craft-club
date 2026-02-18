@@ -196,18 +196,13 @@ export const useUpdateProject = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ projectId, name, description, startDate, leadId, budget, overheadExpenses, companySharePct, teamSharePct, finderCommissionPct }: { 
+    mutationFn: async ({ projectId, name, description, startDate, leadId, budget }: { 
       projectId: string; name: string; description?: string; startDate?: string | null; 
-      leadId?: string | null; budget?: number; overheadExpenses?: number;
-      companySharePct?: number; teamSharePct?: number; finderCommissionPct?: number;
+      leadId?: string | null; budget?: number;
     }) => {
       const updates: Record<string, unknown> = { name, description, start_date: startDate !== undefined ? startDate : undefined };
       if (leadId !== undefined) updates.lead_id = leadId;
       if (budget !== undefined) updates.budget = budget;
-      if (overheadExpenses !== undefined) updates.overhead_expenses = overheadExpenses;
-      if (companySharePct !== undefined) updates.company_share_pct = companySharePct;
-      if (teamSharePct !== undefined) updates.team_share_pct = teamSharePct;
-      if (finderCommissionPct !== undefined) updates.finder_commission_pct = finderCommissionPct;
 
       const { data, error } = await supabase
         .from('projects')
