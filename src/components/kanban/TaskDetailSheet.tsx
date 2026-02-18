@@ -41,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
 import { Plus, Clock, ListTodo, Flag, Calendar as CalendarIcon, Users, X, Trash2, Pencil, Check, XCircle, DollarSign, Weight } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -236,7 +237,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
 
   return (
     <Sheet open={!!task} onOpenChange={() => onClose()}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         {task && (
           <>
             <SheetHeader>
@@ -318,7 +319,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
               </SheetDescription>
             </SheetHeader>
             
-            <div className="mt-6 space-y-6">
+            <div className="mt-6 space-y-6 pb-20 md:pb-6">
               {/* Status Column Selector */}
               {columns && columns.length > 0 && (
                 <div>
@@ -507,20 +508,25 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                     Add Entry
                   </Button>
                 </div>
-                <p className="text-2xl font-bold">
-                  {totalTimeSpent > 0 ? formatDuration(totalTimeSpent) : 'No time logged'}
-                </p>
+                {totalTimeSpent > 0 ? (
+                  <p className="text-2xl font-bold">{formatDuration(totalTimeSpent)}</p>
+                ) : (
+                  <div className="flex items-center gap-2 text-muted-foreground py-2">
+                    <Clock className="h-5 w-5" />
+                    <span className="text-sm">No time logged yet</span>
+                  </div>
+                )}
                 {timeEntries && timeEntries.length > 0 && (
                   <div className="mt-2 space-y-1">
                     {(showAllTimeEntries ? timeEntries : timeEntries.slice(0, 5)).map((entry) => (
                       <div key={entry.id} className="text-xs text-muted-foreground flex justify-between items-center group">
                         <span>{format(new Date(entry.started_at), 'MMM d, h:mm a')}</span>
                         <div className="flex items-center gap-1">
-                          <span>{entry.duration_seconds ? formatDuration(entry.duration_seconds) : '-'}</span>
+                            <span>{entry.duration_seconds ? formatDuration(entry.duration_seconds) : '-'}</span>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="h-5 w-5"
                             onClick={() => {
                               setEditingTimeEntry(entry);
                               setShowTimeEntryDialog(true);
@@ -531,7 +537,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                            className="h-5 w-5 text-destructive"
                             onClick={() => handleDeleteTimeEntry(entry.id)}
                           >
                             <Trash2 className="h-3 w-3" />
@@ -568,6 +574,9 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                     </span>
                   )}
                 </div>
+                {totalSubtasks > 0 && (
+                  <Progress value={(completedSubtasks / totalSubtasks) * 100} className="h-2 mb-3" />
+                )}
                 
                 <form onSubmit={handleAddSubtask} className="flex gap-2 mb-3">
                   <Input
