@@ -1,85 +1,122 @@
 
 
-# Make Commission Calculations Editable with Manual Override
+# Redesign Financial System: Task Budgets, Subtask Commissions, and Role-Based Visibility
 
 ## Overview
-Currently, all commission amounts and statuses are computed automatically by the `recalculate_project_financials` database function and cannot be changed by users. This plan adds the ability for project owners/org admins to manually override any commission amount or status, while keeping the automatic algorithm as the default. Manual overrides are preserved across recalculations.
+The current financial system uses project-level budgets and distributes earnings via company/team/finder splits. The new model shifts to **task-level budgets** where:
+- Each task has its own budget (not just a cost)
+- The task's assignee (project manager for that task) automatically gets 10% of the task budget
+- Subtasks can have a percentage or fixed amount allocated from the remaining task budget
+- Wallets show both **earned** (confirmed) and **potential** (pending if task completes) amounts
+- Only admins/owners see everyone's financial data; regular members only see their own
 
 ---
 
-## 1. Database Changes (Migration)
+## 1. Database Changes
 
-### Add `manual_override` column to `task_commissions`
+### A. Modify `tasks` table
+- Rename the existing `cost` column to `budget` (or add a `budget` column and deprecate `cost`)
+- The task budget represents the total money allocated to this task
+
+### B. Add columns to `subtasks` table
 | Column | Type | Default | Notes |
 |--------|------|---------|-------|
-| manual_override | boolean | false | When true, recalculation skips this row |
+| commission_type | text | null | 'percentage' or 'fixed' |
+| commission_value | numeric(12,2) | 0 | The percentage (e.g. 15) or fixed dollar amount |
 
-### Add RLS policy for UPDATE on `task_commissions`
-- Project owners and org members (admins) can UPDATE task_commissions for their projects
-- Regular users cannot edit commissions
+### C. Modify `task_commissions` table
+- Add `commission_source` column (text): 'task_manager' (10% auto), 'subtask', or 'manual'
+- Add `subtask_id` column (uuid, nullable): links commission to a specific subtask when applicable
 
-### Update `recalculate_project_financials` function
-The key change: when distributing commissions, the function now:
-1. Only reverts wallet balances for **non-overridden** confirmed commissions
-2. Only deletes **non-overridden** commissions before recalculating
-3. Skips inserting new commissions for task+user combos that have `manual_override = true`
-4. Manually overridden commissions remain untouched through recalculations
-5. When freezing (gross profit negative), overridden commissions are still frozen (safety measure) but their `manual_override` flag is preserved so they restore correctly when profit recovers
+### D. Update `user_wallets` table
+- Add `potential_balance` column (numeric, default 0): tracks money the user would earn if pending tasks complete
 
----
+### E. Replace `recalculate_project_financials` function
+The new logic:
+1. For each completed task (in "Done" column):
+   - 10% of task budget goes to the task's first assignee (project manager) as a confirmed commission
+   - For each subtask with a commission_type set:
+     - If `percentage`: calculate `(commission_value / 100) * task_budget` and distribute to the subtask's assignees
+     - If `fixed`: use `commission_value` directly and distribute to subtask assignees
+   - Remaining budget (after manager 10% + subtask allocations) stays with the project
+2. For tasks NOT yet completed but with assignees/subtask assignees: calculate amounts as "potential" and track in `potential_balance` on wallets
+3. Project-level financials (gross profit, company/team splits) are calculated from total task budgets vs project budget
 
-## 2. Frontend: Editable Commission Records
-
-### Modify: `src/components/workspace/FinancialsTab.tsx`
-In the Commission Records table (Section D), add inline editing:
-- Each commission row gets an "Edit" icon button (pencil icon)
-- Clicking it turns the amount into an editable input and the status into a dropdown
-- "Save" and "Cancel" buttons appear inline
-- Only visible to project owners / org admins
-- A small "Manual" badge appears on overridden commissions to distinguish them from auto-calculated ones
-- A "Reset to Auto" button on overridden commissions to remove the override and let the algorithm recalculate
-
-Also in the per-project breakdown (Section C), the task commission sub-table gets the same edit capability.
-
-### Modify: `src/components/kanban/TaskDetailSheet.tsx`
-In the commission display area (already plugin-gated), allow the project owner to click and edit the commission amount for that specific task's assignees.
+### F. RLS Policy Updates
+- `task_commissions` SELECT: users can see their own rows; admins/owners can see all rows for their org's projects (already partially in place)
+- `subtasks` UPDATE for commission fields: only admins/owners can set `commission_type` and `commission_value`
+- No changes to `user_wallets` (users already can only see their own)
 
 ---
 
-## 3. New Hook for Commission Editing
+## 2. Frontend Changes
 
-### New file: `src/hooks/useUpdateCommission.ts`
-- `useUpdateCommission()` -- mutation that updates a task_commission's amount, status, and sets `manual_override = true`
-- `useResetCommissionOverride(commissionId)` -- sets `manual_override = false` then triggers a recalculation by touching the project (a no-op update to trigger the recalc trigger)
+### A. Task Creation and Detail (Budget field)
+**Files:** `CreateTaskDialog.tsx`, `TaskDetailSheet.tsx`
+- Replace "Cost" label with "Budget" 
+- When expenses plugin is enabled, show "Task Budget ($)" input field
+- In TaskDetailSheet, show who gets 10% auto-commission (the first assignee / task manager) with a label like "Task Manager Commission: 10% = $X"
+
+### B. Subtask Commission Settings
+**File:** `SubtaskRow.tsx`
+- When expenses plugin is enabled and user is admin/owner, show a commission section in the subtask's expanded view:
+  - A toggle between "Percentage" and "Fixed Amount"
+  - An input for the value
+  - A calculated preview showing the dollar amount based on the parent task's budget
+- Regular users see only "Your commission: $X" (their own share) without edit capability
+
+### C. Enhanced User Wallet
+**File:** `UserWallet.tsx`
+- Add "Potential Earnings" section showing money the user would earn if all assigned pending tasks complete
+- Display: Confirmed Balance | Potential Earnings | Monthly Target progress
+- The potential amount updates as tasks are completed (moves from potential to confirmed)
+
+### D. Financials Tab - Role-Based Visibility
+**File:** `FinancialsTab.tsx`
+- **Admin/Owner view** (unchanged+enhanced): sees all commission records, can edit, sees everyone's percentages, full project breakdown
+- **Member view** (new): sees only their own wallet, their own commission records filtered to their user_id, no visibility into other members' percentages or amounts
+- Add a check using `useOrganizationMembers` to determine if the current user is admin/owner
+
+### E. New Hook for Role Check
+**File:** `src/hooks/useIsOrgAdmin.ts`
+- Simple hook that checks if the current user is admin or owner of the current organization
+- Used throughout finance components to conditionally render admin-only UI
 
 ---
 
-## Files Summary
+## 3. Files Summary
 
 ### New files (1):
-1. `src/hooks/useUpdateCommission.ts` -- mutation hooks for editing/resetting commissions
+1. `src/hooks/useIsOrgAdmin.ts` -- role check hook for admin/owner status
 
-### Modified files (3):
-1. `src/components/workspace/FinancialsTab.tsx` -- inline edit on commission rows with Manual badge and Reset button
-2. `src/components/kanban/TaskDetailSheet.tsx` -- editable commission amount for task assignees
-3. `src/types/database.ts` -- add `manual_override` to TaskCommission interface
+### Modified files (7):
+1. `src/types/database.ts` -- update Task (budget field), Subtask (commission fields), TaskCommission (source, subtask_id), UserWallet (potential_balance)
+2. `src/components/kanban/CreateTaskDialog.tsx` -- rename Cost to Budget
+3. `src/components/kanban/TaskDetailSheet.tsx` -- show Budget instead of Cost, show manager commission info (admin only)
+4. `src/components/kanban/SubtaskRow.tsx` -- add commission type/value inputs for admins, show own commission for members
+5. `src/components/personal/UserWallet.tsx` -- add Potential Earnings display
+6. `src/components/workspace/FinancialsTab.tsx` -- role-based filtering, show only own data for members
+7. `src/hooks/useUserWallet.ts` -- add potential earnings query
 
 ### Database migration:
-- Add `manual_override` boolean column to `task_commissions`
-- Add UPDATE RLS policy on `task_commissions` for project owners/org admins
-- Replace `recalculate_project_financials` function to skip manually overridden commissions during recalculation
+- Add `budget` column to tasks (keep `cost` for backward compat or migrate data)
+- Add `commission_type`, `commission_value` to subtasks
+- Add `commission_source`, `subtask_id` to task_commissions
+- Add `potential_balance` to user_wallets
+- Replace `recalculate_project_financials` function with new task-budget-based logic
+- Add RLS: restrict subtask commission field updates to admins/owners only
 
 ---
 
-## Key Design Decisions
+## 4. Key Design Decisions
 
-1. **Override flag, not separate table**: A simple `manual_override` boolean on the existing `task_commissions` table is the cleanest approach. No need for a separate overrides table.
+1. **Task budget replaces project-level cost tracking**: Each task is a self-contained budget unit. The project budget is the sum of task budgets (or can be set independently for profit tracking).
 
-2. **Overrides survive recalculation**: The recalc function explicitly skips rows where `manual_override = true`, so manual edits are never lost when tasks are moved, costs change, or budgets are updated.
+2. **10% auto-commission for task manager**: The first assignee on a task is considered the task manager and automatically earns 10% of the task budget when the task is completed. This is not editable by default but admins can override via manual commission editing.
 
-3. **Safety freeze still applies**: Even manually overridden commissions get frozen when gross profit goes negative. This prevents paying out money that does not exist, regardless of manual edits.
+3. **Subtask commission flexibility**: Admins can choose percentage-of-task-budget or fixed-amount for each subtask. This allows both proportional and absolute payment structures.
 
-4. **Reset to auto**: Users can easily remove an override and let the algorithm take over again, keeping the workflow flexible.
+4. **Potential vs confirmed earnings**: Users can see what they stand to earn (potential) alongside what has been confirmed. This provides motivation and transparency without waiting for task completion.
 
-5. **Visual distinction**: A "Manual" badge on overridden commissions makes it clear which values are auto-calculated vs manually set, preventing confusion.
+5. **Role-based visibility enforced at both DB and UI level**: RLS ensures members cannot query other users' commissions. The UI additionally hides admin controls (percentages, edit buttons, other users' data) for non-admin users. This is defense in depth.
 
