@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsOrgAdmin } from '@/hooks/useIsOrgAdmin';
-import { useOrgProjectFinancials, useOrgCommissions } from '@/hooks/useOrgFinancials';
+import { useOrgCommissions } from '@/hooks/useOrgFinancials';
 import { useProjects } from '@/hooks/useProjects';
 import { useUpdateCommission } from '@/hooks/useUpdateCommission';
 import { UserWallet } from '@/components/personal/UserWallet';
@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { DollarSign, TrendingUp, TrendingDown, Snowflake, ChevronDown, ChevronRight, Pencil, X, Check, RotateCcw } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, ChevronDown, ChevronRight, Pencil, X, Check, RotateCcw } from 'lucide-react';
 import { TaskCommission } from '@/types/database';
 
 const fmt = (n: number) => `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -125,7 +125,6 @@ export const FinancialsTab: React.FC = () => {
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
   const { data: isAdmin = false } = useIsOrgAdmin();
-  const { data: financials = [], isLoading: finLoading } = useOrgProjectFinancials(currentOrganization?.id);
   const { data: allCommissions = [], isLoading: comLoading } = useOrgCommissions(currentOrganization?.id);
   const { data: allProjects = [] } = useProjects();
   const { updateCommission, resetCommission, isUpdating } = useUpdateCommission();
@@ -141,9 +140,8 @@ export const FinancialsTab: React.FC = () => {
   const projectMap = new Map(orgProjects.map(p => [p.id, p]));
 
   const totalBudget = orgProjects.reduce((s, p) => s + Number(p.budget || 0), 0);
-  const totalExpenses = financials.reduce((s, f) => s + Number(f.total_expenses || 0), 0);
-  const totalProfit = financials.reduce((s, f) => s + Number(f.gross_profit || 0), 0);
-  const frozenCount = financials.filter(f => f.is_frozen).length;
+  const totalConfirmed = commissions.filter(c => c.status === 'confirmed').reduce((s, c) => s + Number(c.amount), 0);
+  const totalPending = commissions.filter(c => c.status === 'pending').reduce((s, c) => s + Number(c.amount), 0);
 
   const filtered = commissions.filter(c => {
     if (statusFilter !== 'all' && c.status !== statusFilter) return false;
@@ -177,7 +175,7 @@ export const FinancialsTab: React.FC = () => {
     resetCommission({ commissionId: c.id, projectId: c.project_id });
   };
 
-  if (finLoading || comLoading) {
+  if (comLoading) {
     return <div className="space-y-4"><Skeleton className="h-32" /><Skeleton className="h-48" /><Skeleton className="h-64" /></div>;
   }
 
@@ -187,7 +185,7 @@ export const FinancialsTab: React.FC = () => {
 
       {/* Organization Overview - Admin Only */}
       {isAdmin && (
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -199,30 +197,18 @@ export const FinancialsTab: React.FC = () => {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <TrendingDown className="h-4 w-4" /> Total Expenses
+                <TrendingDown className="h-4 w-4" /> Total Commissions
               </CardTitle>
             </CardHeader>
-            <CardContent><p className="text-2xl font-bold text-destructive">{fmt(totalExpenses)}</p></CardContent>
+            <CardContent><p className="text-2xl font-bold text-primary">{fmt(totalConfirmed)}</p></CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" /> Gross Profit
+                <TrendingUp className="h-4 w-4" /> Pending Commissions
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>
-                {fmt(totalProfit)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Snowflake className="h-4 w-4" /> Frozen Projects
-              </CardTitle>
-            </CardHeader>
-            <CardContent><p className="text-2xl font-bold">{frozenCount}</p></CardContent>
+            <CardContent><p className="text-2xl font-bold text-muted-foreground">{fmt(totalPending)}</p></CardContent>
           </Card>
         </div>
       )}
@@ -235,9 +221,9 @@ export const FinancialsTab: React.FC = () => {
             <Card><CardContent className="py-8 text-center text-muted-foreground text-sm">No projects in this organization</CardContent></Card>
           ) : (
             orgProjects.map(project => {
-              const fin = financials.find(f => f.project_id === project.id);
               const isOpen = expandedProjects.has(project.id);
               const projectCommissions = commissions.filter(c => c.project_id === project.id);
+              const projConfirmed = projectCommissions.filter(c => c.status === 'confirmed').reduce((s, c) => s + Number(c.amount), 0);
 
               return (
                 <Collapsible key={project.id} open={isOpen} onOpenChange={() => toggleProject(project.id)}>
@@ -248,51 +234,25 @@ export const FinancialsTab: React.FC = () => {
                           <CardTitle className="text-sm font-medium flex items-center gap-2">
                             {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                             {project.name}
-                            {fin?.is_frozen && (
-                              <Badge variant="destructive" className="text-[10px] gap-1">
-                                <Snowflake className="h-3 w-3" /> Frozen
-                              </Badge>
-                            )}
                           </CardTitle>
-                          <span className={`text-sm font-semibold ${(fin?.gross_profit ?? 0) >= 0 ? 'text-primary' : 'text-destructive'}`}>
-                            {fmt(fin?.gross_profit ?? 0)}
+                          <span className="text-sm font-semibold text-primary">
+                            {fmt(projConfirmed)}
                           </span>
                         </div>
                       </CardHeader>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <CardContent className="pt-0 space-y-4">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                        <div className="grid grid-cols-2 gap-3 text-sm">
                           <div>
                             <p className="text-muted-foreground text-xs">Budget</p>
                             <p className="font-medium">{fmt(Number(project.budget))}</p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground text-xs">Direct Expenses</p>
-                            <p className="font-medium">{fmt(Number(project.direct_expenses))}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground text-xs">Overhead</p>
-                            <p className="font-medium">{fmt(Number(project.overhead_expenses))}</p>
+                            <p className="text-muted-foreground text-xs">Total Commissions</p>
+                            <p className="font-medium">{fmt(projConfirmed)}</p>
                           </div>
                         </div>
-
-                        {fin && !fin.is_frozen && (
-                          <div className="grid grid-cols-3 gap-3 text-sm">
-                            <div className="rounded-lg bg-muted/50 p-3 text-center">
-                              <p className="text-xs text-muted-foreground">Company ({Number(project.company_share_pct)}%)</p>
-                              <p className="font-semibold">{fmt(fin.company_earnings)}</p>
-                            </div>
-                            <div className="rounded-lg bg-muted/50 p-3 text-center">
-                              <p className="text-xs text-muted-foreground">Team ({Number(project.team_share_pct)}%)</p>
-                              <p className="font-semibold">{fmt(fin.team_pool)}</p>
-                            </div>
-                            <div className="rounded-lg bg-muted/50 p-3 text-center">
-                              <p className="text-xs text-muted-foreground">Finder ({Number(project.finder_commission_pct)}%)</p>
-                              <p className="font-semibold">{fmt(fin.finder_commission)}</p>
-                            </div>
-                          </div>
-                        )}
 
                         {projectCommissions.length > 0 && (
                           <div className="border rounded-md overflow-hidden">

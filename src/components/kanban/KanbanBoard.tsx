@@ -6,7 +6,6 @@ import { useTaskAssigneesForProject, useTaskTimeForProject } from '@/hooks/useTa
 import { useAuth } from '@/contexts/AuthContext';
 import { Task, Profile } from '@/types/database';
 import { useIsPluginEnabled } from '@/hooks/useOrganizationPlugins';
-import { ProjectFinancials } from '@/components/projects/ProjectFinancials';
 import { KanbanColumn } from './KanbanColumn';
 import { TaskCard } from './TaskCard';
 import { CreateTaskDialog } from './CreateTaskDialog';
@@ -270,16 +269,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
           onFiltersChange={setFilters}
         />
 
-        {/* Financial Summary - Plugin Gated */}
-        {expensesEnabled && project && project.budget > 0 && (
-          <ProjectFinancials
-            projectId={projectId}
-            budget={project.budget}
-            companyPct={project.company_share_pct}
-            teamPct={project.team_share_pct}
-            finderPct={project.finder_commission_pct}
-          />
-        )}
       </div>
 
       {isLoading ? (
