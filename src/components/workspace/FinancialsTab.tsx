@@ -121,7 +121,7 @@ const CommissionRow: React.FC<{
   );
 };
 
-export const FinancialsTab: React.FC = () => {
+export const FinancialsTab: React.FC = () => { // cleaned
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
   const { data: isAdmin = false } = useIsOrgAdmin();
