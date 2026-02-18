@@ -1,122 +1,111 @@
 
 
-# Redesign Financial System: Task Budgets, Subtask Commissions, and Role-Based Visibility
+# Remove Legacy Project-Level Finance Fields
 
 ## Overview
-The current financial system uses project-level budgets and distributes earnings via company/team/finder splits. The new model shifts to **task-level budgets** where:
-- Each task has its own budget (not just a cost)
-- The task's assignee (project manager for that task) automatically gets 10% of the task budget
-- Subtasks can have a percentage or fixed amount allocated from the remaining task budget
-- Wallets show both **earned** (confirmed) and **potential** (pending if task completes) amounts
-- Only admins/owners see everyone's financial data; regular members only see their own
+Strip out all the old project-level financial concepts (company/team/finder percentage splits, direct expenses, overhead expenses, and the `ProjectFinancials` component showing those splits). The new task-budget-based commission system we just built stays untouched.
 
 ---
 
-## 1. Database Changes
+## What Gets Removed
 
-### A. Modify `tasks` table
-- Rename the existing `cost` column to `budget` (or add a `budget` column and deprecate `cost`)
-- The task budget represents the total money allocated to this task
+### Database columns (via migration)
+From the `projects` table, drop these columns:
+- `direct_expenses`
+- `overhead_expenses`
+- `company_share_pct`
+- `team_share_pct`
+- `finder_commission_pct`
 
-### B. Add columns to `subtasks` table
-| Column | Type | Default | Notes |
-|--------|------|---------|-------|
-| commission_type | text | null | 'percentage' or 'fixed' |
-| commission_value | numeric(12,2) | 0 | The percentage (e.g. 15) or fixed dollar amount |
+From the `project_financials` table, drop these columns:
+- `total_expenses`
+- `gross_profit`
+- `company_earnings`
+- `team_pool`
+- `finder_commission`
+- `is_frozen`
 
-### C. Modify `task_commissions` table
-- Add `commission_source` column (text): 'task_manager' (10% auto), 'subtask', or 'manual'
-- Add `subtask_id` column (uuid, nullable): links commission to a specific subtask when applicable
-
-### D. Update `user_wallets` table
-- Add `potential_balance` column (numeric, default 0): tracks money the user would earn if pending tasks complete
-
-### E. Replace `recalculate_project_financials` function
-The new logic:
-1. For each completed task (in "Done" column):
-   - 10% of task budget goes to the task's first assignee (project manager) as a confirmed commission
-   - For each subtask with a commission_type set:
-     - If `percentage`: calculate `(commission_value / 100) * task_budget` and distribute to the subtask's assignees
-     - If `fixed`: use `commission_value` directly and distribute to subtask assignees
-   - Remaining budget (after manager 10% + subtask allocations) stays with the project
-2. For tasks NOT yet completed but with assignees/subtask assignees: calculate amounts as "potential" and track in `potential_balance` on wallets
-3. Project-level financials (gross profit, company/team splits) are calculated from total task budgets vs project budget
-
-### F. RLS Policy Updates
-- `task_commissions` SELECT: users can see their own rows; admins/owners can see all rows for their org's projects (already partially in place)
-- `subtasks` UPDATE for commission fields: only admins/owners can set `commission_type` and `commission_value`
-- No changes to `user_wallets` (users already can only see their own)
+(The `project_financials` table itself can be dropped entirely since all meaningful data now lives in `task_commissions` and `user_wallets`.)
 
 ---
 
-## 2. Frontend Changes
+### Files to delete
+1. **`src/components/projects/ProjectFinancials.tsx`** -- the card showing budget-vs-expenses progress bar, gross profit, and company/team/finder split boxes. No longer relevant.
+2. **`src/hooks/useProjectFinancials.ts`** -- queries `project_financials` table for the old split data. No longer needed.
 
-### A. Task Creation and Detail (Budget field)
-**Files:** `CreateTaskDialog.tsx`, `TaskDetailSheet.tsx`
-- Replace "Cost" label with "Budget" 
-- When expenses plugin is enabled, show "Task Budget ($)" input field
-- In TaskDetailSheet, show who gets 10% auto-commission (the first assignee / task manager) with a label like "Task Manager Commission: 10% = $X"
+### Files to modify
 
-### B. Subtask Commission Settings
-**File:** `SubtaskRow.tsx`
-- When expenses plugin is enabled and user is admin/owner, show a commission section in the subtask's expanded view:
-  - A toggle between "Percentage" and "Fixed Amount"
-  - An input for the value
-  - A calculated preview showing the dollar amount based on the parent task's budget
-- Regular users see only "Your commission: $X" (their own share) without edit capability
+1. **`src/types/database.ts`**
+   - Remove `direct_expenses`, `overhead_expenses`, `company_share_pct`, `team_share_pct`, `finder_commission_pct` from `Project` interface
+   - Remove `ProjectFinancials` interface entirely
 
-### C. Enhanced User Wallet
-**File:** `UserWallet.tsx`
-- Add "Potential Earnings" section showing money the user would earn if all assigned pending tasks complete
-- Display: Confirmed Balance | Potential Earnings | Monthly Target progress
-- The potential amount updates as tasks are completed (moves from potential to confirmed)
+2. **`src/components/projects/ProjectSettings.tsx`**
+   - Remove the entire "Financials" editing section (budget, overhead, company/team/finder percentage inputs and display)
+   - Remove related state variables (`editedOverhead`, `editedCompanyPct`, `editedTeamPct`, `editedFinderPct`, `isEditingFinancials`)
+   - Remove `handleSaveFinancials` and `startEditingFinancials` functions
+   - Keep the rest of ProjectSettings intact (project details, owner, team members, delete)
 
-### D. Financials Tab - Role-Based Visibility
-**File:** `FinancialsTab.tsx`
-- **Admin/Owner view** (unchanged+enhanced): sees all commission records, can edit, sees everyone's percentages, full project breakdown
-- **Member view** (new): sees only their own wallet, their own commission records filtered to their user_id, no visibility into other members' percentages or amounts
-- Add a check using `useOrganizationMembers` to determine if the current user is admin/owner
+3. **`src/hooks/useProjects.ts`** (`useUpdateProject`)
+   - Remove `overheadExpenses`, `companySharePct`, `teamSharePct`, `finderCommissionPct` from the mutation parameters and the update object
 
-### E. New Hook for Role Check
-**File:** `src/hooks/useIsOrgAdmin.ts`
-- Simple hook that checks if the current user is admin or owner of the current organization
-- Used throughout finance components to conditionally render admin-only UI
+4. **`src/components/kanban/KanbanBoard.tsx`**
+   - Remove the `<ProjectFinancials>` component usage and its import (lines ~273-282)
+
+5. **`src/components/workspace/FinancialsTab.tsx`**
+   - Remove the "Direct Expenses" and "Overhead" display in the project breakdown (lines ~270-277)
+   - Remove the Company/Team/Finder split boxes (lines ~280-294)
+   - Keep everything else: org overview cards, commission records table, wallet, inline editing
+
+6. **`src/hooks/useOrgFinancials.ts`**
+   - Remove the `useOrgProjectFinancials` hook (queries the `project_financials` table which is being dropped)
+   - Keep `useOrgCommissions`
 
 ---
 
-## 3. Files Summary
-
-### New files (1):
-1. `src/hooks/useIsOrgAdmin.ts` -- role check hook for admin/owner status
-
-### Modified files (7):
-1. `src/types/database.ts` -- update Task (budget field), Subtask (commission fields), TaskCommission (source, subtask_id), UserWallet (potential_balance)
-2. `src/components/kanban/CreateTaskDialog.tsx` -- rename Cost to Budget
-3. `src/components/kanban/TaskDetailSheet.tsx` -- show Budget instead of Cost, show manager commission info (admin only)
-4. `src/components/kanban/SubtaskRow.tsx` -- add commission type/value inputs for admins, show own commission for members
-5. `src/components/personal/UserWallet.tsx` -- add Potential Earnings display
-6. `src/components/workspace/FinancialsTab.tsx` -- role-based filtering, show only own data for members
-7. `src/hooks/useUserWallet.ts` -- add potential earnings query
-
-### Database migration:
-- Add `budget` column to tasks (keep `cost` for backward compat or migrate data)
-- Add `commission_type`, `commission_value` to subtasks
-- Add `commission_source`, `subtask_id` to task_commissions
-- Add `potential_balance` to user_wallets
-- Replace `recalculate_project_financials` function with new task-budget-based logic
-- Add RLS: restrict subtask commission field updates to admins/owners only
+## What Stays (untouched)
+- Task `budget` field and all task-budget UI
+- Subtask `commission_type` / `commission_value` fields
+- `task_commissions` table and all commission logic
+- `user_wallets` with `balance` and `potential_balance`
+- `useUpdateCommission` hook
+- `useIsOrgAdmin` hook
+- Commission inline editing in FinancialsTab
+- `UserWallet` component
+- `recalculate_project_financials` function (it uses task budgets, not the old splits)
 
 ---
 
-## 4. Key Design Decisions
+## Technical Details
 
-1. **Task budget replaces project-level cost tracking**: Each task is a self-contained budget unit. The project budget is the sum of task budgets (or can be set independently for profit tracking).
+### Migration SQL
+```text
+DROP TABLE IF EXISTS project_financials;
 
-2. **10% auto-commission for task manager**: The first assignee on a task is considered the task manager and automatically earns 10% of the task budget when the task is completed. This is not editable by default but admins can override via manual commission editing.
+ALTER TABLE projects
+  DROP COLUMN IF EXISTS direct_expenses,
+  DROP COLUMN IF EXISTS overhead_expenses,
+  DROP COLUMN IF EXISTS company_share_pct,
+  DROP COLUMN IF EXISTS team_share_pct,
+  DROP COLUMN IF EXISTS finder_commission_pct;
+```
 
-3. **Subtask commission flexibility**: Admins can choose percentage-of-task-budget or fixed-amount for each subtask. This allows both proportional and absolute payment structures.
+### FinancialsTab adjustments
+The admin overview cards currently show Total Budget, Total Expenses, Gross Profit, and Frozen Projects. After removal of project_financials:
+- Keep "Total Budget" (sum of project budgets)
+- Replace "Total Expenses" with "Total Commissions" (sum of confirmed commission amounts)
+- Replace "Gross Profit" with "Pending Commissions" (sum of pending commission amounts)
+- Remove "Frozen Projects" card
 
-4. **Potential vs confirmed earnings**: Users can see what they stand to earn (potential) alongside what has been confirmed. This provides motivation and transparency without waiting for task completion.
-
-5. **Role-based visibility enforced at both DB and UI level**: RLS ensures members cannot query other users' commissions. The UI additionally hides admin controls (percentages, edit buttons, other users' data) for non-admin users. This is defense in depth.
+### Files summary
+| Action | File |
+|--------|------|
+| Delete | `src/components/projects/ProjectFinancials.tsx` |
+| Delete | `src/hooks/useProjectFinancials.ts` |
+| Modify | `src/types/database.ts` |
+| Modify | `src/components/projects/ProjectSettings.tsx` |
+| Modify | `src/hooks/useProjects.ts` |
+| Modify | `src/components/kanban/KanbanBoard.tsx` |
+| Modify | `src/components/workspace/FinancialsTab.tsx` |
+| Modify | `src/hooks/useOrgFinancials.ts` |
+| Migration | Drop `project_financials` table, drop old columns from `projects` |
 
