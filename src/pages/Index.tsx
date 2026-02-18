@@ -4,6 +4,7 @@ import { OrganizationProvider, useOrganization } from '@/contexts/OrganizationCo
 
 import { AuthPage } from '@/components/auth/AuthPage';
 import { AppSidebar, ViewType } from '@/components/layout/AppSidebar';
+import { BottomNavigation } from '@/components/layout/BottomNavigation';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { ActiveTimer } from '@/components/time/ActiveTimer';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -136,11 +137,16 @@ const Dashboard: React.FC = () => {
           </header>
 
           {/* Main content */}
-          <main className="flex-1 overflow-auto p-4 md:p-6">
+          <main className="flex-1 overflow-auto p-4 md:p-6 pb-20 md:pb-6">
             {renderContent()}
           </main>
         </div>
       </div>
+      <BottomNavigation
+        currentView={currentView}
+        onViewChange={handleViewChange}
+        onOpenProfileSettings={() => setProfileSettingsOpen(true)}
+      />
       <ProfileSettings open={profileSettingsOpen} onOpenChange={setProfileSettingsOpen} />
     </SidebarProvider>
   );

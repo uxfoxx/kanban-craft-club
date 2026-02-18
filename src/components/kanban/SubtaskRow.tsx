@@ -23,7 +23,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { Check, XCircle, Pencil, Trash2, Clock, ChevronDown, Play, Square, Plus, X, DollarSign } from 'lucide-react';
+import { Check, XCircle, Pencil, Trash2, Clock, ChevronDown, Play, Square, Plus, X, DollarSign, MoreHorizontal } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { OrganizationMemberWithProfile } from '@/hooks/useOrganizations';
@@ -228,13 +234,22 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
                 </div>
               )}
 
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {expensesEnabled && subtask.commission_type && subtask.commission_value > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  <DollarSign className="h-3 w-3 mr-0.5" />
+                  {subtask.commission_type === 'percentage'
+                    ? `${subtask.commission_value}%`
+                    : `$${subtask.commission_value}`}
+                </Badge>
+              )}
+
+              <div className="flex items-center gap-1">
                 {activeTimer ? (
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleStopTimer}>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); handleStopTimer(); }}>
                     <Square className="h-3 w-3 fill-current" />
                   </Button>
                 ) : (
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleStartTimer}>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); handleStartTimer(); }}>
                     <Play className="h-3 w-3" />
                   </Button>
                 )}
@@ -245,12 +260,23 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
                   </Button>
                 </CollapsibleTrigger>
 
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setIsEditing(true)}>
-                  <Pencil className="h-3 w-3" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={handleDelete}>
-                  <Trash2 className="h-3 w-3" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="icon" variant="ghost" className="h-7 w-7">
+                      <MoreHorizontal className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                      <Pencil className="h-3 w-3 mr-2" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive" onClick={handleDelete}>
+                      <Trash2 className="h-3 w-3 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </>
           )}

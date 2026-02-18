@@ -161,16 +161,29 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
           </div>
           
           {!isDone && (
-            <Button
-              size="sm"
-              variant={isTimerActive ? 'default' : 'outline'}
-              className="h-7 px-2"
-              onClick={handleStartTimer}
-              disabled={isTimerActive}
-            >
-              <Play className="h-3 w-3 mr-1" />
-              {isTimerActive ? 'Active' : 'Start'}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant={isTimerActive ? 'default' : 'outline'}
+                  className="h-7 w-7 flex-shrink-0"
+                  onClick={handleStartTimer}
+                  disabled={isTimerActive}
+                >
+                  {isTimerActive ? (
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-foreground opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary-foreground" />
+                    </span>
+                  ) : (
+                    <Play className="h-3 w-3" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                {isTimerActive ? 'Timer active' : 'Start timer'}
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
 
