@@ -17,6 +17,9 @@ import { FinancialsTab } from '@/components/workspace/FinancialsTab';
 import { PluginSettingsPage } from '@/components/workspace/PluginSettingsPage';
 import { ProfileSettings } from '@/components/profile/ProfileSettings';
 import { PWAInstallBanner } from '@/components/pwa/PWAInstallBanner';
+import { PWAUpdatePrompt } from '@/components/pwa/PWAUpdatePrompt';
+import { AdminPage } from '@/components/admin/AdminPage';
+import { useSuperAdmin } from '@/hooks/useSuperAdmin';
 import { useProject } from '@/hooks/useProjects';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Loader2 } from 'lucide-react';
@@ -28,6 +31,7 @@ const viewTitles: Record<ViewType, string> = {
   timetracking: 'Time Tracking',
   financials: 'Financials',
   'plugin-settings': 'Plugin Settings',
+  admin: 'Admin',
 };
 
 const PageTitle: React.FC<{ currentView: ViewType; selectedProjectId: string | null }> = ({ currentView, selectedProjectId }) => {
@@ -102,6 +106,8 @@ const Dashboard: React.FC = () => {
         return <FinancialsTab />;
       case 'plugin-settings':
         return <PluginSettingsPage />;
+      case 'admin':
+        return <AdminPage />;
       default:
         return null;
     }
@@ -150,6 +156,7 @@ const Dashboard: React.FC = () => {
       />
       <ProfileSettings open={profileSettingsOpen} onOpenChange={setProfileSettingsOpen} />
       <PWAInstallBanner />
+      <PWAUpdatePrompt />
     </SidebarProvider>
   );
 };

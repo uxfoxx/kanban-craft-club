@@ -19,8 +19,9 @@ if ("caches" in window) {
 const updateSW = registerSW({
   immediate: true,
   onNeedRefresh() {
-    // Automatically update without prompting
-    updateSW(true);
+    // Show update prompt to the user
+    window.dispatchEvent(new CustomEvent('pwa-update-available'));
+    (window as any).__pwaUpdateSW = () => updateSW(true);
   },
   onOfflineReady() {
     console.log("App ready to work offline");

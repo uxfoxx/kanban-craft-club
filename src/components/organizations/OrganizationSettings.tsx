@@ -40,6 +40,7 @@ import { Loader2, Trash2, Crown, Shield, User, Pencil, Save, XCircle, UserPlus, 
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationPlugins, useTogglePlugin } from '@/hooks/useOrganizationPlugins';
+import { EmailSearchInput } from '@/components/shared/EmailSearchInput';
 
 interface OrganizationSettingsProps {
   organizationId: string;
@@ -282,11 +283,10 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
               <h3 className="text-sm font-medium mb-4">Add Team Member</h3>
               <form onSubmit={handleAddMember} className="space-y-3">
                 <div className="flex gap-2">
-                  <Input
-                    placeholder="Email address"
-                    type="email"
+                  <EmailSearchInput
                     value={newMemberEmail}
-                    onChange={(e) => setNewMemberEmail(e.target.value)}
+                    onChange={setNewMemberEmail}
+                    placeholder="Search by email..."
                     className="flex-1"
                   />
                   <Select
