@@ -1,56 +1,77 @@
 
 
-# Fix: Un-typable Input Fields in Modals
+# Fix: Un-typable Input Fields in Task Detail Sheet
 
 ## Problem
-When a Dialog opens inside a Sheet (or another Dialog), Radix UI creates competing focus traps. The outer overlay's `FocusScope` steals focus from the inner overlay's inputs, making them un-typable.
 
-Affected components:
-- `TimeEntryDialog` -- opens inside `TaskDetailSheet` (Sheet)
-- `SubtaskTimeEntryDialog` -- opens inside `TaskDetailSheet` (Sheet)
-- `ColumnManager` -- has nested Dialogs for Add/Edit column inside the main Dialog
+Several number inputs inside the Task Detail Sheet save to the database on every keystroke **without using local state**. Their displayed value is bound directly to server/query data (`task.estimated_hours`, `task.budget`, `task.weight_pct`, `subtask.commission_value`). When you type:
+
+1. You press a key (e.g. "5")
+2. `onChange` fires a database mutation with value "5"
+3. React re-renders the input with the OLD server value (before the mutation response returns)
+4. Your keystroke visually disappears
+5. When you close and reopen the modal, the refetched data finally shows the value
 
 ## Solution
-Add `onOpenAutoFocus` and `onCloseAutoFocus` handlers with `e.preventDefault()` to the inner `DialogContent` components. This prevents the parent overlay from re-stealing focus when the inner dialog opens or closes.
+
+Replace the direct-mutation-on-keystroke pattern with **local state + debounced save**. Each input will:
+- Use a local `useState` to hold the value (so typing is instant)
+- Sync from server data when the sheet opens or the server value changes externally
+- Debounce saves (e.g., 800ms after the user stops typing) to avoid excessive mutations
 
 ## Changes
 
-### 1. `src/components/time/TimeEntryDialog.tsx`
-On the `DialogContent` element (line 146), add:
-```tsx
-<DialogContent
-  className="sm:max-w-md"
-  onOpenAutoFocus={(e) => e.preventDefault()}
-  onCloseAutoFocus={(e) => e.preventDefault()}
->
-```
+### `src/components/kanban/TaskDetailSheet.tsx`
 
-### 2. `src/components/time/SubtaskTimeEntryDialog.tsx`
-On the `DialogContent` element (line 67), add the same two handlers.
+**Add local state variables** for the four affected inputs:
+- `localEstimatedHours`
+- `localBudget`
+- `localWeightPct`
 
-### 3. `src/components/kanban/ColumnManager.tsx`
-Three nested `DialogContent` elements need the fix:
-- The inner "Add Column" dialog (line 91)
-- The inner "Edit Column" dialog (line 133)
-- The `AlertDialogContent` for delete confirmation (line 123)
+**Add `useEffect` hooks** to sync local state from server data when the task changes (by task ID).
 
-### 4. `src/components/personal/PersonalTimeEntryDialog.tsx`
-Add the handlers as a preventive measure since this dialog may also be opened from contexts with overlays.
+**Add debounced save `useEffect` hooks** that save to the server 800ms after the user stops typing.
+
+**Update the four Input elements** to use local state for `value` and local setter for `onChange`, removing the inline async mutation.
+
+### `SubtaskDetailPage` (bottom of same file)
+
+**Add local state** for `localCommissionValue`.
+
+**Same pattern**: sync from server, debounce save, update Input to use local state.
 
 ## Technical Details
 
-The fix uses two Radix UI event handlers on `DialogContent`:
-- `onOpenAutoFocus={(e) => e.preventDefault()}` -- Prevents the parent overlay from stealing focus when the inner dialog mounts
-- `onCloseAutoFocus={(e) => e.preventDefault()}` -- Prevents focus-fight when the inner dialog closes
+The pattern for each input follows this structure:
 
-This is the officially recommended approach for nested Radix overlays. No other components or logic need to change.
+```tsx
+// Local state
+const [localValue, setLocalValue] = useState(serverValue ?? '');
+
+// Sync from server (when task changes)
+useEffect(() => {
+  setLocalValue(serverValue ?? '');
+}, [taskId]); // keyed on task identity, not value
+
+// Debounced save
+useEffect(() => {
+  const timeout = setTimeout(() => {
+    const parsed = localValue ? parseFloat(localValue) : null;
+    if (parsed !== serverValue) {
+      updateTask.mutateAsync({ ... });
+    }
+  }, 800);
+  return () => clearTimeout(timeout);
+}, [localValue]);
+
+// Input uses local state
+<Input value={localValue} onChange={(e) => setLocalValue(e.target.value)} />
+```
 
 ### Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/components/time/TimeEntryDialog.tsx` | Add focus handlers to DialogContent |
-| `src/components/time/SubtaskTimeEntryDialog.tsx` | Add focus handlers to DialogContent |
-| `src/components/kanban/ColumnManager.tsx` | Add focus handlers to 3 nested DialogContent/AlertDialogContent elements |
-| `src/components/personal/PersonalTimeEntryDialog.tsx` | Add focus handlers to DialogContent |
+| `src/components/kanban/TaskDetailSheet.tsx` | Add local state + debounced save for estimated_hours, budget, weight_pct, and commission_value inputs (4 inputs total across TaskDetailSheet and SubtaskDetailPage) |
 
+No other files need changes. The focus trap fixes from earlier remain in place and are still useful for nested dialog scenarios.
