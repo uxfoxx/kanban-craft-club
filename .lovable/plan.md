@@ -1,42 +1,59 @@
 
 
-# Fix PWA Install Button
+# Replace All Branding with Bandit Theory Logo
 
-## Problem
-The Install button never appears because it's conditionally rendered based on `deferredPromptRef.current`, which is a React ref. Updating a ref does NOT trigger a re-render, so even after the `beforeinstallprompt` event fires and stores the prompt in the ref, the component doesn't re-render to show the button.
+## What This Does
+Replaces the current generic "TaskFlow" icon (a Lucide icon) and all PWA/favicon assets with the uploaded Bandit Theory Creatives logo image everywhere it appears.
 
-Additionally, on the fallback path (5s timeout with no `beforeinstallprompt` event), the banner shows but the ref is still null, so no Install button appears at all.
+## Changes
 
-## Fix
+### 1. Copy the Logo to the Project
+- Copy `user-uploads://BANDIT_THEORY-_red.png` to both:
+  - `public/logo.png` -- for favicon, PWA icons, apple-touch-icon, and push notification icons
+  - `src/assets/logo.png` -- for React component imports (sidebar, header, auth page, PWA banner)
 
-**File: `src/components/pwa/PWAInstallBanner.tsx`**
+### 2. Update `index.html`
+- Change the favicon link to point to `/logo.png`
+- Update apple-touch-icon to `/logo.png`
+- Update the page title from "Kanban Craft Club" to "Bandit Theory Creatives"
+- Update OG/meta tags to "Bandit Theory Creatives"
 
-1. Add a new state variable `hasPrompt` (boolean) alongside the existing ref
-2. When the `beforeinstallprompt` event fires, set both `deferredPromptRef.current = e` AND `setHasPrompt(true)` -- the state change triggers a re-render so the button becomes visible
-3. Change the Install button condition from `deferredPromptRef.current` to `hasPrompt`
-4. Always show the Install button on non-iOS when the banner is visible (even without the native prompt). If no deferred prompt is available, the button calls `handleInstall` which gracefully does nothing -- OR better, we show the button always and handle the "no prompt" case by showing a helpful message
-5. After install is triggered (accepted or dismissed), set `hasPrompt(false)` to hide the button
+### 3. Update `vite.config.ts` (PWA Manifest)
+- Change `name` to "Bandit Theory Creatives"
+- Change `short_name` to "Bandit Theory"
+- Update `includeAssets` to include `logo.png`
+- Point all PWA icon entries to `logo.png`
 
-### Updated logic:
+### 4. Update `src/components/layout/AppSidebar.tsx`
+- Import the logo from `@/assets/logo.png`
+- Replace `<LayoutDashboard>` icon with `<img src={logo}>` (sized similarly, ~24x24)
+- Change the text from "TaskFlow" to "Bandit Theory"
 
-```
-const [show, setShow] = useState(false);
-const [hasPrompt, setHasPrompt] = useState(false);
-const deferredPromptRef = useRef(null);
+### 5. Update `src/components/layout/Header.tsx`
+- Same as sidebar: replace `<LayoutDashboard>` icon with `<img>` using the imported logo
+- Change "TaskFlow" text to "Bandit Theory"
 
-// In beforeinstallprompt handler:
-deferredPromptRef.current = e;
-setHasPrompt(true);  // <-- triggers re-render
-setShow(true);
+### 6. Update `src/components/auth/AuthPage.tsx`
+- Replace `<LayoutDashboard>` icon with the logo image
+- Change "TaskFlow" to "Bandit Theory Creatives"
 
-// Install button condition:
-{!isIOS() && hasPrompt && (
-  <Button onClick={handleInstall}>Install</Button>
-)}
+### 7. Update `src/components/pwa/PWAInstallBanner.tsx`
+- Change "Install TaskFlow" to "Install Bandit Theory"
 
-// For non-iOS without native prompt (fallback), still show Install
-// but have it attempt to trigger the prompt or show guidance
-```
+### 8. Update `src/hooks/usePushNotifications.ts`
+- Change notification icon references from `/pwa-192x192.png` to `/logo.png`
 
-This is a one-file, ~10 line change.
+## Files Summary
+
+| File | Change |
+|------|--------|
+| `public/logo.png` | New -- copied from upload |
+| `src/assets/logo.png` | New -- copied from upload |
+| `index.html` | Favicon, title, meta tags |
+| `vite.config.ts` | PWA manifest name + icons |
+| `src/components/layout/AppSidebar.tsx` | Logo image + name |
+| `src/components/layout/Header.tsx` | Logo image + name |
+| `src/components/auth/AuthPage.tsx` | Logo image + name |
+| `src/components/pwa/PWAInstallBanner.tsx` | Banner text |
+| `src/hooks/usePushNotifications.ts` | Notification icon path |
 
