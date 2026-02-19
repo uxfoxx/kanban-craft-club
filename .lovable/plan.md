@@ -1,59 +1,34 @@
 
+# Update Sidebar Logo
 
-# Replace All Branding with Bandit Theory Logo
+## Changes (single file: `src/components/layout/AppSidebar.tsx`)
 
-## What This Does
-Replaces the current generic "TaskFlow" icon (a Lucide icon) and all PWA/favicon assets with the uploaded Bandit Theory Creatives logo image everywhere it appears.
+1. **Remove "Bandit Theory" text** -- delete the `<span>` on line 68
+2. **Increase logo size** -- change from `h-6 w-6` to `w-auto` with `max-h-[60px]` so it scales up but crops/clips when it exceeds 60px height
+3. **Add `object-cover` and `overflow-hidden`** to ensure clean cropping at the 60px boundary
 
-## Changes
+### Before (lines 64-83):
+```tsx
+<SidebarHeader className="p-4">
+  <div className="flex items-center justify-between gap-2">
+    <div className="flex items-center gap-2 min-w-0">
+      <img src={logo} alt="Bandit Theory" className="h-6 w-6 flex-shrink-0" />
+      {!isCollapsed && <span className="text-lg font-bold truncate">Bandit Theory</span>}
+    </div>
+    ...
+```
 
-### 1. Copy the Logo to the Project
-- Copy `user-uploads://BANDIT_THEORY-_red.png` to both:
-  - `public/logo.png` -- for favicon, PWA icons, apple-touch-icon, and push notification icons
-  - `src/assets/logo.png` -- for React component imports (sidebar, header, auth page, PWA banner)
+### After:
+```tsx
+<SidebarHeader className="p-4">
+  <div className="flex items-center justify-between gap-2">
+    <div className="flex items-center min-w-0 overflow-hidden max-h-[60px]">
+      <img src={logo} alt="Bandit Theory" className="w-auto max-h-[60px] object-cover flex-shrink-0" />
+    </div>
+    ...
+```
 
-### 2. Update `index.html`
-- Change the favicon link to point to `/logo.png`
-- Update apple-touch-icon to `/logo.png`
-- Update the page title from "Kanban Craft Club" to "Bandit Theory Creatives"
-- Update OG/meta tags to "Bandit Theory Creatives"
-
-### 3. Update `vite.config.ts` (PWA Manifest)
-- Change `name` to "Bandit Theory Creatives"
-- Change `short_name` to "Bandit Theory"
-- Update `includeAssets` to include `logo.png`
-- Point all PWA icon entries to `logo.png`
-
-### 4. Update `src/components/layout/AppSidebar.tsx`
-- Import the logo from `@/assets/logo.png`
-- Replace `<LayoutDashboard>` icon with `<img src={logo}>` (sized similarly, ~24x24)
-- Change the text from "TaskFlow" to "Bandit Theory"
-
-### 5. Update `src/components/layout/Header.tsx`
-- Same as sidebar: replace `<LayoutDashboard>` icon with `<img>` using the imported logo
-- Change "TaskFlow" text to "Bandit Theory"
-
-### 6. Update `src/components/auth/AuthPage.tsx`
-- Replace `<LayoutDashboard>` icon with the logo image
-- Change "TaskFlow" to "Bandit Theory Creatives"
-
-### 7. Update `src/components/pwa/PWAInstallBanner.tsx`
-- Change "Install TaskFlow" to "Install Bandit Theory"
-
-### 8. Update `src/hooks/usePushNotifications.ts`
-- Change notification icon references from `/pwa-192x192.png` to `/logo.png`
-
-## Files Summary
-
-| File | Change |
-|------|--------|
-| `public/logo.png` | New -- copied from upload |
-| `src/assets/logo.png` | New -- copied from upload |
-| `index.html` | Favicon, title, meta tags |
-| `vite.config.ts` | PWA manifest name + icons |
-| `src/components/layout/AppSidebar.tsx` | Logo image + name |
-| `src/components/layout/Header.tsx` | Logo image + name |
-| `src/components/auth/AuthPage.tsx` | Logo image + name |
-| `src/components/pwa/PWAInstallBanner.tsx` | Banner text |
-| `src/hooks/usePushNotifications.ts` | Notification icon path |
-
+- The text span is removed entirely
+- The logo uses `w-auto max-h-[60px]` so it renders at its natural aspect ratio up to 60px tall
+- `object-cover` ensures if the image is taller it crops rather than squishes
+- Works in both expanded and collapsed sidebar states
