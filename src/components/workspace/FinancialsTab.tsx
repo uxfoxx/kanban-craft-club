@@ -16,8 +16,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DollarSign, TrendingUp, TrendingDown, ChevronDown, ChevronRight, Pencil, X, Check, RotateCcw } from 'lucide-react';
 import { TaskCommission } from '@/types/database';
+import { formatLKR } from '@/lib/currency';
 
-const fmt = (n: number) => `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmt = formatLKR;
 
 interface EditingState {
   id: string;

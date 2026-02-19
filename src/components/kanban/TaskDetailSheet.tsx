@@ -3,6 +3,7 @@ import { Task, KanbanColumn, TimeEntry } from '@/types/database';
 import { useIsOrgAdmin } from '@/hooks/useIsOrgAdmin';
 import { useSubtasks, useCreateSubtask, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
 import { useTimeEntries, formatDuration, useDeleteTimeEntry } from '@/hooks/useTimeTracking';
+import { formatLKR } from '@/lib/currency';
 import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee } from '@/hooks/useAssignees';
 import { useOrganizationMembersForProject } from '@/hooks/useOrganizations';
 import { TimeEntryDialog } from '@/components/time/TimeEntryDialog';
@@ -658,7 +659,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                       <div className="p-3 rounded-lg bg-muted/50 text-sm">
                         <p className="text-xs text-muted-foreground mb-1">Task Manager Commission (10%)</p>
                         <p className="font-medium">
-                          {assignees[0]?.profiles?.full_name || 'First Assignee'}: ${(((task as any).budget || task.cost || 0) * 0.1).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          {assignees[0]?.profiles?.full_name || 'First Assignee'}: {formatLKR(((task as any).budget || task.cost || 0) * 0.1)}
                         </p>
                       </div>
                     )}
@@ -828,21 +829,21 @@ const SubtaskDetailPage: React.FC<{
                         try { await supabase.from('subtasks').update({ commission_value: val } as any).eq('id', subtask.id); } catch {}
                       }}
                       className="h-8 w-24 text-sm" min="0" step="0.01"
-                      placeholder={subtask.commission_type === 'percentage' ? '%' : '$'}
+                      placeholder={subtask.commission_type === 'percentage' ? '%' : 'LKR'}
                     />
                   )}
                 </div>
                 {subtask.commission_type && subtask.commission_value > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    = ${(subtask.commission_type === 'percentage' ? (subtask.commission_value / 100) * taskBudget : subtask.commission_value).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    {subtask.commission_type === 'percentage' && ` (${subtask.commission_value}% of $${taskBudget})`}
+                    = {formatLKR(subtask.commission_type === 'percentage' ? (subtask.commission_value / 100) * taskBudget : subtask.commission_value)}
+                    {subtask.commission_type === 'percentage' && ` (${subtask.commission_value}% of ${formatLKR(taskBudget)})`}
                   </p>
                 )}
               </div>
             ) : (
               subtask.commission_type && subtask.commission_value > 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Commission: ${(subtask.commission_type === 'percentage' ? (subtask.commission_value / 100) * taskBudget : subtask.commission_value).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  Commission: {formatLKR(subtask.commission_type === 'percentage' ? (subtask.commission_value / 100) * taskBudget : subtask.commission_value)}
                 </p>
               ) : <p className="text-xs text-muted-foreground italic">No commission set</p>
             )}
