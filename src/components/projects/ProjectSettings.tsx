@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { formatLKR } from '@/lib/currency';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -129,7 +130,7 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({ projectId, ope
           <SectionCard
             icon={<DollarSign className="h-4 w-4" />}
             label="Budget"
-            value={<span className="text-xs">${Number(project?.budget || 0).toLocaleString()}</span>}
+            value={<span className="text-xs">{formatLKR(Number(project?.budget || 0))}</span>}
             onClick={() => { setEditedBudget(String(project?.budget || 0)); navigateTo('budget'); }}
           />
         )}

@@ -3,6 +3,7 @@ import { Subtask } from '@/types/database';
 import { useToggleSubtask, useDeleteSubtask, useUpdateSubtask } from '@/hooks/useTasks';
 import { useSubtaskTimeEntries } from '@/hooks/useSubtaskTimeTracking';
 import { formatDuration } from '@/hooks/useTimeTracking';
+import { formatLKR } from '@/lib/currency';
 import { useSubtaskAssignees } from '@/hooks/useAssignees';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -96,7 +97,7 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
               {expensesEnabled && subtask.commission_type && subtask.commission_value > 0 && (
                 <Badge variant="outline" className="text-[10px] h-4 px-1">
                   <DollarSign className="h-2.5 w-2.5" />
-                  {subtask.commission_type === 'percentage' ? `${subtask.commission_value}%` : `$${subtask.commission_value}`}
+                  {subtask.commission_type === 'percentage' ? `${subtask.commission_value}%` : formatLKR(subtask.commission_value)}
                 </Badge>
               )}
             </div>

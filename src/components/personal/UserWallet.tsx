@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Wallet, Target, TrendingUp, Pencil, Check, X, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatLKR } from '@/lib/currency';
 
 export const UserWallet: React.FC = () => {
   const { data: wallet } = useUserWallet();
@@ -53,7 +54,7 @@ export const UserWallet: React.FC = () => {
         <div className="p-3 rounded-lg bg-primary/10">
           <p className="text-xs text-muted-foreground mb-1">Confirmed Balance</p>
           <p className="text-2xl font-bold text-primary">
-            ${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            {formatLKR(balance)}
           </p>
         </div>
 
@@ -66,7 +67,7 @@ export const UserWallet: React.FC = () => {
             <div className="flex-1">
               <p className="text-xs text-muted-foreground">Potential Earnings</p>
               <p className="text-sm font-semibold">
-                ${potentialBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                {formatLKR(potentialBalance)}
               </p>
               <p className="text-[10px] text-muted-foreground">If all assigned tasks complete</p>
             </div>
@@ -81,7 +82,7 @@ export const UserWallet: React.FC = () => {
           <div className="flex-1">
             <p className="text-xs text-muted-foreground">This Month</p>
             <p className="text-sm font-semibold">
-              ${monthlyEarnings.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {formatLKR(monthlyEarnings)}
             </p>
           </div>
         </div>
@@ -125,7 +126,7 @@ export const UserWallet: React.FC = () => {
                   <Progress value={targetProgress} className="h-2" />
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>{targetProgress.toFixed(0)}% reached</span>
-                    <span>${targetRemaining.toLocaleString('en-US', { minimumFractionDigits: 2 })} left</span>
+                    <span>{formatLKR(targetRemaining)} left</span>
                   </div>
                 </>
               ) : (

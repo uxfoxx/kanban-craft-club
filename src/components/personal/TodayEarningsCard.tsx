@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign } from 'lucide-react';
+import { formatLKR } from '@/lib/currency';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,7 +44,7 @@ export const TodayEarningsCard: React.FC = () => {
       </CardHeader>
       <CardContent>
         <p className="text-2xl font-bold">
-          {isLoading ? '...' : `$${earnings.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+          {isLoading ? '...' : formatLKR(earnings)}
         </p>
         <p className="text-xs text-muted-foreground mt-1">Confirmed commissions today</p>
       </CardContent>
