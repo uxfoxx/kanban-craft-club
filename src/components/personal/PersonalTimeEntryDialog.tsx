@@ -48,7 +48,7 @@ export const PersonalTimeEntryDialog: React.FC<PersonalTimeEntryDialogProps> = (
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Log Personal Time</DialogTitle>
         </DialogHeader>

@@ -143,7 +143,7 @@ export const TimeEntryDialog: React.FC<TimeEntryDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>{isEditMode ? 'Edit Time Entry' : 'Add Time Entry'}</DialogTitle>
           <DialogDescription>

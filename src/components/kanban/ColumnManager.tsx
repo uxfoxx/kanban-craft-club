@@ -88,7 +88,7 @@ export const ColumnManager: React.FC<ColumnManagerProps> = ({ projectId, open, o
               <DialogTrigger asChild>
                 <Button size="sm" variant="outline"><Plus className="h-4 w-4 mr-1" />Add</Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()}>
                 <DialogHeader><DialogTitle>Add Column</DialogTitle></DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
@@ -120,7 +120,7 @@ export const ColumnManager: React.FC<ColumnManagerProps> = ({ projectId, open, o
                 <Button variant="ghost" size="icon" onClick={() => { setEditingColumn(column); setNewName(column.name); setNewColor(column.color || '#6366f1'); }}><Pencil className="h-4 w-4" /></Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
-                  <AlertDialogContent>
+                  <AlertDialogContent onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()}>
                     <AlertDialogHeader><AlertDialogTitle>Delete Column?</AlertDialogTitle><AlertDialogDescription>Tasks in this column will lose their status.</AlertDialogDescription></AlertDialogHeader>
                     <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteColumn(column.id)} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction></AlertDialogFooter>
                   </AlertDialogContent>
@@ -130,7 +130,7 @@ export const ColumnManager: React.FC<ColumnManagerProps> = ({ projectId, open, o
           </div>
         </div>
         <Dialog open={!!editingColumn} onOpenChange={(o) => !o && setEditingColumn(null)}>
-          <DialogContent>
+          <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()}>
             <DialogHeader><DialogTitle>Edit Column</DialogTitle></DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2"><Label>Name</Label><Input value={newName} onChange={(e) => setNewName(e.target.value)} /></div>
