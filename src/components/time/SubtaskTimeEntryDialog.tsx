@@ -64,7 +64,7 @@ export const SubtaskTimeEntryDialog: React.FC<SubtaskTimeEntryDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Add Time Entry</DialogTitle>
         </DialogHeader>
