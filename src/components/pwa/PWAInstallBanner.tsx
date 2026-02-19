@@ -73,7 +73,7 @@ export const PWAInstallBanner: React.FC = () => {
           <Smartphone className="h-5 w-5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold">Install TaskFlow</p>
+          <p className="text-sm font-semibold">Install Bandit Theory</p>
           {isIOS() ? (
             <p className="text-xs text-muted-foreground mt-0.5">
               Tap the share button, then "Add to Home Screen" for the best experience.

@@ -49,10 +49,10 @@ export default defineConfig(({ mode }) => {
         devOptions: {
           enabled: false,
         },
-        includeAssets: ["favicon.ico", "apple-touch-icon.png", "pwa-192x192.png", "pwa-512x512.png"],
+        includeAssets: ["logo.png"],
         manifest: {
-          name: "TaskFlow - Project Management",
-          short_name: "TaskFlow",
+          name: "Bandit Theory Creatives",
+          short_name: "Bandit Theory",
           description: "Project and task management with Kanban boards, time tracking, and team analytics",
           theme_color: "#6366f1",
           background_color: "#ffffff",
@@ -62,17 +62,12 @@ export default defineConfig(({ mode }) => {
           start_url: "/",
           icons: [
             {
-              src: "pwa-192x192.png",
-              sizes: "192x192",
-              type: "image/png",
-            },
-            {
-              src: "pwa-512x512.png",
+              src: "logo.png",
               sizes: "512x512",
               type: "image/png",
             },
             {
-              src: "pwa-512x512.png",
+              src: "logo.png",
               sizes: "512x512",
               type: "image/png",
               purpose: "maskable",

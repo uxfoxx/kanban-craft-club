@@ -10,7 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LayoutDashboard, LogOut, Settings, Home, FolderOpen, Building2, Clock } from 'lucide-react';
+import { LogOut, Settings, Home, FolderOpen, Building2, Clock } from 'lucide-react';
+import logo from '@/assets/logo.png';
 import { ActiveTimer } from '@/components/time/ActiveTimer';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { ProfileSettings } from '@/components/profile/ProfileSettings';
@@ -55,8 +56,8 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
-              <LayoutDashboard className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold">TaskFlow</span>
+              <img src={logo} alt="Bandit Theory" className="h-6 w-6" />
+              <span className="text-xl font-bold">Bandit Theory</span>
             </div>
           </div>
 

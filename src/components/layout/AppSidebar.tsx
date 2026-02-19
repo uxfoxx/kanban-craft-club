@@ -21,7 +21,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, Home, Building2, Clock, LogOut, Settings, PanelLeftClose, PanelLeft, CalendarDays, DollarSign, Puzzle } from 'lucide-react';
+import { Home, Building2, Clock, LogOut, Settings, PanelLeftClose, PanelLeft, CalendarDays, DollarSign, Puzzle } from 'lucide-react';
+import logo from '@/assets/logo.png';
 
 export type ViewType = 'personal' | 'workspace' | 'timetracking' | 'calendar' | 'financials' | 'plugin-settings';
 
@@ -63,8 +64,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       <SidebarHeader className="p-4">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <LayoutDashboard className="h-6 w-6 text-primary flex-shrink-0" />
-            {!isCollapsed && <span className="text-lg font-bold truncate">TaskFlow</span>}
+            <img src={logo} alt="Bandit Theory" className="h-6 w-6 flex-shrink-0" />
+            {!isCollapsed && <span className="text-lg font-bold truncate">Bandit Theory</span>}
           </div>
           <Button
             variant="ghost"
