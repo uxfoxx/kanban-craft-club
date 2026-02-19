@@ -1,137 +1,90 @@
 
-# Multi-Page Sheet Navigation Pattern
 
-## The Problem
-Right now, every side panel (Task Detail, Project Settings) dumps all content into a single scrollable view. Users must scroll through assignees, budget, time tracking, subtasks (each with their own nested collapsibles), and comments -- all stacked vertically. It feels overwhelming and cluttered. Editing subtask details requires expanding nested collapsibles within a collapsible, which is confusing.
+# Tab-Based Task Detail Sheet Redesign
 
-## The Solution
-Introduce a **page stack** pattern inside sheets. The main view shows a clean overview with clickable section cards. Tapping a section slides in a detail "page" with a back arrow and dedicated editing UI. This keeps each view focused and uncluttered.
+## Current Problem
+The page-stack pattern requires too many back-and-forth navigations. Users click a section card, view content, go back, click another -- it's tedious. The overview page is just a list of links with no real content visible upfront.
 
----
+## Solution: Tabs Inside the Sheet
+Replace the page-stack navigation with horizontal tabs that group related content together. Users can switch between contexts instantly without navigating back and forth.
 
-## How It Works
-
-**Task Detail Sheet** -- currently 673 lines of one long scroll -- becomes:
-
-**Main Page (Overview)**
-- Title (inline editable, same as now)
-- Priority / Due Date / Status row (compact, same as now)
-- Description (inline editable, same as now)
-- Section cards (clickable rows that navigate to detail pages):
-  - **Assignees** -- shows avatar stack + count, tap to manage
-  - **Budget & Commission** -- shows budget amount, tap to edit (only if expenses plugin enabled)
-  - **Time Tracked** -- shows total time, tap to see/edit entries
-  - **Subtasks** -- shows progress bar + count, tap to see full list
-  - **Comments** -- shows comment count, tap to view thread
-- Delete Task button at the bottom
-
-**Assignees Page**: Full assignee list with add/remove -- back arrow returns to main
-
-**Budget Page**: Budget input, weight, manager commission info -- back arrow returns to main
-
-**Time Tracking Page**: Total time, full entry list with edit/delete, add entry button -- back arrow returns to main
-
-**Subtasks Page**: Add subtask form, full subtask list. Each subtask row is tappable to go to...
-
-**Subtask Detail Page**: A dedicated page for a single subtask showing its assignees, time entries, commission settings, and comments -- all laid out clearly without nesting. Back arrow returns to subtasks list.
-
-**Comments Page**: Full comment thread -- back arrow returns to main
-
----
-
-**Project Settings Sheet** -- same pattern:
-
-**Main Page**
-- Project info summary card (tap to edit details)
-- Owner card (display only)
-- Team Members card (shows count, tap to see list)
-- Budget card (shows amount, tap to edit -- if expenses enabled)
-- Danger Zone (delete)
-
-**Project Details Page**: Name, description, start date, lead -- Save & Back
-
-**Team Members Page**: Full member list -- Back
-
-**Budget Page**: Budget editing -- Save & Back
-
----
-
-## Technical Approach
-
-### New Reusable Component: `SheetPageStack`
-A lightweight component that manages a page stack with animated transitions inside any Sheet.
+## Tab Structure
 
 ```text
-SheetPageStack
-  - pages: Array of { id, title, content }
-  - activePage: string (page id)
-  - onNavigate(pageId): push page
-  - onBack(): pop to previous page
++--------------------------------------------------+
+| Task Title (editable)                        [X]  |
+| [Priority] [Due Date] [Status]                    |
++--------------------------------------------------+
+| [ Overview ]  [ Work ]  [ Finance ]  [ Chat ]    |
++--------------------------------------------------+
+|                                                    |
+|   (tab content here)                              |
+|                                                    |
++--------------------------------------------------+
 ```
 
-Each "page" inside the sheet gets:
-- A header with back arrow (when not on main page) and page title
-- Full scrollable content area
-- Slide-left/slide-right CSS transitions between pages
+### Tab 1: Overview (default)
+- Description (inline editable)
+- Assignees list with add/remove
+- This is the "what is this task" view -- the essentials
 
-### State Management
-Simple `useState` with a page stack array. No router needed -- it's all local state within each Sheet component.
+### Tab 2: Work
+- Subtasks with progress bar and add form
+- Tapping a subtask opens its detail as a sub-page (keeps the page-stack just for this one drill-down)
+- Time tracking: total time, entry list, add entry button
+- This is the "what needs doing" view
 
+### Tab 3: Finance (only shown if expenses plugin enabled)
+- Task budget input
+- Weight percentage
+- Manager commission info
+- This keeps financial details out of the way for non-financial users
+
+### Tab 4: Chat
+- Full comment/discussion thread
+- Clean separation from task data
+
+## Subtask Detail: Still Uses Page Stack
+When a user taps a subtask in the Work tab, it navigates to a subtask detail page (same page-stack pattern as before). This is the one case where drill-down makes sense -- you're going deeper into a specific item, not switching context.
+
+## Technical Details
+
+### Files to Modify
+
+**`src/components/kanban/TaskDetailSheet.tsx`**
+- Remove the `SectionCard`-based main page
+- Add Radix `Tabs` component with 3-4 tabs (Finance tab conditionally rendered)
+- Move assignees content inline into the Overview tab
+- Combine subtasks and time tracking into the Work tab
+- Keep the `SheetPageStack` but only for subtask detail drill-down
+- When on a subtask detail sub-page, hide the tabs and show back navigation instead
+- The tab bar stays fixed below the header; tab content scrolls independently
+
+**`src/components/ui/sheet-page.tsx`**
+- No changes needed -- still used for subtask detail navigation
+
+**`src/components/kanban/SubtaskRow.tsx`**
+- No changes needed
+
+**`src/components/projects/ProjectSettings.tsx`**
+- No changes needed (page-stack pattern works well here since it's a settings panel with distinct edit forms)
+
+### Layout Structure
 ```text
-const [pageStack, setPageStack] = useState(['main']);
-const currentPage = pageStack[pageStack.length - 1];
-
-const navigateTo = (page) => setPageStack([...pageStack, page]);
-const goBack = () => setPageStack(pageStack.slice(0, -1));
+SheetContent
+  SheetHeader (title + priority/date/status)
+  if (on subtask detail page):
+    Back button + SubtaskDetailPage
+  else:
+    Tabs
+      TabsList (Overview | Work | Finance? | Chat)
+      TabsContent for each tab (scrollable)
+  TimeEntryDialog (modal, unchanged)
 ```
 
----
+### Key Decisions
+- Finance tab only renders when `expensesEnabled` is true, so non-financial projects get a cleaner 3-tab layout
+- Delete Task button goes at the bottom of the Overview tab (danger zone)
+- The header (title, priority, due date, status) stays above the tabs -- it's always visible regardless of which tab you're on
+- Tab state resets when the sheet closes
 
-## Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/components/ui/sheet-page.tsx` | Reusable SheetPageStack component with back navigation and slide transitions |
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/components/kanban/TaskDetailSheet.tsx` | Refactor into multi-page layout: main overview + 5 detail pages (Assignees, Budget, Time, Subtasks, Comments) |
-| `src/components/kanban/SubtaskRow.tsx` | Simplify -- remove the Collapsible entirely. Instead, accept an `onOpen` callback that navigates to a Subtask Detail page inside the sheet |
-| `src/components/projects/ProjectSettings.tsx` | Refactor into multi-page layout: main overview + detail pages (Project Details, Team Members, Budget) |
-
-## Visual Design
-
-Each section card on the main page looks like a list item:
-
-```text
-+------------------------------------------+
-| [icon]  Assignees          3 people   >  |
-+------------------------------------------+
-| [icon]  Time Tracked       4h 30m     >  |
-+------------------------------------------+
-| [icon]  Subtasks           3/5 done   >  |
-+------------------------------------------+
-| [icon]  Comments           12          > |
-+------------------------------------------+
-```
-
-When you tap a row, the current view slides left and the detail page slides in from the right. A back arrow in the top-left returns you. This is the same pattern used in iOS Settings / Android preferences.
-
-## Detail Pages Layout
-
-Each detail page has:
-- **Header**: Back arrow + Page title
-- **Content**: Full editing UI for that section, no nesting
-- Changes save immediately (same as current behavior -- no explicit "Save & Exit" needed since all mutations are instant)
-
-The subtask detail page is the biggest win -- instead of a deeply nested collapsible-within-a-collapsible, it becomes a clean full-width page showing assignees, time entries, commission, and comments in clearly separated sections.
-
----
-
-## What Stays the Same
-- All data hooks and mutations remain unchanged
-- Sheet width (`sm:max-w-2xl`) stays the same
-- The inline editing for title/description on the main page stays
-- All existing functionality is preserved, just reorganized into pages
