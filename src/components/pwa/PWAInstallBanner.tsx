@@ -14,6 +14,7 @@ const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent);
 
 export const PWAInstallBanner: React.FC = () => {
   const [show, setShow] = useState(false);
+  const [hasPrompt, setHasPrompt] = useState(false);
   const deferredPromptRef = useRef<any>(null);
 
   useEffect(() => {
@@ -26,6 +27,7 @@ export const PWAInstallBanner: React.FC = () => {
     const handler = (e: Event) => {
       e.preventDefault();
       deferredPromptRef.current = e;
+      setHasPrompt(true);
       setShow(true);
     };
     window.addEventListener('beforeinstallprompt', handler);
@@ -49,6 +51,7 @@ export const PWAInstallBanner: React.FC = () => {
         setShow(false);
       }
       deferredPromptRef.current = null;
+      setHasPrompt(false);
     }
   };
 
@@ -81,8 +84,8 @@ export const PWAInstallBanner: React.FC = () => {
             </p>
           )}
           <div className="flex items-center gap-2 mt-2">
-            {!isIOS() && deferredPromptRef.current && (
-              <Button size="sm" onClick={handleInstall} className="gap-1">
+            {!isIOS() && (
+              <Button size="sm" onClick={handleInstall} className="gap-1" disabled={!hasPrompt}>
                 <Download className="h-3 w-3" /> Install
               </Button>
             )}
