@@ -63,9 +63,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <img src={logo} alt="Bandit Theory" className="h-6 w-6 flex-shrink-0" />
-            {!isCollapsed && <span className="text-lg font-bold truncate">Bandit Theory</span>}
+          <div className="flex items-center min-w-0 overflow-hidden max-h-[60px]">
+            <img src={logo} alt="Bandit Theory" className="w-auto max-h-[60px] object-cover flex-shrink-0" />
           </div>
           <Button
             variant="ghost"
