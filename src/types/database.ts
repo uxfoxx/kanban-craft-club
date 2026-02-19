@@ -78,6 +78,8 @@ export interface Task {
   cost: number;
   budget: number;
   weight_pct: number | null;
+  completed_at: string | null;
+  estimated_hours: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -97,6 +99,17 @@ export interface Subtask {
   completed: boolean;
   commission_type: 'percentage' | 'fixed' | null;
   commission_value: number;
+  estimated_hours: number | null;
+  created_at: string;
+}
+
+export interface PersonalTimeEntry {
+  id: string;
+  user_id: string;
+  name: string;
+  started_at: string;
+  ended_at: string | null;
+  duration_seconds: number | null;
   created_at: string;
 }
 

@@ -3,7 +3,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { TodayTimeCard } from './TodayTimeCard';
 import { TaskDueToday } from './TaskDueToday';
-import { QuickAddTask } from './QuickAddTask';
+import { UpcomingDeadlines } from './UpcomingDeadlines';
+import { TodayEarningsCard } from './TodayEarningsCard';
 
 interface PersonalDashboardProps {
   onViewTimeTracking: () => void;
@@ -17,32 +18,32 @@ export const PersonalDashboard: React.FC<PersonalDashboardProps> = ({ onViewTime
   
   return (
     <div className="space-y-6">
-      {/* Welcome + Quick Add */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-2xl md:text-3xl font-bold">
-            Welcome back, {firstName}!
-          </h1>
-          <p className="text-muted-foreground">
-            {format(today, "EEEE, MMMM d, yyyy")}
-          </p>
-        </div>
+      {/* Welcome */}
+      <div className="space-y-1">
+        <h1 className="text-2xl md:text-3xl font-bold">
+          Welcome back, {firstName}!
+        </h1>
+        <p className="text-muted-foreground">
+          {format(today, "EEEE, MMMM d, yyyy")}
+        </p>
       </div>
-
-      <QuickAddTask />
       
       {/* Dashboard Grid */}
       <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
-        {/* Primary: Tasks due today */}
+        {/* Primary: Upcoming Deadlines */}
         <div className="lg:col-span-2">
-          <TaskDueToday />
+          <UpcomingDeadlines />
         </div>
         
-        {/* Secondary: Time */}
+        {/* Secondary: Time + Earnings */}
         <div className="space-y-4">
           <TodayTimeCard onViewHistory={onViewTimeTracking} />
+          <TodayEarningsCard />
         </div>
       </div>
+
+      {/* Tasks due today */}
+      <TaskDueToday />
     </div>
   );
 };

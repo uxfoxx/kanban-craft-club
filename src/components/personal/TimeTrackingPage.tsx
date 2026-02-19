@@ -1,24 +1,25 @@
- import React, { useState } from 'react';
- import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
- import { Button } from '@/components/ui/button';
- import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
- import { ArrowLeft, Clock, Plus } from 'lucide-react';
- import { useAllMyTimeEntries, DateRange, TimeEntryWithDetails } from '@/hooks/useAllTimeEntries';
- import { formatDuration, useDeleteTimeEntry } from '@/hooks/useTimeTracking';
- import { TimeEntryListItem } from './TimeEntryListItem';
- import { Skeleton } from '@/components/ui/skeleton';
- import { format, isToday, isYesterday, isSameDay } from 'date-fns';
- import { useToast } from '@/hooks/use-toast';
- import {
-   AlertDialog,
-   AlertDialogAction,
-   AlertDialogCancel,
-   AlertDialogContent,
-   AlertDialogDescription,
-   AlertDialogFooter,
-   AlertDialogHeader,
-   AlertDialogTitle,
- } from '@/components/ui/alert-dialog';
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, Clock, Plus } from 'lucide-react';
+import { useAllMyTimeEntries, DateRange, TimeEntryWithDetails } from '@/hooks/useAllTimeEntries';
+import { formatDuration, useDeleteTimeEntry } from '@/hooks/useTimeTracking';
+import { TimeEntryListItem } from './TimeEntryListItem';
+import { PersonalTimeEntryDialog } from './PersonalTimeEntryDialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { format, isToday, isYesterday, isSameDay } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
  
  interface TimeTrackingPageProps {
    onBack: () => void;
@@ -45,12 +46,13 @@
    return format(date, 'EEEE, MMMM d');
  };
  
- export const TimeTrackingPage: React.FC<TimeTrackingPageProps> = ({ onBack }) => {
-   const [dateRange, setDateRange] = useState<DateRange>('week');
-   const { data: entries = [], isLoading } = useAllMyTimeEntries(dateRange);
-   const deleteEntry = useDeleteTimeEntry();
-   const { toast } = useToast();
-   const [entryToDelete, setEntryToDelete] = useState<TimeEntryWithDetails | null>(null);
+export const TimeTrackingPage: React.FC<TimeTrackingPageProps> = ({ onBack }) => {
+  const [dateRange, setDateRange] = useState<DateRange>('week');
+  const { data: entries = [], isLoading } = useAllMyTimeEntries(dateRange);
+  const deleteEntry = useDeleteTimeEntry();
+  const { toast } = useToast();
+  const [entryToDelete, setEntryToDelete] = useState<TimeEntryWithDetails | null>(null);
+  const [personalDialogOpen, setPersonalDialogOpen] = useState(false);
    
    const totalSeconds = entries.reduce((sum, entry) => {
      if (entry.duration_seconds) {
@@ -112,12 +114,15 @@
            </TabsList>
          </Tabs>
          
-         <div className="flex items-center gap-4">
-           <div className="flex items-center gap-2 text-lg font-semibold">
-             <Clock className="h-5 w-5 text-primary" />
-             <span>Total: {formatDuration(totalSeconds)}</span>
-           </div>
-         </div>
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" onClick={() => setPersonalDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Log Personal Time
+          </Button>
+          <div className="flex items-center gap-2 text-lg font-semibold">
+            <Clock className="h-5 w-5 text-primary" />
+            <span>Total: {formatDuration(totalSeconds)}</span>
+          </div>
+        </div>
        </div>
        
        {/* Time Entries */}
@@ -175,6 +180,7 @@
            </AlertDialogFooter>
          </AlertDialogContent>
        </AlertDialog>
+       <PersonalTimeEntryDialog open={personalDialogOpen} onOpenChange={setPersonalDialogOpen} />
      </div>
    );
  };

@@ -16,6 +16,7 @@ import { WorkspacePage } from '@/components/workspace/WorkspacePage';
 import { FinancialsTab } from '@/components/workspace/FinancialsTab';
 import { PluginSettingsPage } from '@/components/workspace/PluginSettingsPage';
 import { ProfileSettings } from '@/components/profile/ProfileSettings';
+import { PWAInstallBanner } from '@/components/pwa/PWAInstallBanner';
 import { useProject } from '@/hooks/useProjects';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Loader2 } from 'lucide-react';
@@ -148,6 +149,7 @@ const Dashboard: React.FC = () => {
         onOpenProfileSettings={() => setProfileSettingsOpen(true)}
       />
       <ProfileSettings open={profileSettingsOpen} onOpenChange={setProfileSettingsOpen} />
+      <PWAInstallBanner />
     </SidebarProvider>
   );
 };

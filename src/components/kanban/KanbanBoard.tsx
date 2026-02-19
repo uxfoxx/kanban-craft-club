@@ -14,6 +14,7 @@ import { ColumnManager } from './ColumnManager';
 import { KanbanFilters, KanbanFilterState } from './KanbanFilters';
 import { ListView } from './ListView';
 import { GanttView } from './GanttView';
+import { CompletedTasksView } from '@/components/personal/CompletedTasksView';
 import { ProjectSettings } from '@/components/projects/ProjectSettings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,14 +26,14 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Plus, UserPlus, Loader2, Users, Settings, UserCheck, Columns3, List, GanttChart } from 'lucide-react';
+import { Plus, UserPlus, Loader2, Users, Settings, UserCheck, Columns3, List, GanttChart, CheckCircle2 } from 'lucide-react';
 import {
   Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage,
 } from '@/components/ui/breadcrumb';
 import { toast } from 'sonner';
 import { isPast, differenceInHours } from 'date-fns';
 
-type ProjectViewMode = 'kanban' | 'list' | 'gantt';
+type ProjectViewMode = 'kanban' | 'list' | 'gantt' | 'completed';
 
 interface KanbanBoardProps {
   projectId: string;
@@ -159,7 +160,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
     return true;
   };
 
-  const filteredTasks = useMemo(() => tasks?.filter(matchesFilters) || [], [tasks, filters, assigneesByTask, columns]);
+  // Filter out completed (delivered) tasks from active views
+  const activeTasks = useMemo(() => tasks?.filter(t => !t.completed_at) || [], [tasks]);
+  const filteredTasks = useMemo(() => activeTasks.filter(matchesFilters), [activeTasks, filters, assigneesByTask, columns]);
 
   const getTasksByColumn = (columnId: string): Task[] => {
     return filteredTasks.filter((task) => task.column_id === columnId);
@@ -204,6 +207,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
             </ToggleGroupItem>
             <ToggleGroupItem value="gantt" aria-label="Timeline view">
               <GanttChart className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="completed" aria-label="Delivered tasks">
+              <CheckCircle2 className="h-4 w-4" />
             </ToggleGroupItem>
           </ToggleGroup>
 
@@ -275,6 +281,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
+      ) : viewMode === 'completed' ? (
+        <CompletedTasksView projectId={projectId} />
       ) : viewMode === 'list' ? (
         <ListView
           tasks={filteredTasks}

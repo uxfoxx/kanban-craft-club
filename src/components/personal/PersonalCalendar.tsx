@@ -50,72 +50,74 @@ export const PersonalCalendar: React.FC = () => {
         <p className="text-sm text-muted-foreground">Your tasks and deadlines across all projects</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-[auto_1fr]">
-        {/* Calendar */}
-        <Card>
-          <CardContent className="p-3">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(d) => d && setSelectedDate(d)}
-              className={cn("p-3 pointer-events-auto")}
-              modifiers={{ hasTasks: datesWithTasks }}
-              modifiersStyles={{
-                hasTasks: {
-                  fontWeight: 'bold',
-                  textDecoration: 'underline',
-                  textDecorationColor: 'hsl(var(--primary))',
-                  textUnderlineOffset: '4px',
-                },
-              }}
-            />
-          </CardContent>
-        </Card>
+      {/* Full-width Calendar */}
+      <Card>
+        <CardContent className="p-3">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={(d) => d && setSelectedDate(d)}
+            className={cn("p-3 pointer-events-auto w-full [&_table]:w-full [&_td]:p-2 [&_th]:p-2")}
+            modifiers={{ hasTasks: datesWithTasks }}
+            modifiersStyles={{
+              hasTasks: {
+                fontWeight: 'bold',
+                textDecoration: 'underline',
+                textDecorationColor: 'hsl(var(--primary))',
+                textUnderlineOffset: '4px',
+              },
+            }}
+          />
+        </CardContent>
+      </Card>
 
-        {/* Tasks for selected date */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <CalendarDays className="h-4 w-4" />
-              {format(selectedDate, 'EEEE, MMMM d, yyyy')}
-              {selectedDateTasks.length > 0 && (
-                <Badge variant="secondary" className="text-xs">{selectedDateTasks.length} tasks</Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <p className="text-sm text-muted-foreground">Loading...</p>
-            ) : selectedDateTasks.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">No tasks due on this date</p>
-            ) : (
-              <ScrollArea className="max-h-[400px]">
-                <div className="space-y-2">
-                  {selectedDateTasks.map(task => (
-                    <div
-                      key={task.id}
-                      className="p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{task.title}</p>
-                          <p className="text-xs text-muted-foreground">{task.projects?.name}</p>
-                        </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <Badge variant={priorityVariant[task.priority] || 'secondary'} className="text-[10px]">
-                            {task.priority}
-                          </Badge>
-                          <Badge variant="outline" className="text-[10px]">{task.status}</Badge>
-                        </div>
+      {/* Tasks for selected date */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CalendarDays className="h-4 w-4" />
+            {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+            {selectedDateTasks.length > 0 && (
+              <Badge variant="secondary" className="text-xs">{selectedDateTasks.length} tasks</Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          ) : selectedDateTasks.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">No tasks due on this date</p>
+          ) : (
+            <ScrollArea className="max-h-[400px]">
+              <div className="space-y-2">
+                {selectedDateTasks.map(task => (
+                  <div
+                    key={task.id}
+                    className="p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
+                    onClick={() => {
+                      // Open task detail - navigate to project
+                      window.dispatchEvent(new CustomEvent('open-task-from-calendar', { detail: { taskId: task.id, projectId: task.project_id } }));
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{task.title}</p>
+                        <p className="text-xs text-muted-foreground">{task.projects?.name}</p>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Badge variant={priorityVariant[task.priority] || 'secondary'} className="text-[10px]">
+                          {task.priority}
+                        </Badge>
+                        <Badge variant="outline" className="text-[10px]">{task.status}</Badge>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

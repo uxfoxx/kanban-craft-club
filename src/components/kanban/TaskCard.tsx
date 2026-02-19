@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Play, Calendar, Flag, Clock, ArrowRightLeft } from 'lucide-react';
+import { Play, Calendar, Flag, Clock, ArrowRightLeft, AlertTriangle } from 'lucide-react';
 import { format, differenceInHours, isPast } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -156,6 +156,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
                 {formatDuration(timeSpent)}
+              </div>
+            )}
+            {typeof timeSpent === 'number' && (task as any).estimated_hours && timeSpent > (task as any).estimated_hours * 3600 && (
+              <div className="flex items-center gap-0.5 text-[10px] text-destructive font-medium">
+                <AlertTriangle className="h-3 w-3" />
+                Over
               </div>
             )}
           </div>
