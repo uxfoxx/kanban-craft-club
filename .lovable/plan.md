@@ -1,38 +1,56 @@
 
 
-# Fix: Admin Password Reset Edge Function
+# Fix: Un-typable Input Fields in Modals
 
 ## Problem
-The `admin-reset-password` edge function returns a non-2xx error because:
-1. **No `verify_jwt = false` in config.toml** -- Lovable Cloud uses ES256 signing keys, and the default JWT verification rejects them before the function code runs.
-2. **Wrong env var name** -- The function references `SUPABASE_PUBLISHABLE_KEY`, but the actual secret is named `SUPABASE_ANON_KEY`.
-3. **Incomplete CORS headers** -- Missing headers that the client sends (e.g., `x-supabase-client-platform`).
+When a Dialog opens inside a Sheet (or another Dialog), Radix UI creates competing focus traps. The outer overlay's `FocusScope` steals focus from the inner overlay's inputs, making them un-typable.
+
+Affected components:
+- `TimeEntryDialog` -- opens inside `TaskDetailSheet` (Sheet)
+- `SubtaskTimeEntryDialog` -- opens inside `TaskDetailSheet` (Sheet)
+- `ColumnManager` -- has nested Dialogs for Add/Edit column inside the main Dialog
+
+## Solution
+Add `onOpenAutoFocus` and `onCloseAutoFocus` handlers with `e.preventDefault()` to the inner `DialogContent` components. This prevents the parent overlay from re-stealing focus when the inner dialog opens or closes.
 
 ## Changes
 
-### 1. Update `supabase/config.toml`
-Add the `verify_jwt = false` setting for the edge function:
-
-```toml
-[functions.admin-reset-password]
-verify_jwt = false
+### 1. `src/components/time/TimeEntryDialog.tsx`
+On the `DialogContent` element (line 146), add:
+```tsx
+<DialogContent
+  className="sm:max-w-md"
+  onOpenAutoFocus={(e) => e.preventDefault()}
+  onCloseAutoFocus={(e) => e.preventDefault()}
+>
 ```
 
-### 2. Update `supabase/functions/admin-reset-password/index.ts`
+### 2. `src/components/time/SubtaskTimeEntryDialog.tsx`
+On the `DialogContent` element (line 67), add the same two handlers.
 
-- Fix CORS headers to include all required headers
-- Change `SUPABASE_PUBLISHABLE_KEY` to `SUPABASE_ANON_KEY`
-- Add environment variable presence checks for better error logging
+### 3. `src/components/kanban/ColumnManager.tsx`
+Three nested `DialogContent` elements need the fix:
+- The inner "Add Column" dialog (line 91)
+- The inner "Edit Column" dialog (line 133)
+- The `AlertDialogContent` for delete confirmation (line 123)
 
-### Technical Details
+### 4. `src/components/personal/PersonalTimeEntryDialog.tsx`
+Add the handlers as a preventive measure since this dialog may also be opened from contexts with overlays.
 
-```text
-File: supabase/config.toml
-  - Add [functions.admin-reset-password] section with verify_jwt = false
+## Technical Details
 
-File: supabase/functions/admin-reset-password/index.ts
-  - Line 5-6: Update corsHeaders to include full set of allowed headers
-  - Line 27: Change SUPABASE_PUBLISHABLE_KEY -> SUPABASE_ANON_KEY
-```
+The fix uses two Radix UI event handlers on `DialogContent`:
+- `onOpenAutoFocus={(e) => e.preventDefault()}` -- Prevents the parent overlay from stealing focus when the inner dialog mounts
+- `onCloseAutoFocus={(e) => e.preventDefault()}` -- Prevents focus-fight when the inner dialog closes
 
-These are small, targeted fixes. No database or frontend changes needed.
+This is the officially recommended approach for nested Radix overlays. No other components or logic need to change.
+
+### Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/components/time/TimeEntryDialog.tsx` | Add focus handlers to DialogContent |
+| `src/components/time/SubtaskTimeEntryDialog.tsx` | Add focus handlers to DialogContent |
+| `src/components/kanban/ColumnManager.tsx` | Add focus handlers to 3 nested DialogContent/AlertDialogContent elements |
+| `src/components/personal/PersonalTimeEntryDialog.tsx` | Add focus handlers to DialogContent |
+
