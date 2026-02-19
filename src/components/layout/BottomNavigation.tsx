@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Home, Building2, Clock, CalendarDays, MoreHorizontal, DollarSign, Settings, User } from 'lucide-react';
+import { Home, Building2, Clock, CalendarDays, MoreHorizontal, DollarSign, Settings, User, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSuperAdmin } from '@/hooks/useSuperAdmin';
 import { ViewType } from '@/components/layout/AppSidebar';
 import {
   Sheet,
@@ -35,8 +36,14 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   onOpenProfileSettings,
 }) => {
   const [moreOpen, setMoreOpen] = useState(false);
+  const { isSuperAdmin } = useSuperAdmin();
 
-  const isMoreActive = currentView === 'financials' || currentView === 'plugin-settings';
+  const isMoreActive = currentView === 'financials' || currentView === 'plugin-settings' || currentView === 'admin';
+
+  const dynamicMoreItems = [
+    ...moreItems,
+    ...(isSuperAdmin ? [{ view: 'admin' as ViewType | 'profile', label: 'Admin', icon: <Shield className="h-5 w-5" /> }] : []),
+  ];
 
   return (
     <>
@@ -76,7 +83,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
             <SheetTitle>More</SheetTitle>
           </SheetHeader>
           <div className="space-y-1 mt-4">
-            {moreItems.map(({ view, label, icon }) => (
+            {dynamicMoreItems.map(({ view, label, icon }) => (
               <Button
                 key={view}
                 variant="ghost"
@@ -85,7 +92,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
                   if (view === 'profile') {
                     onOpenProfileSettings?.();
                   } else {
-                    onViewChange(view);
+                    onViewChange(view as ViewType);
                   }
                   setMoreOpen(false);
                 }}

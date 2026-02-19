@@ -21,10 +21,11 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Home, Building2, Clock, LogOut, Settings, PanelLeftClose, PanelLeft, CalendarDays, DollarSign, Puzzle } from 'lucide-react';
+import { Home, Building2, Clock, LogOut, Settings, PanelLeftClose, PanelLeft, CalendarDays, DollarSign, Puzzle, Shield } from 'lucide-react';
 import logo from '@/assets/logo.png';
+import { useSuperAdmin } from '@/hooks/useSuperAdmin';
 
-export type ViewType = 'personal' | 'workspace' | 'timetracking' | 'calendar' | 'financials' | 'plugin-settings';
+export type ViewType = 'personal' | 'workspace' | 'timetracking' | 'calendar' | 'financials' | 'plugin-settings' | 'admin';
 
 interface AppSidebarProps {
   currentView: ViewType;
@@ -53,6 +54,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   const { data: plugins = [] } = useOrganizationPlugins(currentOrganization?.id);
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === 'collapsed';
+  const { isSuperAdmin } = useSuperAdmin();
 
   const enabledPlugins = plugins.filter(p => p.enabled);
 
@@ -161,6 +163,30 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                     >
                       <Puzzle className="h-4 w-4" />
                       <span>Plugin Settings</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
+
+        {/* Super Admin */}
+        {isSuperAdmin && (
+          <>
+            <SidebarSeparator />
+            <SidebarGroup>
+              <SidebarGroupLabel>System</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      isActive={currentView === 'admin'}
+                      onClick={() => onViewChange('admin')}
+                      tooltip="Admin"
+                    >
+                      <Shield className="h-4 w-4" />
+                      <span>Admin</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
