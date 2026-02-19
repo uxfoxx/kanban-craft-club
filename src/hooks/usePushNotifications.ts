@@ -90,16 +90,16 @@ export const usePushNotifications = () => {
           navigator.serviceWorker.ready
             .then((registration) => {
               registration.showNotification(title, {
-                icon: '/pwa-192x192.png',
-                badge: '/pwa-192x192.png',
+                icon: '/logo.png',
+                badge: '/logo.png',
                 ...options,
               });
             })
             .catch(() => {
-              new Notification(title, { icon: '/pwa-192x192.png', ...options });
+              new Notification(title, { icon: '/logo.png', ...options });
             });
         } else {
-          new Notification(title, { icon: '/pwa-192x192.png', ...options });
+          new Notification(title, { icon: '/logo.png', ...options });
         }
       } catch (err) {
         console.error('Failed to send notification:', err);
