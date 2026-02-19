@@ -1,128 +1,137 @@
 
+# Multi-Page Sheet Navigation Pattern
 
-# Comprehensive UX/UI Audit and Fix Plan
+## The Problem
+Right now, every side panel (Task Detail, Project Settings) dumps all content into a single scrollable view. Users must scroll through assignees, budget, time tracking, subtasks (each with their own nested collapsibles), and comments -- all stacked vertically. It feels overwhelming and cluttered. Editing subtask details requires expanding nested collapsibles within a collapsible, which is confusing.
 
-## Audit Findings
-
-### CRITICAL Issues
-
-**1. Task Detail Sheet is too narrow (TaskDetailSheet.tsx:239)**
-The sheet uses `sm:max-w-lg` (512px) to display description, assignees, budget/commission, time tracking, subtasks (each with their own expandable content), and comments. Everything is cramped and scrolling is excessive.
-
-**2. Subtask actions completely hidden on mobile (SubtaskRow.tsx:231)**
-Timer, expand chevron, edit, and delete buttons are wrapped in `opacity-0 group-hover:opacity-100`. On touch devices these are invisible and inaccessible -- users literally cannot interact with subtasks beyond toggling the checkbox.
-
-**3. No bottom navigation on mobile (Index.tsx)**
-The `BottomNavigation` component exists in the codebase but is never rendered in `Index.tsx`. Mobile users must rely entirely on the sidebar, which is collapsed by default and requires multiple taps to open. Financials and Plugin Settings are completely unreachable without the sidebar.
+## The Solution
+Introduce a **page stack** pattern inside sheets. The main view shows a clean overview with clickable section cards. Tapping a section slides in a detail "page" with a back arrow and dedicated editing UI. This keeps each view focused and uncluttered.
 
 ---
 
-### MODERATE Issues
+## How It Works
 
-**4. TaskCard timer button wastes space (TaskCard.tsx:164-173)**
-Shows "Start" or "Active" text on every card. On dense boards with many cards, this clutters the layout and competes visually with the task title.
+**Task Detail Sheet** -- currently 673 lines of one long scroll -- becomes:
 
-**5. CreateTaskDialog is slightly narrow (CreateTaskDialog.tsx)**
-Uses `sm:max-w-md` (448px) for a form with 7+ fields including a scrollable assignee list. The two-column grid for priority/date feels tight.
+**Main Page (Overview)**
+- Title (inline editable, same as now)
+- Priority / Due Date / Status row (compact, same as now)
+- Description (inline editable, same as now)
+- Section cards (clickable rows that navigate to detail pages):
+  - **Assignees** -- shows avatar stack + count, tap to manage
+  - **Budget & Commission** -- shows budget amount, tap to edit (only if expenses plugin enabled)
+  - **Time Tracked** -- shows total time, tap to see/edit entries
+  - **Subtasks** -- shows progress bar + count, tap to see full list
+  - **Comments** -- shows comment count, tap to view thread
+- Delete Task button at the bottom
 
-**6. Subtask commission info buried (SubtaskRow.tsx:344-413)**
-Commission details only appear at the bottom of the expanded collapsible content, after assignees and time entries. Users must scroll through the expansion to find financial info -- which is often the most important detail.
+**Assignees Page**: Full assignee list with add/remove -- back arrow returns to main
 
-**7. Time entry actions in TaskDetailSheet hidden on hover (TaskDetailSheet.tsx:523-536)**
-Edit and delete buttons for time entries use `opacity-0 group-hover:opacity-100`, making them inaccessible on touch devices.
+**Budget Page**: Budget input, weight, manager commission info -- back arrow returns to main
 
-**8. No subtask progress indicator (TaskDetailSheet.tsx:565-569)**
-Only shows "X/Y completed" as small text. No visual progress bar to quickly assess completion status.
+**Time Tracking Page**: Total time, full entry list with edit/delete, add entry button -- back arrow returns to main
 
----
+**Subtasks Page**: Add subtask form, full subtask list. Each subtask row is tappable to go to...
 
-### MINOR Issues
+**Subtask Detail Page**: A dedicated page for a single subtask showing its assignees, time entries, commission settings, and comments -- all laid out clearly without nesting. Back arrow returns to subtasks list.
 
-**9. Calendar tasks not clickable (PersonalCalendar.tsx)**
-Tasks listed for a selected date are display-only. Users cannot tap a task to open its detail sheet.
-
-**10. Commission table shows truncated task IDs (FinancialsTab.tsx:47)**
-Displays `task_id.slice(0,8)...` which is a meaningless UUID fragment to users. Should show the task title instead.
-
-**11. No empty state visuals for time tracking (TaskDetailSheet.tsx:511)**
-Shows plain text "No time logged" without any icon or illustration, making the section feel incomplete.
-
-**12. Content hidden behind mobile bottom nav**
-When BottomNavigation is added, content at the bottom of scrollable pages will be obscured. All main content areas need bottom padding.
+**Comments Page**: Full comment thread -- back arrow returns to main
 
 ---
 
-## Implementation Plan
+**Project Settings Sheet** -- same pattern:
 
-### Phase 1: Critical Fixes
+**Main Page**
+- Project info summary card (tap to edit details)
+- Owner card (display only)
+- Team Members card (shows count, tap to see list)
+- Budget card (shows amount, tap to edit -- if expenses enabled)
+- Danger Zone (delete)
 
-**A. Widen Task Detail Sheet**
-- File: `src/components/kanban/TaskDetailSheet.tsx`
-- Change `sm:max-w-lg` to `sm:max-w-2xl` on line 239
-- Add `pb-20 md:pb-6` to the inner content div (line 321) so content is not hidden behind mobile bottom nav
+**Project Details Page**: Name, description, start date, lead -- Save & Back
 
-**B. Fix subtask actions visibility**
-- File: `src/components/kanban/SubtaskRow.tsx`
-- Remove `opacity-0 group-hover:opacity-100` from the action button container (line 231)
-- Keep timer and expand chevron always visible
-- Move edit and delete into a compact `DropdownMenu` (three-dot "more" button) to reduce visual clutter while keeping them accessible
-- Add a summary line below the subtask title when collapsed showing assignee count and total time (e.g., "2 assignees -- 1h 30m") so users can see context without expanding
-- Show commission as inline badge when collapsed (e.g., "$50" or "15%")
+**Team Members Page**: Full member list -- Back
 
-**C. Add BottomNavigation to mobile layout**
-- File: `src/pages/Index.tsx`
-- Import and render `BottomNavigation` component below the main content area
-- Add a 5th "More" item that opens a sheet with links to Financials, Plugin Settings, and Profile
-- File: `src/components/layout/BottomNavigation.tsx`
-- Add `MoreHorizontal` icon as 5th nav item
-- Add state + Sheet for the "More" menu with navigation options
-
-### Phase 2: Moderate Fixes
-
-**D. Compact TaskCard timer**
-- File: `src/components/kanban/TaskCard.tsx`
-- Replace text button ("Start"/"Active") with icon-only button wrapped in a Tooltip
-- Active state: show pulsing dot indicator instead of text
-
-**E. Widen CreateTaskDialog**
-- File: `src/components/kanban/CreateTaskDialog.tsx`
-- Change `sm:max-w-md` to `sm:max-w-lg` on the DialogContent
-
-**F. Surface commission info on SubtaskRow**
-- Already addressed in Phase 1B (inline badge when collapsed)
-- Additionally, move the commission section above time tracking in the expanded view so it appears right after assignees
-
-**G. Fix time entry hover-only actions**
-- File: `src/components/kanban/TaskDetailSheet.tsx`
-- Remove `opacity-0 group-hover:opacity-100` from time entry edit/delete buttons (lines 523, 533)
-- Make them always visible but use smaller, more subtle styling
-
-**H. Add subtask progress bar**
-- File: `src/components/kanban/TaskDetailSheet.tsx`
-- Add a `Progress` component below the "Subtasks" header showing `completedSubtasks/totalSubtasks` visually
-
-### Phase 3: Minor Fixes
-
-**I. Empty state for time tracking**
-- File: `src/components/kanban/TaskDetailSheet.tsx`
-- Replace plain "No time logged" text with a `Clock` icon + descriptive text
-
-**J. Content bottom padding for mobile**
-- File: `src/pages/Index.tsx`
-- Add `pb-20 md:pb-0` to the main content area to prevent bottom nav overlap
+**Budget Page**: Budget editing -- Save & Back
 
 ---
 
-## Files Summary
+## Technical Approach
 
-| Action | File |
-|--------|------|
-| Modify | `src/components/kanban/TaskDetailSheet.tsx` -- widen sheet, fix time entry actions, add progress bar, empty state |
-| Modify | `src/components/kanban/SubtaskRow.tsx` -- always-visible actions, summary line, inline commission badge, reorder sections |
-| Modify | `src/components/kanban/TaskCard.tsx` -- icon-only compact timer |
-| Modify | `src/components/kanban/CreateTaskDialog.tsx` -- widen dialog |
-| Modify | `src/components/layout/BottomNavigation.tsx` -- add "More" tab with sheet menu |
-| Modify | `src/pages/Index.tsx` -- render BottomNavigation, add bottom padding |
+### New Reusable Component: `SheetPageStack`
+A lightweight component that manages a page stack with animated transitions inside any Sheet.
 
-No new files. No database changes.
+```text
+SheetPageStack
+  - pages: Array of { id, title, content }
+  - activePage: string (page id)
+  - onNavigate(pageId): push page
+  - onBack(): pop to previous page
+```
 
+Each "page" inside the sheet gets:
+- A header with back arrow (when not on main page) and page title
+- Full scrollable content area
+- Slide-left/slide-right CSS transitions between pages
+
+### State Management
+Simple `useState` with a page stack array. No router needed -- it's all local state within each Sheet component.
+
+```text
+const [pageStack, setPageStack] = useState(['main']);
+const currentPage = pageStack[pageStack.length - 1];
+
+const navigateTo = (page) => setPageStack([...pageStack, page]);
+const goBack = () => setPageStack(pageStack.slice(0, -1));
+```
+
+---
+
+## Files to Create
+
+| File | Purpose |
+|------|---------|
+| `src/components/ui/sheet-page.tsx` | Reusable SheetPageStack component with back navigation and slide transitions |
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/components/kanban/TaskDetailSheet.tsx` | Refactor into multi-page layout: main overview + 5 detail pages (Assignees, Budget, Time, Subtasks, Comments) |
+| `src/components/kanban/SubtaskRow.tsx` | Simplify -- remove the Collapsible entirely. Instead, accept an `onOpen` callback that navigates to a Subtask Detail page inside the sheet |
+| `src/components/projects/ProjectSettings.tsx` | Refactor into multi-page layout: main overview + detail pages (Project Details, Team Members, Budget) |
+
+## Visual Design
+
+Each section card on the main page looks like a list item:
+
+```text
++------------------------------------------+
+| [icon]  Assignees          3 people   >  |
++------------------------------------------+
+| [icon]  Time Tracked       4h 30m     >  |
++------------------------------------------+
+| [icon]  Subtasks           3/5 done   >  |
++------------------------------------------+
+| [icon]  Comments           12          > |
++------------------------------------------+
+```
+
+When you tap a row, the current view slides left and the detail page slides in from the right. A back arrow in the top-left returns you. This is the same pattern used in iOS Settings / Android preferences.
+
+## Detail Pages Layout
+
+Each detail page has:
+- **Header**: Back arrow + Page title
+- **Content**: Full editing UI for that section, no nesting
+- Changes save immediately (same as current behavior -- no explicit "Save & Exit" needed since all mutations are instant)
+
+The subtask detail page is the biggest win -- instead of a deeply nested collapsible-within-a-collapsible, it becomes a clean full-width page showing assignees, time entries, commission, and comments in clearly separated sections.
+
+---
+
+## What Stays the Same
+- All data hooks and mutations remain unchanged
+- Sheet width (`sm:max-w-2xl`) stays the same
+- The inline editing for title/description on the main page stays
+- All existing functionality is preserved, just reorganized into pages
