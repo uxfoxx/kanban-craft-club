@@ -8,7 +8,7 @@ import { useOrganizationMembersForProject } from '@/hooks/useOrganizations';
 import { TimeEntryDialog } from '@/components/time/TimeEntryDialog';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { SubtaskRow } from './SubtaskRow';
-import { SheetPageStack, SectionCard, useSheetPageStack } from '@/components/ui/sheet-page';
+import { useSheetPageStack } from '@/components/ui/sheet-page';
 import {
   Sheet,
   SheetContent,
@@ -16,6 +16,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,7 +31,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Calendar } from '@/components/ui/calendar';
@@ -44,7 +44,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Clock, ListTodo, Flag, Calendar as CalendarIcon, Users, X, Trash2, Pencil, Check, XCircle, DollarSign, Weight, MessageSquare } from 'lucide-react';
+import { Plus, Clock, Flag, Calendar as CalendarIcon, X, Trash2, Pencil, Check, XCircle, DollarSign, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -86,7 +86,9 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const [showTimeEntryDialog, setShowTimeEntryDialog] = useState(false);
   const [editingTimeEntry, setEditingTimeEntry] = useState<TimeEntry | null>(null);
   const [selectedSubtaskId, setSelectedSubtaskId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('overview');
 
+  // Page stack only for subtask detail drill-down
   const { currentPage, navigateTo, goBack, isRoot, resetTo } = useSheetPageStack();
 
   const handleAddSubtask = async (e: React.FormEvent) => {
@@ -188,390 +190,364 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
     if (!open) {
       onClose();
       resetTo('main');
+      setActiveTab('overview');
     }
   };
 
   if (!task) return null;
 
-  // ---- PAGE DEFINITIONS ----
-
-  const mainPage = (
-    <div className="space-y-6 pb-20 md:pb-6">
-      {/* Status */}
-      {columns && columns.length > 0 && (
-        <div>
-          <h4 className="text-sm font-medium mb-2">Status</h4>
-          <Select value={task.column_id || ''} onValueChange={handleColumnChange}>
-            <SelectTrigger>
-              <SelectValue>
-                {currentColumn && (
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: currentColumn.color || '#6366f1' }} />
-                    {currentColumn.name}
-                  </div>
-                )}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {columns.map((column) => (
-                <SelectItem key={column.id} value={column.id}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: column.color || '#6366f1' }} />
-                    {column.name}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* Description */}
-      <div>
-        <h4 className="text-sm font-medium mb-2">Description</h4>
-        {isEditingDescription ? (
-          <div className="space-y-2">
-            <Textarea value={editedDescription} onChange={(e) => setEditedDescription(e.target.value)} placeholder="Add a description..." rows={4} autoFocus />
-            <div className="flex gap-2">
-              <Button size="sm" onClick={handleSaveDescription}>Save</Button>
-              <Button size="sm" variant="outline" onClick={() => setIsEditingDescription(false)}>Cancel</Button>
-            </div>
-          </div>
-        ) : (
-          <div className="text-sm text-muted-foreground cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors group" onClick={() => { setEditedDescription(task.description || ''); setIsEditingDescription(true); }}>
-            {task.description || <span className="italic">Click to add description...</span>}
-            <Pencil className="h-3 w-3 inline-block ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </div>
-        )}
-      </div>
-
-      <Separator />
-
-      {/* Section Cards */}
-      <div className="space-y-2">
-        <SectionCard
-          icon={<Users className="h-4 w-4" />}
-          label="Assignees"
-          value={assignees && assignees.length > 0 ? (
-            <div className="flex items-center gap-2">
-              <div className="flex -space-x-2">
-                {assignees.slice(0, 3).map((a) => (
-                  <Avatar key={a.id} className="h-6 w-6 border-2 border-background">
-                    <AvatarImage src={a.profiles?.avatar_url || undefined} />
-                    <AvatarFallback className="text-xs">{a.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback>
-                  </Avatar>
-                ))}
-              </div>
-              <span className="text-xs">{assignees.length}</span>
-            </div>
-          ) : <span className="text-xs">None</span>}
-          onClick={() => navigateTo('assignees')}
-        />
-
-        {expensesEnabled && (
-          <SectionCard
-            icon={<DollarSign className="h-4 w-4" />}
-            label="Budget & Commission"
-            value={<span className="text-xs">${(task as any).budget || task.cost || 0}</span>}
-            onClick={() => navigateTo('budget')}
-          />
-        )}
-
-        <SectionCard
-          icon={<Clock className="h-4 w-4" />}
-          label="Time Tracked"
-          value={<span className="text-xs">{totalTimeSpent > 0 ? formatDuration(totalTimeSpent) : 'None'}</span>}
-          onClick={() => navigateTo('time')}
-        />
-
-        <SectionCard
-          icon={<ListTodo className="h-4 w-4" />}
-          label="Subtasks"
-          value={totalSubtasks > 0 ? (
-            <div className="flex items-center gap-2">
-              <Progress value={(completedSubtasks / totalSubtasks) * 100} className="h-1.5 w-16" />
-              <span className="text-xs">{completedSubtasks}/{totalSubtasks}</span>
-            </div>
-          ) : <span className="text-xs">None</span>}
-          onClick={() => navigateTo('subtasks')}
-        />
-
-        <SectionCard
-          icon={<MessageSquare className="h-4 w-4" />}
-          label="Comments"
-          value={<span className="text-xs">{commentCount}</span>}
-          onClick={() => navigateTo('comments')}
-        />
-      </div>
-
-      <Separator />
-
-      {/* Delete Task */}
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button variant="destructive" className="w-full">
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete Task
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this task?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete "{task.title}" and all its subtasks and time entries. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteTask} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  );
-
-  const assigneesPage = (
-    <div className="space-y-4">
-      {assignees && assignees.length > 0 ? (
-        <div className="space-y-2">
-          {assignees.map((assignee) => (
-            <div key={assignee.id} className="flex items-center justify-between p-3 rounded-lg border">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={assignee.profiles?.avatar_url || undefined} />
-                  <AvatarFallback className="text-xs">{assignee.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="text-sm font-medium">{assignee.profiles?.full_name || 'Unknown'}</p>
-                  <p className="text-xs text-muted-foreground">{assignee.profiles?.email}</p>
-                </div>
-              </div>
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleRemoveAssignee(assignee.user_id)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-sm text-muted-foreground text-center py-4">No assignees yet</p>
-      )}
-      {unassignedMembers.length > 0 && (
-        <Select onValueChange={handleAddAssignee}>
-          <SelectTrigger>
-            <SelectValue placeholder="Add assignee..." />
-          </SelectTrigger>
-          <SelectContent>
-            {unassignedMembers.map((member) => (
-              <SelectItem key={member.user_id} value={member.user_id}>
-                {member.profiles?.full_name || member.profiles?.email || 'Unknown'}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-    </div>
-  );
-
-  const budgetPage = (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Task Budget ($)</label>
-        <Input
-          type="number"
-          value={(task as any).budget || task.cost || ''}
-          onChange={async (e) => {
-            const val = parseFloat(e.target.value) || 0;
-            try { await updateTask.mutateAsync({ taskId: task.id, updates: { cost: val, budget: val } as any, projectId }); } catch {}
-          }}
-          min="0" step="0.01"
-        />
-      </div>
-      {assignees && assignees.length > 0 && (
-        <div className="p-3 rounded-lg bg-muted/50 text-sm">
-          <p className="text-xs text-muted-foreground mb-1">Task Manager Commission (10%)</p>
-          <p className="font-medium">
-            {assignees[0]?.profiles?.full_name || 'First Assignee'}: ${(((task as any).budget || task.cost || 0) * 0.1).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-          </p>
-        </div>
-      )}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Weight %</label>
-        <Input
-          type="number"
-          value={task.weight_pct ?? ''}
-          onChange={async (e) => {
-            const val = e.target.value ? parseFloat(e.target.value) : null;
-            try { await updateTask.mutateAsync({ taskId: task.id, updates: { weight_pct: val } as any, projectId }); } catch {}
-          }}
-          min="0" max="100" step="0.01"
-        />
-      </div>
-    </div>
-  );
-
-  const timePage = (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        {totalTimeSpent > 0 ? (
-          <p className="text-2xl font-bold">{formatDuration(totalTimeSpent)}</p>
-        ) : (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Clock className="h-5 w-5" />
-            <span className="text-sm">No time logged yet</span>
-          </div>
-        )}
-        <Button variant="outline" size="sm" onClick={() => { setEditingTimeEntry(null); setShowTimeEntryDialog(true); }}>
-          <Plus className="h-4 w-4 mr-1" /> Add Entry
-        </Button>
-      </div>
-      {timeEntries && timeEntries.length > 0 && (
-        <div className="space-y-1">
-          {timeEntries.map((entry) => (
-            <div key={entry.id} className="flex justify-between items-center p-2 rounded-lg border text-sm">
-              <div>
-                <span>{format(new Date(entry.started_at), 'MMM d, h:mm a')}</span>
-                {entry.description && <span className="text-muted-foreground ml-2">— {entry.description}</span>}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{entry.duration_seconds ? formatDuration(entry.duration_seconds) : '-'}</span>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingTimeEntry(entry); setShowTimeEntryDialog(true); }}>
-                  <Pencil className="h-3 w-3" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteTimeEntry(entry.id)}>
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  const subtasksPage = (
-    <div className="space-y-4">
-      {totalSubtasks > 0 && (
-        <div className="flex items-center gap-3">
-          <Progress value={(completedSubtasks / totalSubtasks) * 100} className="h-2 flex-1" />
-          <span className="text-xs text-muted-foreground">{completedSubtasks}/{totalSubtasks}</span>
-        </div>
-      )}
-      <form onSubmit={handleAddSubtask} className="flex gap-2">
-        <Input value={newSubtask} onChange={(e) => setNewSubtask(e.target.value)} placeholder="Add a subtask..." className="flex-1" />
-        <Button type="submit" size="sm" disabled={!newSubtask.trim()}><Plus className="h-4 w-4" /></Button>
-      </form>
-      <div className="space-y-2">
-        {subtasks?.map((subtask) => (
-          <SubtaskRow
-            key={subtask.id}
-            subtask={subtask}
-            organizationMembers={organizationMembers}
-            taskBudget={(task as any).budget || task.cost || 0}
-            isOrgAdmin={isAdmin}
-            expensesEnabled={expensesEnabled}
-            onOpenDetail={() => {
-              setSelectedSubtaskId(subtask.id);
-              navigateTo('subtask-detail');
-            }}
-          />
-        ))}
-        {(!subtasks || subtasks.length === 0) && (
-          <p className="text-sm text-muted-foreground text-center py-4">No subtasks yet</p>
-        )}
-      </div>
-    </div>
-  );
-
-  const subtaskDetailPage = selectedSubtask ? (
-    <SubtaskDetailPage
-      subtask={selectedSubtask}
-      organizationMembers={organizationMembers}
-      taskBudget={(task as any).budget || task.cost || 0}
-      isOrgAdmin={isAdmin}
-      expensesEnabled={expensesEnabled}
-    />
-  ) : null;
-
-  const commentsPage = (
-    <CommentSection
-      taskId={task.id}
-      members={organizationMembers.map(m => ({
-        user_id: m.user_id,
-        full_name: m.profiles?.full_name || 'Unknown',
-        email: m.profiles?.email || '',
-      }))}
-    />
-  );
-
-  const pages = [
-    { id: 'main', title: 'Task Details', content: mainPage },
-    { id: 'assignees', title: 'Assignees', content: assigneesPage },
-    { id: 'budget', title: 'Budget & Commission', content: budgetPage },
-    { id: 'time', title: 'Time Tracking', content: timePage },
-    { id: 'subtasks', title: 'Subtasks', content: subtasksPage },
-    { id: 'subtask-detail', title: selectedSubtask?.title || 'Subtask', content: subtaskDetailPage },
-    { id: 'comments', title: 'Comments', content: commentsPage },
-  ];
+  const isOnSubtaskDetail = currentPage === 'subtask-detail';
 
   return (
     <Sheet open={!!task} onOpenChange={handleOpenChange}>
-      <SheetContent className="w-full sm:max-w-2xl flex flex-col">
-        <SheetHeader>
-          {isEditingTitle ? (
-            <div className="flex items-center gap-2">
-              <Input value={editedTitle} onChange={(e) => setEditedTitle(e.target.value)} className="text-xl font-semibold" autoFocus />
-              <Button size="icon" variant="ghost" onClick={handleSaveTitle}><Check className="h-4 w-4" /></Button>
-              <Button size="icon" variant="ghost" onClick={() => setIsEditingTitle(false)}><XCircle className="h-4 w-4" /></Button>
+      <SheetContent className="w-full sm:max-w-2xl flex flex-col p-0">
+        {/* Header - always visible */}
+        <div className="px-6 pt-6 pb-0">
+          <SheetHeader>
+            {isEditingTitle ? (
+              <div className="flex items-center gap-2">
+                <Input value={editedTitle} onChange={(e) => setEditedTitle(e.target.value)} className="text-xl font-semibold" autoFocus />
+                <Button size="icon" variant="ghost" onClick={handleSaveTitle}><Check className="h-4 w-4" /></Button>
+                <Button size="icon" variant="ghost" onClick={() => setIsEditingTitle(false)}><XCircle className="h-4 w-4" /></Button>
+              </div>
+            ) : (
+              <SheetTitle
+                className="text-xl cursor-pointer hover:text-primary transition-colors group flex items-center gap-2 pr-8"
+                onClick={() => { setEditedTitle(task.title); setIsEditingTitle(true); }}
+              >
+                {task.title}
+                <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </SheetTitle>
+            )}
+            <SheetDescription className="flex flex-wrap items-center gap-2">
+              <Select value={task.priority} onValueChange={handlePriorityChange}>
+                <SelectTrigger className="w-auto h-7 text-xs">
+                  <SelectValue>
+                    <Badge variant="outline" className={cn('capitalize', {
+                      'bg-destructive/10 text-destructive': task.priority === 'high',
+                      'bg-chart-4/10 text-chart-4': task.priority === 'medium',
+                      'bg-chart-5/10 text-chart-5': task.priority === 'low',
+                    })}>
+                      <Flag className="h-3 w-3 mr-1" />{task.priority}
+                    </Badge>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                </SelectContent>
+              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-7 text-xs">
+                    <CalendarIcon className="h-3 w-3 mr-1" />
+                    {task.due_date ? format(new Date(task.due_date), 'MMM d, yyyy') : 'Set due date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={task.due_date ? new Date(task.due_date) : undefined} onSelect={handleDueDateChange} initialFocus />
+                  {task.due_date && (
+                    <div className="p-2 border-t">
+                      <Button variant="ghost" size="sm" className="w-full text-destructive" onClick={() => handleDueDateChange(undefined)}>Remove due date</Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+              {columns && columns.length > 0 && (
+                <Select value={task.column_id || ''} onValueChange={handleColumnChange}>
+                  <SelectTrigger className="w-auto h-7 text-xs">
+                    <SelectValue>
+                      {currentColumn && (
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: currentColumn.color || '#6366f1' }} />
+                          <span>{currentColumn.name}</span>
+                        </div>
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {columns.map((column) => (
+                      <SelectItem key={column.id} value={column.id}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: column.color || '#6366f1' }} />
+                          {column.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </SheetDescription>
+          </SheetHeader>
+        </div>
+
+        {/* Content area */}
+        <div className="flex-1 overflow-hidden flex flex-col mt-2">
+          {isOnSubtaskDetail && selectedSubtask ? (
+            /* Subtask detail drill-down - hide tabs, show back nav */
+            <div className="flex flex-col flex-1 overflow-hidden">
+              <div className="flex items-center gap-2 px-6 pb-3">
+                <Button variant="ghost" size="sm" onClick={goBack} className="gap-1 -ml-2">
+                  <ArrowLeft className="h-4 w-4" />
+                  Back
+                </Button>
+                <h3 className="text-sm font-semibold truncate">{selectedSubtask.title}</h3>
+              </div>
+              <div className="flex-1 overflow-y-auto px-6 pb-6">
+                <SubtaskDetailPage
+                  subtask={selectedSubtask}
+                  organizationMembers={organizationMembers}
+                  taskBudget={(task as any).budget || task.cost || 0}
+                  isOrgAdmin={isAdmin}
+                  expensesEnabled={expensesEnabled}
+                />
+              </div>
             </div>
           ) : (
-            <SheetTitle
-              className="text-xl cursor-pointer hover:text-primary transition-colors group flex items-center gap-2"
-              onClick={() => { setEditedTitle(task.title); setIsEditingTitle(true); }}
-            >
-              {task.title}
-              <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </SheetTitle>
-          )}
-          <SheetDescription className="flex flex-wrap items-center gap-2">
-            <Select value={task.priority} onValueChange={handlePriorityChange}>
-              <SelectTrigger className="w-auto h-7 text-xs">
-                <SelectValue>
-                  <Badge variant="outline" className={cn('capitalize', {
-                    'bg-destructive/10 text-destructive': task.priority === 'high',
-                    'bg-chart-4/10 text-chart-4': task.priority === 'medium',
-                    'bg-chart-5/10 text-chart-5': task.priority === 'low',
-                  })}>
-                    <Flag className="h-3 w-3 mr-1" />{task.priority}
-                  </Badge>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-              </SelectContent>
-            </Select>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-7 text-xs">
-                  <CalendarIcon className="h-3 w-3 mr-1" />
-                  {task.due_date ? format(new Date(task.due_date), 'MMM d, yyyy') : 'Set due date'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={task.due_date ? new Date(task.due_date) : undefined} onSelect={handleDueDateChange} initialFocus />
-                {task.due_date && (
-                  <div className="p-2 border-t">
-                    <Button variant="ghost" size="sm" className="w-full text-destructive" onClick={() => handleDueDateChange(undefined)}>Remove due date</Button>
-                  </div>
-                )}
-              </PopoverContent>
-            </Popover>
-          </SheetDescription>
-        </SheetHeader>
+            /* Tabs view */
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 overflow-hidden">
+              <div className="px-6">
+                <TabsList className="w-full">
+                  <TabsTrigger value="overview" className="flex-1">Overview</TabsTrigger>
+                  <TabsTrigger value="work" className="flex-1">Work</TabsTrigger>
+                  {expensesEnabled && <TabsTrigger value="finance" className="flex-1">Finance</TabsTrigger>}
+                  <TabsTrigger value="chat" className="flex-1 relative">
+                    Chat
+                    {commentCount > 0 && (
+                      <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 px-1 text-[10px]">{commentCount}</Badge>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
-        <div className="mt-4 flex-1 overflow-y-auto">
-          <SheetPageStack pages={pages} currentPage={currentPage} onBack={goBack} isRoot={isRoot} />
+              {/* Overview Tab */}
+              <TabsContent value="overview" className="flex-1 overflow-y-auto px-6 pb-20 md:pb-6 mt-0 pt-4">
+                <div className="space-y-6">
+                  {/* Description */}
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Description</h4>
+                    {isEditingDescription ? (
+                      <div className="space-y-2">
+                        <Textarea value={editedDescription} onChange={(e) => setEditedDescription(e.target.value)} placeholder="Add a description..." rows={4} autoFocus />
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={handleSaveDescription}>Save</Button>
+                          <Button size="sm" variant="outline" onClick={() => setIsEditingDescription(false)}>Cancel</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors group" onClick={() => { setEditedDescription(task.description || ''); setIsEditingDescription(true); }}>
+                        {task.description || <span className="italic">Click to add description...</span>}
+                        <Pencil className="h-3 w-3 inline-block ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  {/* Assignees */}
+                  <div>
+                    <h4 className="text-sm font-medium mb-3">Assignees</h4>
+                    {assignees && assignees.length > 0 ? (
+                      <div className="space-y-2">
+                        {assignees.map((assignee) => (
+                          <div key={assignee.id} className="flex items-center justify-between p-3 rounded-lg border">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={assignee.profiles?.avatar_url || undefined} />
+                                <AvatarFallback className="text-xs">{assignee.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="text-sm font-medium">{assignee.profiles?.full_name || 'Unknown'}</p>
+                                <p className="text-xs text-muted-foreground">{assignee.profiles?.email}</p>
+                              </div>
+                            </div>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleRemoveAssignee(assignee.user_id)}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">No assignees yet</p>
+                    )}
+                    {unassignedMembers.length > 0 && (
+                      <div className="mt-3">
+                        <Select onValueChange={handleAddAssignee}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Add assignee..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {unassignedMembers.map((member) => (
+                              <SelectItem key={member.user_id} value={member.user_id}>
+                                {member.profiles?.full_name || member.profiles?.email || 'Unknown'}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  {/* Delete Task */}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" className="w-full">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Task
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this task?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete "{task.title}" and all its subtasks and time entries. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteTask} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </TabsContent>
+
+              {/* Work Tab */}
+              <TabsContent value="work" className="flex-1 overflow-y-auto px-6 pb-20 md:pb-6 mt-0 pt-4">
+                <div className="space-y-6">
+                  {/* Subtasks section */}
+                  <div>
+                    <h4 className="text-sm font-medium mb-3">Subtasks</h4>
+                    {totalSubtasks > 0 && (
+                      <div className="flex items-center gap-3 mb-3">
+                        <Progress value={(completedSubtasks / totalSubtasks) * 100} className="h-2 flex-1" />
+                        <span className="text-xs text-muted-foreground">{completedSubtasks}/{totalSubtasks}</span>
+                      </div>
+                    )}
+                    <form onSubmit={handleAddSubtask} className="flex gap-2 mb-3">
+                      <Input value={newSubtask} onChange={(e) => setNewSubtask(e.target.value)} placeholder="Add a subtask..." className="flex-1" />
+                      <Button type="submit" size="sm" disabled={!newSubtask.trim()}><Plus className="h-4 w-4" /></Button>
+                    </form>
+                    <div className="space-y-2">
+                      {subtasks?.map((subtask) => (
+                        <SubtaskRow
+                          key={subtask.id}
+                          subtask={subtask}
+                          organizationMembers={organizationMembers}
+                          taskBudget={(task as any).budget || task.cost || 0}
+                          isOrgAdmin={isAdmin}
+                          expensesEnabled={expensesEnabled}
+                          onOpenDetail={() => {
+                            setSelectedSubtaskId(subtask.id);
+                            navigateTo('subtask-detail');
+                          }}
+                        />
+                      ))}
+                      {(!subtasks || subtasks.length === 0) && (
+                        <p className="text-sm text-muted-foreground text-center py-4">No subtasks yet</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Time Tracking section */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-medium">Time Tracking</h4>
+                      <Button variant="outline" size="sm" onClick={() => { setEditingTimeEntry(null); setShowTimeEntryDialog(true); }}>
+                        <Plus className="h-4 w-4 mr-1" /> Add Entry
+                      </Button>
+                    </div>
+                    {totalTimeSpent > 0 && (
+                      <p className="text-2xl font-bold mb-3">{formatDuration(totalTimeSpent)}</p>
+                    )}
+                    {timeEntries && timeEntries.length > 0 ? (
+                      <div className="space-y-1">
+                        {timeEntries.map((entry) => (
+                          <div key={entry.id} className="flex justify-between items-center p-2 rounded-lg border text-sm">
+                            <div>
+                              <span>{format(new Date(entry.started_at), 'MMM d, h:mm a')}</span>
+                              {entry.description && <span className="text-muted-foreground ml-2">— {entry.description}</span>}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{entry.duration_seconds ? formatDuration(entry.duration_seconds) : '-'}</span>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingTimeEntry(entry); setShowTimeEntryDialog(true); }}>
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteTimeEntry(entry.id)}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-muted-foreground py-4 justify-center">
+                        <Clock className="h-5 w-5" />
+                        <span className="text-sm">No time logged yet</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Finance Tab */}
+              {expensesEnabled && (
+                <TabsContent value="finance" className="flex-1 overflow-y-auto px-6 pb-20 md:pb-6 mt-0 pt-4">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Task Budget ($)</label>
+                      <Input
+                        type="number"
+                        value={(task as any).budget || task.cost || ''}
+                        onChange={async (e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          try { await updateTask.mutateAsync({ taskId: task.id, updates: { cost: val, budget: val } as any, projectId }); } catch {}
+                        }}
+                        min="0" step="0.01"
+                      />
+                    </div>
+                    {assignees && assignees.length > 0 && (
+                      <div className="p-3 rounded-lg bg-muted/50 text-sm">
+                        <p className="text-xs text-muted-foreground mb-1">Task Manager Commission (10%)</p>
+                        <p className="font-medium">
+                          {assignees[0]?.profiles?.full_name || 'First Assignee'}: ${(((task as any).budget || task.cost || 0) * 0.1).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Weight %</label>
+                      <Input
+                        type="number"
+                        value={task.weight_pct ?? ''}
+                        onChange={async (e) => {
+                          const val = e.target.value ? parseFloat(e.target.value) : null;
+                          try { await updateTask.mutateAsync({ taskId: task.id, updates: { weight_pct: val } as any, projectId }); } catch {}
+                        }}
+                        min="0" max="100" step="0.01"
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
+              )}
+
+              {/* Chat Tab */}
+              <TabsContent value="chat" className="flex-1 overflow-y-auto px-6 pb-20 md:pb-6 mt-0 pt-4">
+                <CommentSection
+                  taskId={task.id}
+                  members={organizationMembers.map(m => ({
+                    user_id: m.user_id,
+                    full_name: m.profiles?.full_name || 'Unknown',
+                    email: m.profiles?.email || '',
+                  }))}
+                />
+              </TabsContent>
+            </Tabs>
+          )}
         </div>
       </SheetContent>
 
