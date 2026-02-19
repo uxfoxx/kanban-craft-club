@@ -273,6 +273,36 @@ export type Database = {
         }
         Relationships: []
       }
+      personal_time_entries: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          name: string
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          name: string
+          started_at: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          name?: string
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -525,6 +555,7 @@ export type Database = {
           commission_value: number
           completed: boolean
           created_at: string
+          estimated_hours: number | null
           id: string
           task_id: string
           title: string
@@ -534,6 +565,7 @@ export type Database = {
           commission_value?: number
           completed?: boolean
           created_at?: string
+          estimated_hours?: number | null
           id?: string
           task_id: string
           title: string
@@ -543,6 +575,7 @@ export type Database = {
           commission_value?: number
           completed?: boolean
           created_at?: string
+          estimated_hours?: number | null
           id?: string
           task_id?: string
           title?: string
@@ -665,11 +698,13 @@ export type Database = {
           assignee_id: string | null
           budget: number
           column_id: string | null
+          completed_at: string | null
           cost: number
           created_at: string
           created_by: string
           description: string | null
           due_date: string | null
+          estimated_hours: number | null
           id: string
           priority: string
           project_id: string
@@ -682,11 +717,13 @@ export type Database = {
           assignee_id?: string | null
           budget?: number
           column_id?: string | null
+          completed_at?: string | null
           cost?: number
           created_at?: string
           created_by: string
           description?: string | null
           due_date?: string | null
+          estimated_hours?: number | null
           id?: string
           priority?: string
           project_id: string
@@ -699,11 +736,13 @@ export type Database = {
           assignee_id?: string | null
           budget?: number
           column_id?: string | null
+          completed_at?: string | null
           cost?: number
           created_at?: string
           created_by?: string
           description?: string | null
           due_date?: string | null
+          estimated_hours?: number | null
           id?: string
           priority?: string
           project_id?: string

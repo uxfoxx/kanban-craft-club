@@ -44,7 +44,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Clock, Flag, Calendar as CalendarIcon, X, Trash2, Pencil, Check, XCircle, DollarSign, ArrowLeft } from 'lucide-react';
+import { Plus, Clock, Flag, Calendar as CalendarIcon, X, Trash2, Pencil, Check, XCircle, DollarSign, ArrowLeft, PartyPopper, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -87,7 +87,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const [editingTimeEntry, setEditingTimeEntry] = useState<TimeEntry | null>(null);
   const [selectedSubtaskId, setSelectedSubtaskId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
-
+  const [isDelivering, setIsDelivering] = useState(false);
   // Page stack only for subtask detail drill-down
   const { currentPage, navigateTo, goBack, isRoot, resetTo } = useSheetPageStack();
 
@@ -152,6 +152,31 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
     } catch { toast.error('Failed to delete task'); }
   };
 
+  const handleDeliverTask = async () => {
+    if (!task) return;
+    setIsDelivering(true);
+    try {
+      // Find the "Done" column
+      const doneColumn = columns?.find(c => c.name.toLowerCase() === 'done');
+      await updateTask.mutateAsync({
+        taskId: task.id,
+        updates: {
+          completed_at: new Date().toISOString(),
+          ...(doneColumn ? { column_id: doneColumn.id } : {}),
+        } as any,
+        projectId,
+      });
+      toast.success('🎉 Task delivered successfully!', { duration: 4000 });
+      setTimeout(() => {
+        setIsDelivering(false);
+        onClose();
+      }, 1200);
+    } catch {
+      setIsDelivering(false);
+      toast.error('Failed to deliver task');
+    }
+  };
+
   const handleDeleteTimeEntry = async (entryId: string) => {
     if (!task) return;
     try {
@@ -183,6 +208,8 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const assigneeUserIds = assignees?.map(a => a.user_id) || [];
   const unassignedMembers = organizationMembers.filter(m => !assigneeUserIds.includes(m.user_id));
   const commentCount = comments?.length || 0;
+  const estimatedSeconds = task?.estimated_hours ? task.estimated_hours * 3600 : 0;
+  const isOverEstimate = estimatedSeconds > 0 && totalTimeSpent > estimatedSeconds;
 
   const selectedSubtask = subtasks?.find(s => s.id === selectedSubtaskId);
 
@@ -391,6 +418,104 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
 
                   <Separator />
 
+                  {/* Estimated Hours */}
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Estimated Hours</h4>
+                    <Input
+                      type="number"
+                      value={(task as any).estimated_hours ?? ''}
+                      onChange={async (e) => {
+                        const val = e.target.value ? parseFloat(e.target.value) : null;
+                        try { await updateTask.mutateAsync({ taskId: task.id, updates: { estimated_hours: val } as any, projectId }); } catch {}
+                      }}
+                      placeholder="e.g. 8"
+                      min="0"
+                      step="0.5"
+                      className="w-32"
+                    />
+                    {isOverEstimate && (
+                      <div className="flex items-center gap-1.5 mt-2 text-destructive text-xs font-medium">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Time tracked exceeds estimate by {formatDuration(totalTimeSpent - estimatedSeconds)}
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  {/* Assignees */}
+                  <div>
+                    <h4 className="text-sm font-medium mb-3">Assignees</h4>
+                    {assignees && assignees.length > 0 ? (
+                      <div className="space-y-2">
+                        {assignees.map((assignee) => (
+                          <div key={assignee.id} className="flex items-center justify-between p-3 rounded-lg border">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={assignee.profiles?.avatar_url || undefined} />
+                                <AvatarFallback className="text-xs">{assignee.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="text-sm font-medium">{assignee.profiles?.full_name || 'Unknown'}</p>
+                                <p className="text-xs text-muted-foreground">{assignee.profiles?.email}</p>
+                              </div>
+                            </div>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleRemoveAssignee(assignee.user_id)}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">No assignees yet</p>
+                    )}
+                    {unassignedMembers.length > 0 && (
+                      <div className="mt-3">
+                        <Select onValueChange={handleAddAssignee}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Add assignee..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {unassignedMembers.map((member) => (
+                              <SelectItem key={member.user_id} value={member.user_id}>
+                                {member.profiles?.full_name || member.profiles?.email || 'Unknown'}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  {/* Deliver to Client Button */}
+                  {!task.completed_at && (
+                    <Button
+                      className={cn(
+                        "w-full h-12 text-base font-semibold gap-2 transition-all duration-300",
+                        "bg-gradient-to-r from-primary to-chart-2 hover:from-primary/90 hover:to-chart-2/90 text-primary-foreground",
+                        isDelivering && "animate-pulse scale-105"
+                      )}
+                      onClick={handleDeliverTask}
+                      disabled={isDelivering}
+                    >
+                      <PartyPopper className={cn("h-5 w-5", isDelivering && "animate-bounce")} />
+                      {isDelivering ? 'Delivering...' : 'Deliver to Client'}
+                    </Button>
+                  )}
+
+                  {task.completed_at && (
+                    <div className="p-3 rounded-lg bg-chart-2/10 border border-chart-2/20 text-center">
+                      <p className="text-sm font-medium text-chart-2">✅ Delivered</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {format(new Date(task.completed_at), 'MMM d, yyyy h:mm a')}
+                      </p>
+                    </div>
+                  )}
+
+                  <Separator />
+
                   {/* Delete Task */}
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -463,7 +588,25 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                       </Button>
                     </div>
                     {totalTimeSpent > 0 && (
-                      <p className="text-2xl font-bold mb-3">{formatDuration(totalTimeSpent)}</p>
+                      <div className="mb-3">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-bold">{formatDuration(totalTimeSpent)}</span>
+                          {estimatedSeconds > 0 && (
+                            <span className="text-sm text-muted-foreground">/ {(task as any).estimated_hours}h estimated</span>
+                          )}
+                        </div>
+                        {estimatedSeconds > 0 && (
+                          <Progress
+                            value={Math.min((totalTimeSpent / estimatedSeconds) * 100, 100)}
+                            className={cn("h-2 mt-2", isOverEstimate && "[&>div]:bg-destructive")}
+                          />
+                        )}
+                        {isOverEstimate && (
+                          <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                            <AlertTriangle className="h-3 w-3" /> Over estimate
+                          </p>
+                        )}
+                      </div>
                     )}
                     {timeEntries && timeEntries.length > 0 ? (
                       <div className="space-y-1">

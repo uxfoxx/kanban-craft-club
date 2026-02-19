@@ -85,7 +85,7 @@ export default defineConfig(({ mode }) => {
           cleanupOutdatedCaches: true,
           globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,woff,ttf}"],
           navigateFallback: "index.html",
-          navigateFallbackDenylist: [/^\/api/],
+          navigateFallbackDenylist: [/^\/api/, /^\/~oauth/],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/nexahtdtctnhylfjatix\.supabase\.co\/rest\/.*/i,
