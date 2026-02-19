@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Task, KanbanColumn, TimeEntry } from '@/types/database';
 import { useIsOrgAdmin } from '@/hooks/useIsOrgAdmin';
 import { useSubtasks, useCreateSubtask, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
@@ -89,6 +89,55 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const [selectedSubtaskId, setSelectedSubtaskId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [isDelivering, setIsDelivering] = useState(false);
+
+  // Local state for debounced inputs
+  const [localEstimatedHours, setLocalEstimatedHours] = useState<string>('');
+  const [localBudget, setLocalBudget] = useState<string>('');
+  const [localWeightPct, setLocalWeightPct] = useState<string>('');
+
+  // Sync local state from server when task changes
+  const taskId = task?.id;
+  useEffect(() => {
+    setLocalEstimatedHours(task?.estimated_hours != null ? String(task.estimated_hours) : '');
+    setLocalBudget((task as any)?.budget || task?.cost ? String((task as any)?.budget || task?.cost) : '');
+    setLocalWeightPct(task?.weight_pct != null ? String(task.weight_pct) : '');
+  }, [taskId]);
+
+  // Debounced save for estimated_hours
+  const isFirstRenderEH = useRef(true);
+  useEffect(() => {
+    if (isFirstRenderEH.current) { isFirstRenderEH.current = false; return; }
+    const timeout = setTimeout(() => {
+      if (!task) return;
+      const val = localEstimatedHours ? parseFloat(localEstimatedHours) : null;
+      updateTask.mutateAsync({ taskId: task.id, updates: { estimated_hours: val } as any, projectId }).catch(() => {});
+    }, 800);
+    return () => clearTimeout(timeout);
+  }, [localEstimatedHours]);
+
+  // Debounced save for budget
+  const isFirstRenderBudget = useRef(true);
+  useEffect(() => {
+    if (isFirstRenderBudget.current) { isFirstRenderBudget.current = false; return; }
+    const timeout = setTimeout(() => {
+      if (!task) return;
+      const val = parseFloat(localBudget) || 0;
+      updateTask.mutateAsync({ taskId: task.id, updates: { cost: val, budget: val } as any, projectId }).catch(() => {});
+    }, 800);
+    return () => clearTimeout(timeout);
+  }, [localBudget]);
+
+  // Debounced save for weight_pct
+  const isFirstRenderWeight = useRef(true);
+  useEffect(() => {
+    if (isFirstRenderWeight.current) { isFirstRenderWeight.current = false; return; }
+    const timeout = setTimeout(() => {
+      if (!task) return;
+      const val = localWeightPct ? parseFloat(localWeightPct) : null;
+      updateTask.mutateAsync({ taskId: task.id, updates: { weight_pct: val } as any, projectId }).catch(() => {});
+    }, 800);
+    return () => clearTimeout(timeout);
+  }, [localWeightPct]);
   // Page stack only for subtask detail drill-down
   const { currentPage, navigateTo, goBack, isRoot, resetTo } = useSheetPageStack();
 
@@ -424,11 +473,8 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                     <h4 className="text-sm font-medium mb-2">Estimated Hours</h4>
                     <Input
                       type="number"
-                      value={(task as any).estimated_hours ?? ''}
-                      onChange={async (e) => {
-                        const val = e.target.value ? parseFloat(e.target.value) : null;
-                        try { await updateTask.mutateAsync({ taskId: task.id, updates: { estimated_hours: val } as any, projectId }); } catch {}
-                      }}
+                      value={localEstimatedHours}
+                      onChange={(e) => setLocalEstimatedHours(e.target.value)}
                       placeholder="e.g. 8"
                       min="0"
                       step="0.5"
@@ -647,11 +693,8 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                       <label className="text-sm font-medium">Task Budget ($)</label>
                       <Input
                         type="number"
-                        value={(task as any).budget || task.cost || ''}
-                        onChange={async (e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          try { await updateTask.mutateAsync({ taskId: task.id, updates: { cost: val, budget: val } as any, projectId }); } catch {}
-                        }}
+                        value={localBudget}
+                        onChange={(e) => setLocalBudget(e.target.value)}
                         min="0" step="0.01"
                       />
                     </div>
@@ -667,11 +710,8 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                       <label className="text-sm font-medium">Weight %</label>
                       <Input
                         type="number"
-                        value={task.weight_pct ?? ''}
-                        onChange={async (e) => {
-                          const val = e.target.value ? parseFloat(e.target.value) : null;
-                          try { await updateTask.mutateAsync({ taskId: task.id, updates: { weight_pct: val } as any, projectId }); } catch {}
-                        }}
+                        value={localWeightPct}
+                        onChange={(e) => setLocalWeightPct(e.target.value)}
                         min="0" max="100" step="0.01"
                       />
                     </div>
@@ -733,6 +773,23 @@ const SubtaskDetailPage: React.FC<{
   const stopTimer = useStopSubtaskTimeEntry();
   const [showTimeEntryDialog, setShowTimeEntryDialog] = useState(false);
   const [timerElapsed, setTimerElapsed] = useState(0);
+
+  // Local state for commission_value debounced input
+  const [localCommissionValue, setLocalCommissionValue] = useState<string>('');
+  const subtaskIdRef = subtask.id;
+  useEffect(() => {
+    setLocalCommissionValue(subtask.commission_value ? String(subtask.commission_value) : '');
+  }, [subtaskIdRef]);
+
+  const isFirstRenderCommission = useRef(true);
+  useEffect(() => {
+    if (isFirstRenderCommission.current) { isFirstRenderCommission.current = false; return; }
+    const timeout = setTimeout(() => {
+      const val = parseFloat(localCommissionValue) || 0;
+      supabase.from('subtasks').update({ commission_value: val } as any).eq('id', subtask.id).then(() => {});
+    }, 800);
+    return () => clearTimeout(timeout);
+  }, [localCommissionValue]);
 
   const activeTimer = globalActiveTimer?.subtask_id === subtask.id ? globalActiveTimer : null;
 
@@ -823,11 +880,8 @@ const SubtaskDetailPage: React.FC<{
                   {subtask.commission_type && (
                     <Input
                       type="number"
-                      value={subtask.commission_value || ''}
-                      onChange={async (e) => {
-                        const val = parseFloat(e.target.value) || 0;
-                        try { await supabase.from('subtasks').update({ commission_value: val } as any).eq('id', subtask.id); } catch {}
-                      }}
+                      value={localCommissionValue}
+                      onChange={(e) => setLocalCommissionValue(e.target.value)}
                       className="h-8 w-24 text-sm" min="0" step="0.01"
                       placeholder={subtask.commission_type === 'percentage' ? '%' : 'LKR'}
                     />
