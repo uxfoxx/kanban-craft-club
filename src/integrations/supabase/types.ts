@@ -62,6 +62,53 @@ export type Database = {
           },
         ]
       }
+      commission_rate_card: {
+        Row: {
+          category: string
+          complexity: string | null
+          created_at: string
+          id: string
+          name: string
+          organization_id: string
+          rate_major: number
+          rate_minor: number
+          rate_nano: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          complexity?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          organization_id: string
+          rate_major?: number
+          rate_minor?: number
+          rate_nano?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          complexity?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id?: string
+          rate_major?: number
+          rate_minor?: number
+          rate_nano?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_rate_card_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kanban_columns: {
         Row: {
           color: string | null
@@ -429,6 +476,7 @@ export type Database = {
           name: string
           organization_id: string | null
           owner_id: string
+          project_tier: string | null
           project_type: string | null
           start_date: string | null
           updated_at: string
@@ -442,6 +490,7 @@ export type Database = {
           name: string
           organization_id?: string | null
           owner_id: string
+          project_tier?: string | null
           project_type?: string | null
           start_date?: string | null
           updated_at?: string
@@ -455,6 +504,7 @@ export type Database = {
           name?: string
           organization_id?: string | null
           owner_id?: string
+          project_tier?: string | null
           project_type?: string | null
           start_date?: string | null
           updated_at?: string
@@ -613,6 +663,7 @@ export type Database = {
           assigned_by: string | null
           created_at: string | null
           id: string
+          role: string | null
           task_id: string
           user_id: string
         }
@@ -620,6 +671,7 @@ export type Database = {
           assigned_by?: string | null
           created_at?: string | null
           id?: string
+          role?: string | null
           task_id: string
           user_id: string
         }
@@ -627,6 +679,7 @@ export type Database = {
           assigned_by?: string | null
           created_at?: string | null
           id?: string
+          role?: string | null
           task_id?: string
           user_id?: string
         }
@@ -717,6 +770,7 @@ export type Database = {
           budget: number
           column_id: string | null
           completed_at: string | null
+          complexity: string | null
           cost: number
           created_at: string
           created_by: string
@@ -730,12 +784,14 @@ export type Database = {
           title: string
           updated_at: string
           weight_pct: number | null
+          work_type: string | null
         }
         Insert: {
           assignee_id?: string | null
           budget?: number
           column_id?: string | null
           completed_at?: string | null
+          complexity?: string | null
           cost?: number
           created_at?: string
           created_by: string
@@ -749,12 +805,14 @@ export type Database = {
           title: string
           updated_at?: string
           weight_pct?: number | null
+          work_type?: string | null
         }
         Update: {
           assignee_id?: string | null
           budget?: number
           column_id?: string | null
           completed_at?: string | null
+          complexity?: string | null
           cost?: number
           created_at?: string
           created_by?: string
@@ -768,6 +826,7 @@ export type Database = {
           title?: string
           updated_at?: string
           weight_pct?: number | null
+          work_type?: string | null
         }
         Relationships: [
           {

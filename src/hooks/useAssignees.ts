@@ -44,14 +44,32 @@ export const useAddTaskAssignee = () => {
   const { user } = useAuth();
   
   return useMutation({
-    mutationFn: async ({ taskId, userId }: { taskId: string; userId: string }) => {
+    mutationFn: async ({ taskId, userId, role }: { taskId: string; userId: string; role?: string }) => {
       const { data, error } = await supabase
         .from('task_assignees')
-        .insert({ task_id: taskId, user_id: userId, assigned_by: user?.id })
+        .insert({ task_id: taskId, user_id: userId, assigned_by: user?.id, role: role || null } as any)
         .select()
         .single();
       if (error) throw error;
       return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['task-assignees', variables.taskId] });
+    },
+  });
+};
+
+export const useUpdateTaskAssigneeRole = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ taskId, userId, role }: { taskId: string; userId: string; role: string | null }) => {
+      const { error } = await supabase
+        .from('task_assignees')
+        .update({ role } as any)
+        .eq('task_id', taskId)
+        .eq('user_id', userId);
+      if (error) throw error;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['task-assignees', variables.taskId] });

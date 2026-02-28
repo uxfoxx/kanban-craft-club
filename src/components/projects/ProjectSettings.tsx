@@ -130,7 +130,18 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({ projectId, ope
           <SectionCard
             icon={<DollarSign className="h-4 w-4" />}
             label="Budget"
-            value={<span className="text-xs">{formatLKR(Number(project?.budget || 0))}</span>}
+            value={
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs">{formatLKR(Number(project?.budget || 0))}</span>
+                {project?.project_tier && (
+                  <Badge variant="outline" className={cn("text-[10px] uppercase", {
+                    'border-primary text-primary': project.project_tier === 'major',
+                    'border-chart-4 text-chart-4': project.project_tier === 'minor',
+                    'border-muted-foreground text-muted-foreground': project.project_tier === 'nano',
+                  })}>{project.project_tier}</Badge>
+                )}
+              </div>
+            }
             onClick={() => { setEditedBudget(String(project?.budget || 0)); navigateTo('budget'); }}
           />
         )}

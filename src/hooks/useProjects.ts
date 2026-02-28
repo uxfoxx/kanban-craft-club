@@ -202,7 +202,13 @@ export const useUpdateProject = () => {
     }) => {
       const updates: Record<string, unknown> = { name, description, start_date: startDate !== undefined ? startDate : undefined };
       if (leadId !== undefined) updates.lead_id = leadId;
-      if (budget !== undefined) updates.budget = budget;
+      if (budget !== undefined) {
+        updates.budget = budget;
+        // Auto-compute project tier
+        if (budget >= 350000) updates.project_tier = 'major';
+        else if (budget >= 100000) updates.project_tier = 'minor';
+        else updates.project_tier = 'nano';
+      }
 
       const { data, error } = await supabase
         .from('projects')
