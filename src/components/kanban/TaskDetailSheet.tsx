@@ -4,8 +4,11 @@ import { useIsOrgAdmin } from '@/hooks/useIsOrgAdmin';
 import { useSubtasks, useCreateSubtask, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
 import { useTimeEntries, formatDuration, useDeleteTimeEntry } from '@/hooks/useTimeTracking';
 import { formatLKR } from '@/lib/currency';
-import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee } from '@/hooks/useAssignees';
+import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee, useUpdateTaskAssigneeRole } from '@/hooks/useAssignees';
 import { useOrganizationMembersForProject } from '@/hooks/useOrganizations';
+import { useRateCardRoles, useRateCardDeliverables, getRateForTier, computeProjectTier, ProjectTier } from '@/hooks/useRateCard';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useProject } from '@/hooks/useProjects';
 import { TimeEntryDialog } from '@/components/time/TimeEntryDialog';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { SubtaskRow } from './SubtaskRow';
@@ -72,12 +75,20 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const { data: assignees } = useTaskAssignees(task?.id);
   const { data: organizationMembers = [] } = useOrganizationMembersForProject(projectId);
   const { data: comments } = useComments(task?.id);
+  const { currentOrganization } = useOrganization();
+  const { data: project } = useProject(projectId);
+  const rateCardRoles = useRateCardRoles(currentOrganization?.id);
+  const rateCardDeliverables = useRateCardDeliverables(currentOrganization?.id);
   const createSubtask = useCreateSubtask();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const deleteTimeEntry = useDeleteTimeEntry();
   const addAssignee = useAddTaskAssignee();
   const removeAssignee = useRemoveTaskAssignee();
+  const updateAssigneeRole = useUpdateTaskAssigneeRole();
+
+  const projectTier: ProjectTier = (project?.project_tier as ProjectTier) || computeProjectTier(Number(project?.budget || 0));
+  const deliverableNames = [...new Set(rateCardDeliverables.map(d => d.name))];
 
   const [newSubtask, setNewSubtask] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -427,23 +438,47 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                     <h4 className="text-sm font-medium mb-3">Assignees</h4>
                     {assignees && assignees.length > 0 ? (
                       <div className="space-y-2">
-                        {assignees.map((assignee) => (
-                          <div key={assignee.id} className="flex items-center justify-between p-3 rounded-lg border">
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={assignee.profiles?.avatar_url || undefined} />
-                                <AvatarFallback className="text-xs">{assignee.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="text-sm font-medium">{assignee.profiles?.full_name || 'Unknown'}</p>
-                                <p className="text-xs text-muted-foreground">{assignee.profiles?.email}</p>
+                        {assignees.map((assignee) => {
+                          const assigneeRole = (assignee as any).role as string | null;
+                          const roleEntry = assigneeRole ? rateCardRoles.find(r => r.name === assigneeRole) : null;
+                          const commission = roleEntry ? getRateForTier(roleEntry, projectTier) : 0;
+                          return (
+                            <div key={assignee.id} className="flex items-center justify-between p-3 rounded-lg border">
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={assignee.profiles?.avatar_url || undefined} />
+                                  <AvatarFallback className="text-xs">{assignee.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium">{assignee.profiles?.full_name || 'Unknown'}</p>
+                                  <div className="flex items-center gap-2">
+                                    {expensesEnabled && rateCardRoles.length > 0 && (
+                                      <Select
+                                        value={assigneeRole || ''}
+                                        onValueChange={(v) => updateAssigneeRole.mutate({ taskId: task.id, userId: assignee.user_id, role: v || null })}
+                                      >
+                                        <SelectTrigger className="h-6 w-auto text-xs px-2">
+                                          <SelectValue placeholder="Set role..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {rateCardRoles.map(r => (
+                                            <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    )}
+                                    {assigneeRole && commission > 0 && (
+                                      <span className="text-xs text-muted-foreground">{formatLKR(commission)}</span>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleRemoveAssignee(assignee.user_id)}>
+                                <X className="h-4 w-4" />
+                              </Button>
                             </div>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleRemoveAssignee(assignee.user_id)}>
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground text-center py-4">No assignees yet</p>
@@ -689,8 +724,51 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
               {expensesEnabled && (
                 <TabsContent value="finance" className="flex-1 overflow-y-auto px-6 pb-20 md:pb-6 mt-0 pt-4">
                   <div className="space-y-4">
+                    {/* Work Type + Complexity */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Work Type</label>
+                        <Select
+                          value={(task as any).work_type || ''}
+                          onValueChange={(v) => {
+                            const entry = rateCardDeliverables.find(d => d.name === v && d.complexity === ((task as any).complexity || 'standard'));
+                            const updates: any = { work_type: v };
+                            if (entry) updates.budget = getRateForTier(entry, projectTier);
+                            if (!(task as any).complexity) updates.complexity = 'standard';
+                            updateTask.mutateAsync({ taskId: task.id, updates, projectId });
+                          }}
+                        >
+                          <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                          <SelectContent>
+                            {deliverableNames.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {(task as any).work_type && (
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Complexity</label>
+                          <Select
+                            value={(task as any).complexity || 'standard'}
+                            onValueChange={(v) => {
+                              const entry = rateCardDeliverables.find(d => d.name === (task as any).work_type && d.complexity === v);
+                              const updates: any = { complexity: v };
+                              if (entry) updates.budget = getRateForTier(entry, projectTier);
+                              updateTask.mutateAsync({ taskId: task.id, updates, projectId });
+                            }}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="quick">Quick</SelectItem>
+                              <SelectItem value="standard">Standard</SelectItem>
+                              <SelectItem value="advanced">Advanced</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Task Budget ($)</label>
+                      <label className="text-sm font-medium">Task Budget</label>
                       <Input
                         type="number"
                         value={localBudget}
@@ -698,14 +776,25 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                         min="0" step="0.01"
                       />
                     </div>
+
+                    {/* Rate card commissions per assignee */}
                     {assignees && assignees.length > 0 && (
-                      <div className="p-3 rounded-lg bg-muted/50 text-sm">
-                        <p className="text-xs text-muted-foreground mb-1">Task Manager Commission (10%)</p>
-                        <p className="font-medium">
-                          {assignees[0]?.profiles?.full_name || 'First Assignee'}: {formatLKR(((task as any).budget || task.cost || 0) * 0.1)}
-                        </p>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Commissions (Rate Card)</label>
+                        {assignees.map(a => {
+                          const role = (a as any).role as string | null;
+                          const entry = role ? rateCardRoles.find(r => r.name === role) : null;
+                          const amount = entry ? getRateForTier(entry, projectTier) : 0;
+                          return (
+                            <div key={a.id} className="p-3 rounded-lg bg-muted/50 text-sm flex justify-between">
+                              <span>{a.profiles?.full_name || 'Unknown'} {role ? `(${role})` : ''}</span>
+                              <span className="font-medium">{amount > 0 ? formatLKR(amount) : 'No role set'}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
+
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Weight %</label>
                       <Input

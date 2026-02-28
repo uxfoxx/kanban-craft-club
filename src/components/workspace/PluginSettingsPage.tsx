@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useOrganizationPlugins, useTogglePlugin } from '@/hooks/useOrganizationPlugins';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { DollarSign, Puzzle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { DollarSign, Puzzle, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { RateCardSettings } from './RateCardSettings';
 
 const availablePlugins = [
   {
@@ -19,6 +21,9 @@ export const PluginSettingsPage: React.FC = () => {
   const { currentOrganization } = useOrganization();
   const { data: plugins = [] } = useOrganizationPlugins(currentOrganization?.id);
   const togglePlugin = useTogglePlugin();
+  const [showRateCard, setShowRateCard] = useState(false);
+
+  const expensesEnabled = plugins.find(p => p.plugin_name === 'expenses')?.enabled ?? false;
 
   if (!currentOrganization) {
     return (
@@ -29,6 +34,10 @@ export const PluginSettingsPage: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  if (showRateCard) {
+    return <RateCardSettings onBack={() => setShowRateCard(false)} />;
   }
 
   const handleToggle = async (pluginName: string, enabled: boolean) => {
@@ -83,6 +92,27 @@ export const PluginSettingsPage: React.FC = () => {
           );
         })}
       </div>
+
+      {expensesEnabled && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Settings2 className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm">Rate Card</CardTitle>
+                  <CardDescription className="text-xs">Manage commission rates for roles and deliverables per project tier.</CardDescription>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setShowRateCard(true)}>
+                Manage
+              </Button>
+            </div>
+          </CardHeader>
+        </Card>
+      )}
     </div>
   );
 };

@@ -42,6 +42,7 @@ export interface Project {
   lead_id: string | null;
   budget: number;
   project_type: string | null;
+  project_tier: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -80,6 +81,8 @@ export interface Task {
   weight_pct: number | null;
   completed_at: string | null;
   estimated_hours: number | null;
+  work_type: string | null;
+  complexity: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -89,6 +92,7 @@ export interface TaskAssignee {
   task_id: string;
   user_id: string;
   assigned_by: string | null;
+  role: string | null;
   created_at: string | null;
 }
 

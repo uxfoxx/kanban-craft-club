@@ -106,6 +106,8 @@ export const useCreateTask = () => {
       dueDate,
       cost,
       budget,
+      workType,
+      complexity,
     }: {
       projectId: string;
       title: string;
@@ -115,6 +117,8 @@ export const useCreateTask = () => {
       dueDate?: string;
       cost?: number;
       budget?: number;
+      workType?: string;
+      complexity?: string;
     }) => {
       const { data, error } = await supabase
         .from('tasks')
@@ -128,6 +132,8 @@ export const useCreateTask = () => {
           due_date: dueDate,
           cost: budget ?? cost ?? 0,
           budget: budget ?? cost ?? 0,
+          work_type: workType || null,
+          complexity: complexity || null,
         } as any)
         .select()
         .single();

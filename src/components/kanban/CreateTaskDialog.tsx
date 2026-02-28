@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCreateTask } from '@/hooks/useTasks';
 import { useAddTaskAssignee } from '@/hooks/useAssignees';
 import { Profile, TaskPriority, KanbanColumn } from '@/types/database';
+import { useRateCardDeliverables, getRateForTier, ProjectTier, computeProjectTier } from '@/hooks/useRateCard';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useProject } from '@/hooks/useProjects';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,6 +46,9 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 }) => {
   const createTask = useCreateTask();
   const addAssignee = useAddTaskAssignee();
+  const { currentOrganization } = useOrganization();
+  const { data: project } = useProject(projectId);
+  const deliverables = useRateCardDeliverables(currentOrganization?.id);
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -51,6 +57,22 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [dueDate, setDueDate] = useState('');
   const [budget, setBudget] = useState('');
+  const [workType, setWorkType] = useState<string>('');
+  const [complexity, setComplexity] = useState<string>('');
+
+  // Get unique deliverable names
+  const deliverableNames = [...new Set(deliverables.map(d => d.name))];
+  const projectTier: ProjectTier = (project?.project_tier as ProjectTier) || computeProjectTier(Number(project?.budget || 0));
+
+  // Auto-fill budget when work type + complexity selected
+  useEffect(() => {
+    if (workType && complexity && expensesEnabled) {
+      const entry = deliverables.find(d => d.name === workType && d.complexity === complexity);
+      if (entry) {
+        setBudget(String(getRateForTier(entry, projectTier)));
+      }
+    }
+  }, [workType, complexity, projectTier]);
 
   // Get default column (first one or one marked as default)
   const defaultColumn = columns?.find(c => c.is_default) || columns?.[0];
@@ -68,6 +90,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         dueDate: dueDate || undefined,
         cost: budget ? parseFloat(budget) : undefined,
         budget: budget ? parseFloat(budget) : undefined,
+        workType: workType || undefined,
+        complexity: complexity || undefined,
       });
 
       // Add assignees
@@ -91,6 +115,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setSelectedAssignees([]);
     setDueDate('');
     setBudget('');
+    setWorkType('');
+    setComplexity('');
   };
 
   const toggleAssignee = (userId: string) => {
@@ -157,21 +183,53 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 onChange={(e) => setDueDate(e.target.value)}
               />
             </div>
-            </div>
+          </div>
 
           {expensesEnabled && (
-            <div className="space-y-2">
-              <Label htmlFor="task-budget">Task Budget ($)</Label>
-              <Input
-                id="task-budget"
-                type="number"
-                value={budget}
-                onChange={(e) => setBudget(e.target.value)}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-              />
-            </div>
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Work Type</Label>
+                  <Select value={workType} onValueChange={v => { setWorkType(v); if (!complexity) setComplexity('standard'); }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {deliverableNames.map(name => (
+                        <SelectItem key={name} value={name}>{name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {workType && (
+                  <div className="space-y-2">
+                    <Label>Complexity</Label>
+                    <Select value={complexity} onValueChange={setComplexity}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="quick">Quick</SelectItem>
+                        <SelectItem value="standard">Standard</SelectItem>
+                        <SelectItem value="advanced">Advanced</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="task-budget">Task Budget</Label>
+                <Input
+                  id="task-budget"
+                  type="number"
+                  value={budget}
+                  onChange={(e) => setBudget(e.target.value)}
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+            </>
           )}
 
           {columns && columns.length > 0 && (
