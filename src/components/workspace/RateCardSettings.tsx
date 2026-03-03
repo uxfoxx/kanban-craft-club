@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useRateCard, useCreateRateCardEntry, useUpdateRateCardEntry, useDeleteRateCardEntry, RateCardEntry } from '@/hooks/useRateCard';
+import { useRateCard, useCreateRateCardEntry, useUpdateRateCardEntry, useDeleteRateCardEntry, useUpdateRateCardRate, RateCardEntry, getRateForTier } from '@/hooks/useRateCard';
+import { useOrganizationTiers } from '@/hooks/useOrganizationTiers';
+import { OrganizationTier } from '@/types/database';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -20,9 +22,11 @@ const SUB_CATEGORIES = ['films', 'photography', 'design', 'tech'] as const;
 export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) => {
   const { currentOrganization } = useOrganization();
   const { data: entries = [] } = useRateCard(currentOrganization?.id);
+  const { data: tiers = [] } = useOrganizationTiers(currentOrganization?.id);
   const createEntry = useCreateRateCardEntry();
   const updateEntry = useUpdateRateCardEntry();
   const deleteEntry = useDeleteRateCardEntry();
+  const updateRate = useUpdateRateCardRate();
 
   const [newRoleName, setNewRoleName] = useState('');
   const [newRoleSubCategory, setNewRoleSubCategory] = useState<string>('films');
@@ -33,14 +37,12 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
   const deliverables = entries.filter(e => e.category === 'deliverable');
   const documentation = entries.filter(e => e.category === 'documentation');
 
-  // Group roles by sub_category
   const rolesByCategory = SUB_CATEGORIES.reduce<Record<string, RateCardEntry[]>>((acc, cat) => {
     acc[cat] = roles.filter(r => r.sub_category === cat);
     return acc;
   }, {} as Record<string, RateCardEntry[]>);
   const uncategorizedRoles = roles.filter(r => !r.sub_category || !SUB_CATEGORIES.includes(r.sub_category as any));
 
-  // Group deliverables by name
   const deliverableGroups = deliverables.reduce<Record<string, RateCardEntry[]>>((acc, d) => {
     if (!acc[d.name]) acc[d.name] = [];
     acc[d.name].push(d);
@@ -56,9 +58,7 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
         name: newRoleName.trim(),
         complexity: null,
         sub_category: newRoleSubCategory,
-        rate_major: 0,
-        rate_minor: 0,
-        rate_nano: 0,
+        tierRates: tiers.map(t => ({ tier_id: t.id, rate: 0 })),
       });
       setNewRoleName('');
       toast.success('Role added');
@@ -76,9 +76,7 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
           name: newDeliverableName.trim(),
           complexity: c,
           sub_category: null,
-          rate_major: 0,
-          rate_minor: 0,
-          rate_nano: 0,
+          tierRates: tiers.map(t => ({ tier_id: t.id, rate: 0 })),
         });
       }
       setNewDeliverableName('');
@@ -95,18 +93,16 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
         name: newDocName.trim(),
         complexity: null,
         sub_category: null,
-        rate_major: 0,
-        rate_minor: 0,
-        rate_nano: 0,
+        tierRates: tiers.map(t => ({ tier_id: t.id, rate: 0 })),
       });
       setNewDocName('');
       toast.success('Documentation item added');
     } catch { toast.error('Failed to add'); }
   };
 
-  const handleUpdateRate = async (id: string, field: 'rate_major' | 'rate_minor' | 'rate_nano', value: string) => {
+  const handleUpdateRate = async (rateCardId: string, tierId: string, value: string) => {
     try {
-      await updateEntry.mutateAsync({ id, [field]: parseFloat(value) || 0 });
+      await updateRate.mutateAsync({ rateCardId, tierId, rate: parseFloat(value) || 0 });
     } catch { toast.error('Failed to update rate'); }
   };
 
@@ -137,9 +133,9 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
       <TableHeader>
         <TableRow>
           <TableHead>Role</TableHead>
-          <TableHead>Major</TableHead>
-          <TableHead>Minor</TableHead>
-          <TableHead>Nano</TableHead>
+          {tiers.map(tier => (
+            <TableHead key={tier.id} className="capitalize">{tier.name}</TableHead>
+          ))}
           <TableHead className="w-12"></TableHead>
         </TableRow>
       </TableHeader>
@@ -147,15 +143,16 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
         {roleList.map(role => (
           <TableRow key={role.id}>
             <TableCell className="font-medium">{role.name}</TableCell>
-            <TableCell>
-              <Input type="number" defaultValue={role.rate_major} onBlur={e => handleUpdateRate(role.id, 'rate_major', e.target.value)} className="w-28 h-8" min="0" />
-            </TableCell>
-            <TableCell>
-              <Input type="number" defaultValue={role.rate_minor} onBlur={e => handleUpdateRate(role.id, 'rate_minor', e.target.value)} className="w-28 h-8" min="0" />
-            </TableCell>
-            <TableCell>
-              <Input type="number" defaultValue={role.rate_nano} onBlur={e => handleUpdateRate(role.id, 'rate_nano', e.target.value)} className="w-28 h-8" min="0" />
-            </TableCell>
+            {tiers.map(tier => (
+              <TableCell key={tier.id}>
+                <Input
+                  type="number"
+                  defaultValue={getRateForTier(role, tier.id)}
+                  onBlur={e => handleUpdateRate(role.id, tier.id, e.target.value)}
+                  className="w-28 h-8" min="0"
+                />
+              </TableCell>
+            ))}
             <TableCell>
               <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(role.id)}>
                 <Trash2 className="h-4 w-4" />
@@ -257,9 +254,9 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
                       <TableHeader>
                         <TableRow>
                           <TableHead>Complexity</TableHead>
-                          <TableHead>Major</TableHead>
-                          <TableHead>Minor</TableHead>
-                          <TableHead>Nano</TableHead>
+                          {tiers.map(tier => (
+                            <TableHead key={tier.id} className="capitalize">{tier.name}</TableHead>
+                          ))}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -271,15 +268,11 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
                             <TableCell>
                               <Badge variant="outline" className="capitalize">{entry.complexity}</Badge>
                             </TableCell>
-                            <TableCell>
-                              <Input type="number" defaultValue={entry.rate_major} onBlur={e => handleUpdateRate(entry.id, 'rate_major', e.target.value)} className="w-28 h-8" min="0" />
-                            </TableCell>
-                            <TableCell>
-                              <Input type="number" defaultValue={entry.rate_minor} onBlur={e => handleUpdateRate(entry.id, 'rate_minor', e.target.value)} className="w-28 h-8" min="0" />
-                            </TableCell>
-                            <TableCell>
-                              <Input type="number" defaultValue={entry.rate_nano} onBlur={e => handleUpdateRate(entry.id, 'rate_nano', e.target.value)} className="w-28 h-8" min="0" />
-                            </TableCell>
+                            {tiers.map(tier => (
+                              <TableCell key={tier.id}>
+                                <Input type="number" defaultValue={getRateForTier(entry, tier.id)} onBlur={e => handleUpdateRate(entry.id, tier.id, e.target.value)} className="w-28 h-8" min="0" />
+                              </TableCell>
+                            ))}
                           </TableRow>
                         ))}
                       </TableBody>
@@ -307,8 +300,9 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Item</TableHead>
-                      <TableHead>Minor</TableHead>
-                      <TableHead>Nano</TableHead>
+                      {tiers.map(tier => (
+                        <TableHead key={tier.id} className="capitalize">{tier.name}</TableHead>
+                      ))}
                       <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -316,12 +310,11 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
                     {documentation.map(doc => (
                       <TableRow key={doc.id}>
                         <TableCell className="font-medium">{doc.name}</TableCell>
-                        <TableCell>
-                          <Input type="number" defaultValue={doc.rate_minor} onBlur={e => handleUpdateRate(doc.id, 'rate_minor', e.target.value)} className="w-28 h-8" min="0" />
-                        </TableCell>
-                        <TableCell>
-                          <Input type="number" defaultValue={doc.rate_nano} onBlur={e => handleUpdateRate(doc.id, 'rate_nano', e.target.value)} className="w-28 h-8" min="0" />
-                        </TableCell>
+                        {tiers.map(tier => (
+                          <TableCell key={tier.id}>
+                            <Input type="number" defaultValue={getRateForTier(doc, tier.id)} onBlur={e => handleUpdateRate(doc.id, tier.id, e.target.value)} className="w-28 h-8" min="0" />
+                          </TableCell>
+                        ))}
                         <TableCell>
                           <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(doc.id)}>
                             <Trash2 className="h-4 w-4" />

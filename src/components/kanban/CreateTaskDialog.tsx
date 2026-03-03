@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useCreateTask } from '@/hooks/useTasks';
 import { useAddTaskAssignee } from '@/hooks/useAssignees';
 import { Profile, TaskPriority, KanbanColumn } from '@/types/database';
-import { useRateCardDeliverables, getRateForTier, ProjectTier, computeProjectTier } from '@/hooks/useRateCard';
+import { useRateCardDeliverables, getRateForTier } from '@/hooks/useRateCard';
+import { useOrganizationTiers, getTierForBudget, getDefaultCommissionMode } from '@/hooks/useOrganizationTiers';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useProject } from '@/hooks/useProjects';
 import { Button } from '@/components/ui/button';
@@ -48,6 +49,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const addAssignee = useAddTaskAssignee();
   const { currentOrganization } = useOrganization();
   const { data: project } = useProject(projectId);
+  const { data: tiers = [] } = useOrganizationTiers(currentOrganization?.id);
   const deliverables = useRateCardDeliverables(currentOrganization?.id);
   
   const [title, setTitle] = useState('');
@@ -59,20 +61,28 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [budget, setBudget] = useState('');
   const [workType, setWorkType] = useState<string>('');
   const [complexity, setComplexity] = useState<string>('');
+  const [commissionMode, setCommissionMode] = useState<string>('role');
 
   // Get unique deliverable names
   const deliverableNames = [...new Set(deliverables.map(d => d.name))];
-  const projectTier: ProjectTier = (project?.project_tier as ProjectTier) || computeProjectTier(Number(project?.budget || 0));
+  const projectTier = tiers.find(t => t.id === project?.tier_id) || getTierForBudget(tiers, Number(project?.budget || 0));
+
+  // Set default commission mode based on project tier
+  useEffect(() => {
+    if (projectTier) {
+      setCommissionMode(getDefaultCommissionMode(projectTier));
+    }
+  }, [projectTier?.id]);
 
   // Auto-fill budget when work type + complexity selected
   useEffect(() => {
-    if (workType && complexity && expensesEnabled) {
+    if (workType && complexity && expensesEnabled && projectTier) {
       const entry = deliverables.find(d => d.name === workType && d.complexity === complexity);
       if (entry) {
-        setBudget(String(getRateForTier(entry, projectTier)));
+        setBudget(String(getRateForTier(entry, projectTier.id)));
       }
     }
-  }, [workType, complexity, projectTier]);
+  }, [workType, complexity, projectTier?.id]);
 
   // Get default column (first one or one marked as default)
   const defaultColumn = columns?.find(c => c.is_default) || columns?.[0];
@@ -92,6 +102,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         budget: budget ? parseFloat(budget) : undefined,
         workType: workType || undefined,
         complexity: complexity || undefined,
+        commissionMode,
       });
 
       // Add assignees
