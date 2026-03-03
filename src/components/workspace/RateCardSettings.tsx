@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useRateCard, useCreateRateCardEntry, useUpdateRateCardEntry, useDeleteRateCardEntry, RateCardEntry } from '@/hooks/useRateCard';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -10,25 +10,35 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Plus, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatLKR } from '@/lib/currency';
 
 interface RateCardSettingsProps {
   onBack: () => void;
 }
 
+const SUB_CATEGORIES = ['films', 'photography', 'design', 'tech'] as const;
+
 export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) => {
   const { currentOrganization } = useOrganization();
-  const { data: entries = [], isLoading } = useRateCard(currentOrganization?.id);
+  const { data: entries = [] } = useRateCard(currentOrganization?.id);
   const createEntry = useCreateRateCardEntry();
   const updateEntry = useUpdateRateCardEntry();
   const deleteEntry = useDeleteRateCardEntry();
 
   const [newRoleName, setNewRoleName] = useState('');
+  const [newRoleSubCategory, setNewRoleSubCategory] = useState<string>('films');
   const [newDeliverableName, setNewDeliverableName] = useState('');
-  const [newComplexity, setNewComplexity] = useState<string>('standard');
+  const [newDocName, setNewDocName] = useState('');
 
   const roles = entries.filter(e => e.category === 'role');
   const deliverables = entries.filter(e => e.category === 'deliverable');
+  const documentation = entries.filter(e => e.category === 'documentation');
+
+  // Group roles by sub_category
+  const rolesByCategory = SUB_CATEGORIES.reduce<Record<string, RateCardEntry[]>>((acc, cat) => {
+    acc[cat] = roles.filter(r => r.sub_category === cat);
+    return acc;
+  }, {} as Record<string, RateCardEntry[]>);
+  const uncategorizedRoles = roles.filter(r => !r.sub_category || !SUB_CATEGORIES.includes(r.sub_category as any));
 
   // Group deliverables by name
   const deliverableGroups = deliverables.reduce<Record<string, RateCardEntry[]>>((acc, d) => {
@@ -45,6 +55,7 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
         category: 'role',
         name: newRoleName.trim(),
         complexity: null,
+        sub_category: newRoleSubCategory,
         rate_major: 0,
         rate_minor: 0,
         rate_nano: 0,
@@ -57,7 +68,6 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
   const handleAddDeliverable = async () => {
     if (!newDeliverableName.trim() || !currentOrganization) return;
     try {
-      // Add all three complexities at once
       const complexities = ['quick', 'standard', 'advanced'];
       for (const c of complexities) {
         await createEntry.mutateAsync({
@@ -65,6 +75,7 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
           category: 'deliverable',
           name: newDeliverableName.trim(),
           complexity: c,
+          sub_category: null,
           rate_major: 0,
           rate_minor: 0,
           rate_nano: 0,
@@ -73,6 +84,24 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
       setNewDeliverableName('');
       toast.success('Deliverable added with all complexity tiers');
     } catch { toast.error('Failed to add deliverable'); }
+  };
+
+  const handleAddDocumentation = async () => {
+    if (!newDocName.trim() || !currentOrganization) return;
+    try {
+      await createEntry.mutateAsync({
+        organization_id: currentOrganization.id,
+        category: 'documentation',
+        name: newDocName.trim(),
+        complexity: null,
+        sub_category: null,
+        rate_major: 0,
+        rate_minor: 0,
+        rate_nano: 0,
+      });
+      setNewDocName('');
+      toast.success('Documentation item added');
+    } catch { toast.error('Failed to add'); }
   };
 
   const handleUpdateRate = async (id: string, field: 'rate_major' | 'rate_minor' | 'rate_nano', value: string) => {
@@ -103,6 +132,41 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
     return <p className="text-sm text-muted-foreground">Select an organization first</p>;
   }
 
+  const renderRateTable = (roleList: RateCardEntry[]) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Role</TableHead>
+          <TableHead>Major</TableHead>
+          <TableHead>Minor</TableHead>
+          <TableHead>Nano</TableHead>
+          <TableHead className="w-12"></TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {roleList.map(role => (
+          <TableRow key={role.id}>
+            <TableCell className="font-medium">{role.name}</TableCell>
+            <TableCell>
+              <Input type="number" defaultValue={role.rate_major} onBlur={e => handleUpdateRate(role.id, 'rate_major', e.target.value)} className="w-28 h-8" min="0" />
+            </TableCell>
+            <TableCell>
+              <Input type="number" defaultValue={role.rate_minor} onBlur={e => handleUpdateRate(role.id, 'rate_minor', e.target.value)} className="w-28 h-8" min="0" />
+            </TableCell>
+            <TableCell>
+              <Input type="number" defaultValue={role.rate_nano} onBlur={e => handleUpdateRate(role.id, 'rate_nano', e.target.value)} className="w-28 h-8" min="0" />
+            </TableCell>
+            <TableCell>
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(role.id)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -119,75 +183,51 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
         <TabsList>
           <TabsTrigger value="roles">Roles</TabsTrigger>
           <TabsTrigger value="deliverables">Deliverables</TabsTrigger>
+          <TabsTrigger value="documentation">Documentation</TabsTrigger>
         </TabsList>
 
         <TabsContent value="roles" className="space-y-4">
           <Card>
             <CardContent className="pt-4">
               <div className="flex gap-2 mb-4">
-                <Input
-                  placeholder="New role name (e.g. DOP)"
-                  value={newRoleName}
-                  onChange={e => setNewRoleName(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleAddRole()}
-                />
+                <Input placeholder="New role name (e.g. DOP)" value={newRoleName} onChange={e => setNewRoleName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddRole()} />
+                <Select value={newRoleSubCategory} onValueChange={setNewRoleSubCategory}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SUB_CATEGORIES.map(c => (
+                      <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Button onClick={handleAddRole} disabled={!newRoleName.trim() || createEntry.isPending}>
                   <Plus className="h-4 w-4 mr-1" /> Add
                 </Button>
               </div>
-              {roles.length === 0 ? (
+
+              {SUB_CATEGORIES.map(cat => {
+                const catRoles = rolesByCategory[cat];
+                if (!catRoles || catRoles.length === 0) return null;
+                return (
+                  <div key={cat} className="mb-6">
+                    <h3 className="text-sm font-semibold capitalize mb-2 flex items-center gap-2">
+                      <Badge variant="outline" className="capitalize">{cat}</Badge>
+                    </h3>
+                    {renderRateTable(catRoles)}
+                  </div>
+                );
+              })}
+
+              {uncategorizedRoles.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold mb-2">Other</h3>
+                  {renderRateTable(uncategorizedRoles)}
+                </div>
+              )}
+
+              {roles.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">No roles configured</p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Major</TableHead>
-                      <TableHead>Minor</TableHead>
-                      <TableHead>Nano</TableHead>
-                      <TableHead className="w-12"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {roles.map(role => (
-                      <TableRow key={role.id}>
-                        <TableCell className="font-medium">{role.name}</TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            defaultValue={role.rate_major}
-                            onBlur={e => handleUpdateRate(role.id, 'rate_major', e.target.value)}
-                            className="w-28 h-8"
-                            min="0"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            defaultValue={role.rate_minor}
-                            onBlur={e => handleUpdateRate(role.id, 'rate_minor', e.target.value)}
-                            className="w-28 h-8"
-                            min="0"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            defaultValue={role.rate_nano}
-                            onBlur={e => handleUpdateRate(role.id, 'rate_nano', e.target.value)}
-                            className="w-28 h-8"
-                            min="0"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(role.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
               )}
             </CardContent>
           </Card>
@@ -197,12 +237,7 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
           <Card>
             <CardContent className="pt-4">
               <div className="flex gap-2 mb-4">
-                <Input
-                  placeholder="New deliverable (e.g. Video Edit)"
-                  value={newDeliverableName}
-                  onChange={e => setNewDeliverableName(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleAddDeliverable()}
-                />
+                <Input placeholder="New deliverable (e.g. Reel)" value={newDeliverableName} onChange={e => setNewDeliverableName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddDeliverable()} />
                 <Button onClick={handleAddDeliverable} disabled={!newDeliverableName.trim() || createEntry.isPending}>
                   <Plus className="h-4 w-4 mr-1" /> Add
                 </Button>
@@ -237,31 +272,13 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
                               <Badge variant="outline" className="capitalize">{entry.complexity}</Badge>
                             </TableCell>
                             <TableCell>
-                              <Input
-                                type="number"
-                                defaultValue={entry.rate_major}
-                                onBlur={e => handleUpdateRate(entry.id, 'rate_major', e.target.value)}
-                                className="w-28 h-8"
-                                min="0"
-                              />
+                              <Input type="number" defaultValue={entry.rate_major} onBlur={e => handleUpdateRate(entry.id, 'rate_major', e.target.value)} className="w-28 h-8" min="0" />
                             </TableCell>
                             <TableCell>
-                              <Input
-                                type="number"
-                                defaultValue={entry.rate_minor}
-                                onBlur={e => handleUpdateRate(entry.id, 'rate_minor', e.target.value)}
-                                className="w-28 h-8"
-                                min="0"
-                              />
+                              <Input type="number" defaultValue={entry.rate_minor} onBlur={e => handleUpdateRate(entry.id, 'rate_minor', e.target.value)} className="w-28 h-8" min="0" />
                             </TableCell>
                             <TableCell>
-                              <Input
-                                type="number"
-                                defaultValue={entry.rate_nano}
-                                onBlur={e => handleUpdateRate(entry.id, 'rate_nano', e.target.value)}
-                                className="w-28 h-8"
-                                min="0"
-                              />
+                              <Input type="number" defaultValue={entry.rate_nano} onBlur={e => handleUpdateRate(entry.id, 'rate_nano', e.target.value)} className="w-28 h-8" min="0" />
                             </TableCell>
                           </TableRow>
                         ))}
@@ -269,6 +286,51 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
                     </Table>
                   </div>
                 ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="documentation" className="space-y-4">
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex gap-2 mb-4">
+                <Input placeholder="New doc item (e.g. Moodboard)" value={newDocName} onChange={e => setNewDocName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddDocumentation()} />
+                <Button onClick={handleAddDocumentation} disabled={!newDocName.trim() || createEntry.isPending}>
+                  <Plus className="h-4 w-4 mr-1" /> Add
+                </Button>
+              </div>
+              {documentation.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No documentation items configured</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Item</TableHead>
+                      <TableHead>Minor</TableHead>
+                      <TableHead>Nano</TableHead>
+                      <TableHead className="w-12"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {documentation.map(doc => (
+                      <TableRow key={doc.id}>
+                        <TableCell className="font-medium">{doc.name}</TableCell>
+                        <TableCell>
+                          <Input type="number" defaultValue={doc.rate_minor} onBlur={e => handleUpdateRate(doc.id, 'rate_minor', e.target.value)} className="w-28 h-8" min="0" />
+                        </TableCell>
+                        <TableCell>
+                          <Input type="number" defaultValue={doc.rate_nano} onBlur={e => handleUpdateRate(doc.id, 'rate_nano', e.target.value)} className="w-28 h-8" min="0" />
+                        </TableCell>
+                        <TableCell>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(doc.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </CardContent>
           </Card>

@@ -43,8 +43,26 @@ export interface Project {
   budget: number;
   project_type: string | null;
   project_tier: string | null;
+  project_category: string | null;
+  agency_markup_pct: number;
+  equipment_cost: number;
+  miscellaneous_cost: number;
+  discount: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface ProjectLineItem {
+  id: string;
+  project_id: string;
+  item_type: 'role' | 'deliverable' | 'documentation';
+  item_name: string;
+  complexity: string | null;
+  unit_price: number;
+  quantity: number;
+  total: number;
+  assigned_user_id: string | null;
+  created_at: string;
 }
 
 export interface ProjectMember {
