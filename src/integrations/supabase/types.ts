@@ -70,9 +70,6 @@ export type Database = {
           id: string
           name: string
           organization_id: string
-          rate_major: number
-          rate_minor: number
-          rate_nano: number
           sub_category: string | null
           updated_at: string
         }
@@ -83,9 +80,6 @@ export type Database = {
           id?: string
           name: string
           organization_id: string
-          rate_major?: number
-          rate_minor?: number
-          rate_nano?: number
           sub_category?: string | null
           updated_at?: string
         }
@@ -96,9 +90,6 @@ export type Database = {
           id?: string
           name?: string
           organization_id?: string
-          rate_major?: number
-          rate_minor?: number
-          rate_nano?: number
           sub_category?: string | null
           updated_at?: string
         }
@@ -289,6 +280,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "organization_plugins_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_tiers: {
+        Row: {
+          created_at: string
+          id: string
+          min_budget: number
+          name: string
+          organization_id: string
+          position: number
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          min_budget?: number
+          name: string
+          organization_id: string
+          position?: number
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          min_budget?: number
+          name?: string
+          organization_id?: string
+          position?: number
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_tiers_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -534,6 +563,7 @@ export type Database = {
           project_tier: string | null
           project_type: string | null
           start_date: string | null
+          tier_id: string | null
           updated_at: string
         }
         Insert: {
@@ -553,6 +583,7 @@ export type Database = {
           project_tier?: string | null
           project_type?: string | null
           start_date?: string | null
+          tier_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -572,6 +603,7 @@ export type Database = {
           project_tier?: string | null
           project_type?: string | null
           start_date?: string | null
+          tier_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -582,6 +614,49 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "projects_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "organization_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_card_rates: {
+        Row: {
+          id: string
+          rate: number
+          rate_card_id: string
+          tier_id: string
+        }
+        Insert: {
+          id?: string
+          rate?: number
+          rate_card_id: string
+          tier_id: string
+        }
+        Update: {
+          id?: string
+          rate?: number
+          rate_card_id?: string
+          tier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_card_rates_rate_card_id_fkey"
+            columns: ["rate_card_id"]
+            isOneToOne: false
+            referencedRelation: "commission_rate_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_card_rates_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "organization_tiers"
+            referencedColumns: ["id"]
+          },
         ]
       }
       subtask_assignees: {
@@ -589,6 +664,7 @@ export type Database = {
           assigned_by: string | null
           created_at: string | null
           id: string
+          role: string | null
           subtask_id: string
           user_id: string
         }
@@ -596,6 +672,7 @@ export type Database = {
           assigned_by?: string | null
           created_at?: string | null
           id?: string
+          role?: string | null
           subtask_id: string
           user_id: string
         }
@@ -603,6 +680,7 @@ export type Database = {
           assigned_by?: string | null
           created_at?: string | null
           id?: string
+          role?: string | null
           subtask_id?: string
           user_id?: string
         }
@@ -666,34 +744,43 @@ export type Database = {
       }
       subtasks: {
         Row: {
+          commission_mode: string
           commission_type: string | null
           commission_value: number
           completed: boolean
+          complexity: string | null
           created_at: string
           estimated_hours: number | null
           id: string
           task_id: string
           title: string
+          work_type: string | null
         }
         Insert: {
+          commission_mode?: string
           commission_type?: string | null
           commission_value?: number
           completed?: boolean
+          complexity?: string | null
           created_at?: string
           estimated_hours?: number | null
           id?: string
           task_id: string
           title: string
+          work_type?: string | null
         }
         Update: {
+          commission_mode?: string
           commission_type?: string | null
           commission_value?: number
           completed?: boolean
+          complexity?: string | null
           created_at?: string
           estimated_hours?: number | null
           id?: string
           task_id?: string
           title?: string
+          work_type?: string | null
         }
         Relationships: [
           {
@@ -834,6 +921,7 @@ export type Database = {
           assignee_id: string | null
           budget: number
           column_id: string | null
+          commission_mode: string
           completed_at: string | null
           complexity: string | null
           cost: number
@@ -855,6 +943,7 @@ export type Database = {
           assignee_id?: string | null
           budget?: number
           column_id?: string | null
+          commission_mode?: string
           completed_at?: string | null
           complexity?: string | null
           cost?: number
@@ -876,6 +965,7 @@ export type Database = {
           assignee_id?: string | null
           budget?: number
           column_id?: string | null
+          commission_mode?: string
           completed_at?: string | null
           complexity?: string | null
           cost?: number
@@ -980,6 +1070,56 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      withdrawal_requests: {
+        Row: {
+          admin_note: string | null
+          amount: number
+          created_at: string
+          id: string
+          note: string | null
+          organization_id: string
+          status: string
+          time_report: Json | null
+          updated_at: string
+          user_id: string
+          work_report: Json | null
+        }
+        Insert: {
+          admin_note?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          organization_id: string
+          status?: string
+          time_report?: Json | null
+          updated_at?: string
+          user_id: string
+          work_report?: Json | null
+        }
+        Update: {
+          admin_note?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          organization_id?: string
+          status?: string
+          time_report?: Json | null
+          updated_at?: string
+          user_id?: string
+          work_report?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawal_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
