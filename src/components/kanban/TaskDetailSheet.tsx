@@ -6,7 +6,8 @@ import { useTimeEntries, formatDuration, useDeleteTimeEntry } from '@/hooks/useT
 import { formatLKR } from '@/lib/currency';
 import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee, useUpdateTaskAssigneeRole } from '@/hooks/useAssignees';
 import { useOrganizationMembersForProject } from '@/hooks/useOrganizations';
-import { useRateCardRoles, useRateCardDeliverables, getRateForTier, computeProjectTier, ProjectTier } from '@/hooks/useRateCard';
+import { useRateCardRoles, useRateCardDeliverables, getRateForTier } from '@/hooks/useRateCard';
+import { useOrganizationTiers, getTierForBudget } from '@/hooks/useOrganizationTiers';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useProject } from '@/hooks/useProjects';
 import { TimeEntryDialog } from '@/components/time/TimeEntryDialog';
