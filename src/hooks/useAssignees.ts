@@ -130,10 +130,28 @@ export const useAddSubtaskAssignee = () => {
   const { user } = useAuth();
   
   return useMutation({
-    mutationFn: async ({ subtaskId, userId }: { subtaskId: string; userId: string }) => {
-      const { data, error } = await supabase.from('subtask_assignees').insert({ subtask_id: subtaskId, user_id: userId, assigned_by: user?.id }).select().single();
+    mutationFn: async ({ subtaskId, userId, role }: { subtaskId: string; userId: string; role?: string }) => {
+      const { data, error } = await supabase.from('subtask_assignees').insert({ subtask_id: subtaskId, user_id: userId, assigned_by: user?.id, role: role || null } as any).select().single();
       if (error) throw error;
       return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['subtask-assignees', variables.subtaskId] });
+    },
+  });
+};
+
+export const useUpdateSubtaskAssigneeRole = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ subtaskId, userId, role }: { subtaskId: string; userId: string; role: string | null }) => {
+      const { error } = await supabase
+        .from('subtask_assignees')
+        .update({ role } as any)
+        .eq('subtask_id', subtaskId)
+        .eq('user_id', userId);
+      if (error) throw error;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['subtask-assignees', variables.subtaskId] });

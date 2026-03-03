@@ -196,10 +196,11 @@ export const useUpdateProject = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ projectId, name, description, startDate, leadId, budget, projectTier, projectCategory, agencyMarkupPct, equipmentCost, miscellaneousCost, discount }: { 
+    mutationFn: async ({ projectId, name, description, startDate, leadId, budget, projectTier, projectCategory, agencyMarkupPct, equipmentCost, miscellaneousCost, discount, tierId }: { 
       projectId: string; name: string; description?: string; startDate?: string | null; 
       leadId?: string | null; budget?: number; projectTier?: string | null; projectCategory?: string | null;
       agencyMarkupPct?: number; equipmentCost?: number; miscellaneousCost?: number; discount?: number;
+      tierId?: string | null;
     }) => {
       const updates: Record<string, unknown> = { name, description, start_date: startDate !== undefined ? startDate : undefined };
       if (leadId !== undefined) updates.lead_id = leadId;
@@ -209,14 +210,9 @@ export const useUpdateProject = () => {
       if (equipmentCost !== undefined) updates.equipment_cost = equipmentCost;
       if (miscellaneousCost !== undefined) updates.miscellaneous_cost = miscellaneousCost;
       if (discount !== undefined) updates.discount = discount;
+      if (tierId !== undefined) updates.tier_id = tierId;
       if (budget !== undefined) {
         updates.budget = budget;
-        // Auto-compute project tier if not explicitly set
-        if (projectTier === undefined) {
-          if (budget >= 350000) updates.project_tier = 'major';
-          else if (budget >= 100000) updates.project_tier = 'minor';
-          else updates.project_tier = 'nano';
-        }
       }
 
       const { data, error } = await supabase

@@ -3,6 +3,9 @@ export type OrganizationRole = 'owner' | 'admin' | 'member';
 export type TaskStatus = 'todo' | 'in_progress' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high';
 export type NotificationType = 'project_invite' | 'assignment' | 'deadline' | 'deadline_warning' | 'mention' | 'lead_assigned';
+export type CommissionMode = 'role' | 'type' | 'hybrid';
+export type SubtaskCommissionMode = 'role' | 'type';
+export type WithdrawalStatus = 'pending' | 'approved' | 'rejected';
 
 export interface Profile {
   id: string;
@@ -32,6 +35,23 @@ export interface OrganizationMember {
   created_at: string;
 }
 
+export interface OrganizationTier {
+  id: string;
+  organization_id: string;
+  name: string;
+  slug: string;
+  min_budget: number;
+  position: number;
+  created_at: string;
+}
+
+export interface RateCardRate {
+  id: string;
+  rate_card_id: string;
+  tier_id: string;
+  rate: number;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -43,6 +63,7 @@ export interface Project {
   budget: number;
   project_type: string | null;
   project_tier: string | null;
+  tier_id: string | null;
   project_category: string | null;
   agency_markup_pct: number;
   equipment_cost: number;
@@ -101,6 +122,7 @@ export interface Task {
   estimated_hours: number | null;
   work_type: string | null;
   complexity: string | null;
+  commission_mode: CommissionMode;
   created_at: string;
   updated_at: string;
 }
@@ -122,6 +144,9 @@ export interface Subtask {
   commission_type: 'percentage' | 'fixed' | null;
   commission_value: number;
   estimated_hours: number | null;
+  work_type: string | null;
+  complexity: string | null;
+  commission_mode: SubtaskCommissionMode;
   created_at: string;
 }
 
@@ -140,6 +165,7 @@ export interface SubtaskAssignee {
   subtask_id: string;
   user_id: string;
   assigned_by: string | null;
+  role: string | null;
   created_at: string | null;
 }
 
@@ -215,6 +241,20 @@ export interface UserWallet {
   balance: number;
   potential_balance: number;
   monthly_target: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WithdrawalRequest {
+  id: string;
+  user_id: string;
+  organization_id: string;
+  amount: number;
+  status: WithdrawalStatus;
+  note: string | null;
+  admin_note: string | null;
+  time_report: Record<string, unknown> | null;
+  work_report: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }
