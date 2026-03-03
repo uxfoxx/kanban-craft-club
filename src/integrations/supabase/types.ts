@@ -73,6 +73,7 @@ export type Database = {
           rate_major: number
           rate_minor: number
           rate_nano: number
+          sub_category: string | null
           updated_at: string
         }
         Insert: {
@@ -85,6 +86,7 @@ export type Database = {
           rate_major?: number
           rate_minor?: number
           rate_nano?: number
+          sub_category?: string | null
           updated_at?: string
         }
         Update: {
@@ -97,6 +99,7 @@ export type Database = {
           rate_major?: number
           rate_minor?: number
           rate_nano?: number
+          sub_category?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -427,6 +430,53 @@ export type Database = {
           },
         ]
       }
+      project_line_items: {
+        Row: {
+          assigned_user_id: string | null
+          complexity: string | null
+          created_at: string
+          id: string
+          item_name: string
+          item_type: string
+          project_id: string
+          quantity: number
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          assigned_user_id?: string | null
+          complexity?: string | null
+          created_at?: string
+          id?: string
+          item_name: string
+          item_type: string
+          project_id: string
+          quantity?: number
+          total?: number
+          unit_price?: number
+        }
+        Update: {
+          assigned_user_id?: string | null
+          complexity?: string | null
+          created_at?: string
+          id?: string
+          item_name?: string
+          item_type?: string
+          project_id?: string
+          quantity?: number
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_line_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_members: {
         Row: {
           created_at: string
@@ -468,42 +518,57 @@ export type Database = {
       }
       projects: {
         Row: {
+          agency_markup_pct: number
           budget: number
           created_at: string
           description: string | null
+          discount: number
+          equipment_cost: number
           id: string
           lead_id: string | null
+          miscellaneous_cost: number
           name: string
           organization_id: string | null
           owner_id: string
+          project_category: string | null
           project_tier: string | null
           project_type: string | null
           start_date: string | null
           updated_at: string
         }
         Insert: {
+          agency_markup_pct?: number
           budget?: number
           created_at?: string
           description?: string | null
+          discount?: number
+          equipment_cost?: number
           id?: string
           lead_id?: string | null
+          miscellaneous_cost?: number
           name: string
           organization_id?: string | null
           owner_id: string
+          project_category?: string | null
           project_tier?: string | null
           project_type?: string | null
           start_date?: string | null
           updated_at?: string
         }
         Update: {
+          agency_markup_pct?: number
           budget?: number
           created_at?: string
           description?: string | null
+          discount?: number
+          equipment_cost?: number
           id?: string
           lead_id?: string | null
+          miscellaneous_cost?: number
           name?: string
           organization_id?: string | null
           owner_id?: string
+          project_category?: string | null
           project_tier?: string | null
           project_type?: string | null
           start_date?: string | null
