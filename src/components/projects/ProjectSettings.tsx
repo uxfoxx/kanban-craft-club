@@ -17,10 +17,11 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
 import { SheetPageStack, SectionCard, useSheetPageStack } from '@/components/ui/sheet-page';
-import { Loader2, Trash2, Crown, Shield, User, Pencil, Save, XCircle, Building2, Calendar as CalendarIcon, DollarSign, UserCheck, Users } from 'lucide-react';
+import { Loader2, Trash2, Crown, Shield, User, Pencil, Save, XCircle, Building2, Calendar as CalendarIcon, DollarSign, UserCheck, Users, FileSpreadsheet, Layers } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useIsPluginEnabled } from '@/hooks/useOrganizationPlugins';
+import { ProjectCostSheet } from './ProjectCostSheet';
 
 interface ProjectSettingsProps {
   projectId: string;
@@ -28,6 +29,19 @@ interface ProjectSettingsProps {
   onOpenChange: (open: boolean) => void;
   onProjectDeleted?: () => void;
 }
+
+const TIER_OPTIONS = [
+  { value: 'major', label: 'MAJOR', description: 'Production Model (≥ 350K)' },
+  { value: 'minor', label: 'MINOR', description: 'Content Model (< 350K)' },
+  { value: 'nano', label: 'NANO', description: 'Creator Model (< 100K)' },
+];
+
+const CATEGORY_OPTIONS = [
+  { value: 'films', label: 'Films' },
+  { value: 'photography', label: 'Photography' },
+  { value: 'design', label: 'Design' },
+  { value: 'tech', label: 'Tech' },
+];
 
 export const ProjectSettings: React.FC<ProjectSettingsProps> = ({ projectId, open, onOpenChange, onProjectDeleted }) => {
   const { user } = useAuth();
@@ -46,8 +60,6 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({ projectId, ope
   const isOwner = project?.owner_id === user?.id;
   const expensesEnabled = useIsPluginEnabled(project?.organization_id, 'expenses');
   const { currentPage, navigateTo, goBack, isRoot, resetTo } = useSheetPageStack();
-
-  const leadProfile = orgMembers?.find(m => m.user_id === project?.lead_id);
 
   const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   const getRoleIcon = (role: string) => role === 'admin' ? <Shield className="h-3 w-3" /> : <User className="h-3 w-3" />;
@@ -77,6 +89,22 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({ projectId, ope
     } catch { toast.error('Failed to update budget'); }
   };
 
+  const handleTierChange = async (tier: string) => {
+    if (!project) return;
+    try {
+      await updateProject.mutateAsync({ projectId, name: project.name, projectTier: tier });
+      toast.success('Project tier updated');
+    } catch { toast.error('Failed to update tier'); }
+  };
+
+  const handleCategoryChange = async (cat: string) => {
+    if (!project) return;
+    try {
+      await updateProject.mutateAsync({ projectId, name: project.name, projectCategory: cat === 'none' ? null : cat });
+      toast.success('Category updated');
+    } catch { toast.error('Failed to update category'); }
+  };
+
   const handleDeleteProject = async () => {
     try {
       await deleteProject.mutateAsync({ projectId });
@@ -95,7 +123,6 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({ projectId, ope
 
   const mainPage = (
     <div className="space-y-6">
-      {/* Project Info Card */}
       <div className="space-y-2">
         {isOwner && (
           <SectionCard
@@ -127,23 +154,72 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({ projectId, ope
         />
 
         {expensesEnabled && isOwner && (
-          <SectionCard
-            icon={<DollarSign className="h-4 w-4" />}
-            label="Budget"
-            value={
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs">{formatLKR(Number(project?.budget || 0))}</span>
-                {project?.project_tier && (
-                  <Badge variant="outline" className={cn("text-[10px] uppercase", {
-                    'border-primary text-primary': project.project_tier === 'major',
-                    'border-chart-4 text-chart-4': project.project_tier === 'minor',
-                    'border-muted-foreground text-muted-foreground': project.project_tier === 'nano',
-                  })}>{project.project_tier}</Badge>
-                )}
+          <>
+            {/* Tier Selector */}
+            <div className="p-3 rounded-lg border space-y-2">
+              <div className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-sm font-medium">Project Tier</Label>
               </div>
-            }
-            onClick={() => { setEditedBudget(String(project?.budget || 0)); navigateTo('budget'); }}
-          />
+              <div className="grid grid-cols-3 gap-2">
+                {TIER_OPTIONS.map(t => (
+                  <Button
+                    key={t.value}
+                    size="sm"
+                    variant={project?.project_tier === t.value ? 'default' : 'outline'}
+                    className="flex flex-col h-auto py-2"
+                    onClick={() => handleTierChange(t.value)}
+                  >
+                    <span className="font-bold text-xs">{t.label}</span>
+                    <span className="text-[10px] opacity-70 font-normal">{t.description}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Category Selector (MAJOR only) */}
+            {project?.project_tier === 'major' && (
+              <div className="p-3 rounded-lg border space-y-2">
+                <Label className="text-sm font-medium">Project Category</Label>
+                <Select value={project?.project_category || 'none'} onValueChange={handleCategoryChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No category</SelectItem>
+                    {CATEGORY_OPTIONS.map(c => (
+                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <SectionCard
+              icon={<DollarSign className="h-4 w-4" />}
+              label="Budget"
+              value={
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs">{formatLKR(Number(project?.budget || 0))}</span>
+                  {project?.project_tier && (
+                    <Badge variant="outline" className={cn("text-[10px] uppercase", {
+                      'border-primary text-primary': project.project_tier === 'major',
+                      'border-chart-4 text-chart-4': project.project_tier === 'minor',
+                      'border-muted-foreground text-muted-foreground': project.project_tier === 'nano',
+                    })}>{project.project_tier}</Badge>
+                  )}
+                </div>
+              }
+              onClick={() => { setEditedBudget(String(project?.budget || 0)); navigateTo('budget'); }}
+            />
+
+            <SectionCard
+              icon={<FileSpreadsheet className="h-4 w-4" />}
+              label="Cost Sheet"
+              value={<span className="text-xs text-muted-foreground">Build cost breakdown</span>}
+              onClick={() => navigateTo('costsheet')}
+            />
+          </>
         )}
       </div>
 
@@ -279,11 +355,16 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({ projectId, ope
     </div>
   );
 
+  const costSheetPage = (
+    <ProjectCostSheet projectId={projectId} onBack={goBack} />
+  );
+
   const pages = [
     { id: 'main', title: 'Project Settings', content: mainPage },
     { id: 'details', title: 'Project Details', content: detailsPage },
     { id: 'members', title: 'Team Members', content: membersPage },
     { id: 'budget', title: 'Budget', content: budgetPage },
+    { id: 'costsheet', title: 'Cost Sheet', content: costSheetPage },
   ];
 
   return (
