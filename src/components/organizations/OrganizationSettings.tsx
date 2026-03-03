@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useOrganization, useOrganizationMembers, useUpdateOrganization, useDeleteOrganization, useAddOrganizationMember, useRemoveOrganizationMember, useUpdateOrganizationMemberRole } from '@/hooks/useOrganizations';
+import { useOrgWithdrawals } from '@/hooks/useOrgWithdrawals';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization as useOrgContext } from '@/contexts/OrganizationContext';
 import { Button } from '@/components/ui/button';
@@ -36,7 +37,8 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Trash2, Crown, Shield, User, Pencil, Save, XCircle, UserPlus, DollarSign } from 'lucide-react';
+import { Loader2, Trash2, Crown, Shield, User, Pencil, Save, XCircle, UserPlus, DollarSign, Wallet } from 'lucide-react';
+import { WithdrawalManagement } from './WithdrawalManagement';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationPlugins, useTogglePlugin } from '@/hooks/useOrganizationPlugins';
@@ -64,6 +66,7 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
   const addMember = useAddOrganizationMember();
   const removeMember = useRemoveOrganizationMember();
   const updateMemberRole = useUpdateOrganizationMemberRole();
+  const { data: orgWithdrawals = [] } = useOrgWithdrawals(organizationId);
 
   const [isEditingOrg, setIsEditingOrg] = useState(false);
   const [editedName, setEditedName] = useState('');
@@ -469,6 +472,25 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
                     );
                   })}
                 </div>
+              </div>
+            </>
+          )}
+
+          {/* Withdrawals */}
+          {isAdmin && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
+                  <Wallet className="h-4 w-4" />
+                  Withdrawal Requests
+                  {orgWithdrawals.filter(w => w.status === 'pending').length > 0 && (
+                    <Badge variant="secondary" className="text-[10px]">
+                      {orgWithdrawals.filter(w => w.status === 'pending').length} pending
+                    </Badge>
+                  )}
+                </h3>
+                <WithdrawalManagement organizationId={organizationId} />
               </div>
             </>
           )}

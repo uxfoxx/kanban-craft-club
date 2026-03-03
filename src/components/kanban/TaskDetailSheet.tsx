@@ -88,7 +88,9 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const removeAssignee = useRemoveTaskAssignee();
   const updateAssigneeRole = useUpdateTaskAssigneeRole();
 
-  const projectTier: ProjectTier = (project?.project_tier as ProjectTier) || computeProjectTier(Number(project?.budget || 0));
+  const { data: orgTiers = [] } = useOrganizationTiers(currentOrganization?.id);
+  const projectTierId = project?.tier_id || undefined;
+  const projectTier = orgTiers.find(t => t.id === projectTierId) || getTierForBudget(orgTiers, Number(project?.budget || 0));
   const deliverableNames = [...new Set(rateCardDeliverables.map(d => d.name))];
 
   const [newSubtask, setNewSubtask] = useState('');
@@ -442,7 +444,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                         {assignees.map((assignee) => {
                           const assigneeRole = (assignee as any).role as string | null;
                           const roleEntry = assigneeRole ? rateCardRoles.find(r => r.name === assigneeRole) : null;
-                          const commission = roleEntry ? getRateForTier(roleEntry, projectTier) : 0;
+                          const commission = roleEntry && projectTier ? getRateForTier(roleEntry, projectTier.id) : 0;
                           return (
                             <div key={assignee.id} className="flex items-center justify-between p-3 rounded-lg border">
                               <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -734,7 +736,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                           onValueChange={(v) => {
                             const entry = rateCardDeliverables.find(d => d.name === v && d.complexity === ((task as any).complexity || 'standard'));
                             const updates: any = { work_type: v };
-                            if (entry) updates.budget = getRateForTier(entry, projectTier);
+                            if (entry && projectTier) updates.budget = getRateForTier(entry, projectTier.id);
                             if (!(task as any).complexity) updates.complexity = 'standard';
                             updateTask.mutateAsync({ taskId: task.id, updates, projectId });
                           }}
@@ -753,7 +755,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                             onValueChange={(v) => {
                               const entry = rateCardDeliverables.find(d => d.name === (task as any).work_type && d.complexity === v);
                               const updates: any = { complexity: v };
-                              if (entry) updates.budget = getRateForTier(entry, projectTier);
+                              if (entry && projectTier) updates.budget = getRateForTier(entry, projectTier.id);
                               updateTask.mutateAsync({ taskId: task.id, updates, projectId });
                             }}
                           >
@@ -785,7 +787,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                         {assignees.map(a => {
                           const role = (a as any).role as string | null;
                           const entry = role ? rateCardRoles.find(r => r.name === role) : null;
-                          const amount = entry ? getRateForTier(entry, projectTier) : 0;
+                          const amount = entry && projectTier ? getRateForTier(entry, projectTier.id) : 0;
                           return (
                             <div key={a.id} className="p-3 rounded-lg bg-muted/50 text-sm flex justify-between">
                               <span>{a.profiles?.full_name || 'Unknown'} {role ? `(${role})` : ''}</span>

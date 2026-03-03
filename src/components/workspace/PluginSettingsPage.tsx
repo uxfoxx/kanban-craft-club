@@ -4,9 +4,10 @@ import { useOrganizationPlugins, useTogglePlugin } from '@/hooks/useOrganization
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Puzzle, Settings2 } from 'lucide-react';
+import { DollarSign, Puzzle, Settings2, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { RateCardSettings } from './RateCardSettings';
+import { TierSettings } from './TierSettings';
 
 const availablePlugins = [
   {
@@ -22,6 +23,7 @@ export const PluginSettingsPage: React.FC = () => {
   const { data: plugins = [] } = useOrganizationPlugins(currentOrganization?.id);
   const togglePlugin = useTogglePlugin();
   const [showRateCard, setShowRateCard] = useState(false);
+  const [showTiers, setShowTiers] = useState(false);
 
   const expensesEnabled = plugins.find(p => p.plugin_name === 'expenses')?.enabled ?? false;
 
@@ -38,6 +40,10 @@ export const PluginSettingsPage: React.FC = () => {
 
   if (showRateCard) {
     return <RateCardSettings onBack={() => setShowRateCard(false)} />;
+  }
+
+  if (showTiers) {
+    return <TierSettings onBack={() => setShowTiers(false)} />;
   }
 
   const handleToggle = async (pluginName: string, enabled: boolean) => {
@@ -94,24 +100,45 @@ export const PluginSettingsPage: React.FC = () => {
       </div>
 
       {expensesEnabled && (
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Settings2 className="h-5 w-5 text-primary" />
+        <>
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Settings2 className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-sm">Rate Card</CardTitle>
+                    <CardDescription className="text-xs">Manage commission rates for roles and deliverables per project tier.</CardDescription>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle className="text-sm">Rate Card</CardTitle>
-                  <CardDescription className="text-xs">Manage commission rates for roles and deliverables per project tier.</CardDescription>
-                </div>
+                <Button variant="outline" size="sm" onClick={() => setShowRateCard(true)}>
+                  Manage
+                </Button>
               </div>
-              <Button variant="outline" size="sm" onClick={() => setShowRateCard(true)}>
-                Manage
-              </Button>
-            </div>
-          </CardHeader>
-        </Card>
+            </CardHeader>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Layers className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-sm">Project Tiers</CardTitle>
+                    <CardDescription className="text-xs">Define budget-based tiers that control rate card pricing.</CardDescription>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setShowTiers(true)}>
+                  Manage
+                </Button>
+              </div>
+            </CardHeader>
+          </Card>
+        </>
       )}
     </div>
   );
