@@ -4,9 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 export interface RateCardEntry {
   id: string;
   organization_id: string;
-  category: 'role' | 'deliverable';
+  category: 'role' | 'deliverable' | 'documentation';
   name: string;
   complexity: string | null;
+  sub_category: string | null;
   rate_major: number;
   rate_minor: number;
   rate_nano: number;
