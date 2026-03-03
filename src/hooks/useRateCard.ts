@@ -59,10 +59,26 @@ export const useRateCardDeliverables = (orgId?: string) => {
   return entries.filter(e => e.category === 'deliverable');
 };
 
+export const useRateCardDocumentation = (orgId?: string) => {
+  const { data: entries = [] } = useRateCard(orgId);
+  return entries.filter(e => e.category === 'documentation');
+};
+
+export const useRateCardForTier = (orgId?: string, tier?: ProjectTier, subCategory?: string) => {
+  const { data: entries = [] } = useRateCard(orgId);
+  if (!tier) return entries;
+  return entries.filter(e => {
+    const rate = getRateForTier(e, tier);
+    const tierMatch = rate > 0;
+    const catMatch = !subCategory || e.sub_category === subCategory;
+    return tierMatch && catMatch;
+  });
+};
+
 export const useCreateRateCardEntry = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (entry: Omit<RateCardEntry, 'id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (entry: Omit<RateCardEntry, 'id' | 'created_at' | 'updated_at'> & { sub_category?: string | null }) => {
       const { data, error } = await supabase
         .from('commission_rate_card')
         .insert(entry as any)
