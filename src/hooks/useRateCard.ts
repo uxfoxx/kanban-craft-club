@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { RateCardRate, OrganizationTier } from '@/types/database';
 
 export interface RateCardEntry {
   id: string;
@@ -8,28 +9,10 @@ export interface RateCardEntry {
   name: string;
   complexity: string | null;
   sub_category: string | null;
-  rate_major: number;
-  rate_minor: number;
-  rate_nano: number;
   created_at: string;
   updated_at: string;
+  rates: RateCardRate[];
 }
-
-export type ProjectTier = 'major' | 'minor' | 'nano';
-
-export const computeProjectTier = (budget: number): ProjectTier => {
-  if (budget >= 350000) return 'major';
-  if (budget >= 100000) return 'minor';
-  return 'nano';
-};
-
-export const getRateForTier = (entry: RateCardEntry, tier: ProjectTier): number => {
-  switch (tier) {
-    case 'major': return Number(entry.rate_major);
-    case 'minor': return Number(entry.rate_minor);
-    case 'nano': return Number(entry.rate_nano);
-  }
-};
 
 export const useRateCard = (orgId?: string) => {
   return useQuery({
@@ -43,10 +26,31 @@ export const useRateCard = (orgId?: string) => {
         .order('category')
         .order('name');
       if (error) throw error;
-      return data as RateCardEntry[];
+
+      // Fetch all rates for these entries
+      const ids = (data || []).map((d: any) => d.id);
+      let rates: any[] = [];
+      if (ids.length > 0) {
+        const { data: ratesData, error: ratesError } = await supabase
+          .from('rate_card_rates')
+          .select('*')
+          .in('rate_card_id', ids);
+        if (ratesError) throw ratesError;
+        rates = ratesData || [];
+      }
+
+      return (data || []).map((d: any) => ({
+        ...d,
+        rates: rates.filter((r: any) => r.rate_card_id === d.id),
+      })) as RateCardEntry[];
     },
     enabled: !!orgId,
   });
+};
+
+export const getRateForTier = (entry: RateCardEntry, tierId: string): number => {
+  const rate = entry.rates?.find(r => r.tier_id === tierId);
+  return rate ? Number(rate.rate) : 0;
 };
 
 export const useRateCardRoles = (orgId?: string) => {
@@ -64,11 +68,11 @@ export const useRateCardDocumentation = (orgId?: string) => {
   return entries.filter(e => e.category === 'documentation');
 };
 
-export const useRateCardForTier = (orgId?: string, tier?: ProjectTier, subCategory?: string) => {
+export const useRateCardForTier = (orgId?: string, tierId?: string, subCategory?: string) => {
   const { data: entries = [] } = useRateCard(orgId);
-  if (!tier) return entries;
+  if (!tierId) return entries;
   return entries.filter(e => {
-    const rate = getRateForTier(e, tier);
+    const rate = getRateForTier(e, tierId);
     const tierMatch = rate > 0;
     const catMatch = !subCategory || e.sub_category === subCategory;
     return tierMatch && catMatch;
@@ -78,10 +82,43 @@ export const useRateCardForTier = (orgId?: string, tier?: ProjectTier, subCatego
 export const useCreateRateCardEntry = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (entry: Omit<RateCardEntry, 'id' | 'created_at' | 'updated_at'> & { sub_category?: string | null }) => {
+    mutationFn: async (entry: { organization_id: string; category: string; name: string; complexity?: string | null; sub_category?: string | null; tierRates?: { tier_id: string; rate: number }[] }) => {
+      const { tierRates, ...cardData } = entry;
       const { data, error } = await supabase
         .from('commission_rate_card')
-        .insert(entry as any)
+        .insert(cardData as any)
+        .select()
+        .single();
+      if (error) throw error;
+
+      // Insert rates for each tier
+      if (tierRates && tierRates.length > 0) {
+        const ratesToInsert = tierRates.map(tr => ({
+          rate_card_id: data.id,
+          tier_id: tr.tier_id,
+          rate: tr.rate,
+        }));
+        const { error: ratesError } = await supabase
+          .from('rate_card_rates')
+          .insert(ratesToInsert as any);
+        if (ratesError) throw ratesError;
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rate-card'] });
+    },
+  });
+};
+
+export const useUpdateRateCardRate = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ rateCardId, tierId, rate }: { rateCardId: string; tierId: string; rate: number }) => {
+      const { data, error } = await supabase
+        .from('rate_card_rates')
+        .upsert({ rate_card_id: rateCardId, tier_id: tierId, rate } as any, { onConflict: 'rate_card_id,tier_id' })
         .select()
         .single();
       if (error) throw error;
@@ -96,7 +133,7 @@ export const useCreateRateCardEntry = () => {
 export const useUpdateRateCardEntry = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; rate_major?: number; rate_minor?: number; rate_nano?: number; name?: string }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; name?: string }) => {
       const { data, error } = await supabase
         .from('commission_rate_card')
         .update(updates as any)
