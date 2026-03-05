@@ -6,6 +6,7 @@ import { useTaskAssigneesForProject, useTaskTimeForProject } from '@/hooks/useTa
 import { useAuth } from '@/contexts/AuthContext';
 import { Task, Profile } from '@/types/database';
 import { useIsPluginEnabled } from '@/hooks/useOrganizationPlugins';
+import { useProjectSubtaskEarnings } from '@/hooks/useProjectSubtaskEarnings';
 import { KanbanColumn } from './KanbanColumn';
 import { TaskCard } from './TaskCard';
 import { CreateTaskDialog } from './CreateTaskDialog';
@@ -71,6 +72,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
   const isAdmin = isOwner || currentUserMember?.role === 'admin';
   const isMember = isOwner || !!currentUserMember;
   const expensesEnabled = useIsPluginEnabled(project?.organization_id, 'expenses');
+  const { data: earningsMap = {} } = useProjectSubtaskEarnings(
+    projectId, user?.id, project?.organization_id, Number(project?.budget || 0)
+  );
 
   const allMembers = useMemo(() => {
     const membersList: { user_id: string; role: string; profiles: Profile }[] = [];
@@ -316,6 +320,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
                       timeSpent={taskTimeMap?.get(task.id)}
                       columns={columns}
                       onMoveToColumn={handleMoveToColumn}
+                      potentialEarning={expensesEnabled ? earningsMap[task.id] : undefined}
                     />
                   ))}
                 </KanbanColumn>

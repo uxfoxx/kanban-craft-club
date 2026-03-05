@@ -11,7 +11,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Play, Calendar, Flag, Clock, ArrowRightLeft, AlertTriangle } from 'lucide-react';
+import { Play, Calendar, Flag, Clock, ArrowRightLeft, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { formatLKR } from '@/lib/currency';
 import { format, differenceInHours, isPast } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -25,9 +27,10 @@ interface TaskCardProps {
   timeSpent?: number;
   columns?: KanbanColumn[];
   onMoveToColumn?: (taskId: string, columnId: string) => void;
+  potentialEarning?: number;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, assignees = [], timeSpent, columns, onMoveToColumn }) => {
+export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, assignees = [], timeSpent, columns, onMoveToColumn, potentialEarning }) => {
   const startTimer = useStartTimeEntry();
   const { data: activeEntry } = useActiveTimeEntry();
   const isMobile = useIsMobile();
@@ -193,9 +196,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
           )}
         </div>
 
-        {/* Assignee avatars */}
-        {assignees.length > 0 && (
-          <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border/50">
+        {/* Assignee avatars + Earning badge */}
+        <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
+          {assignees.length > 0 ? (
             <div className="flex -space-x-2">
               {assignees.slice(0, 4).map(a => (
                 <Tooltip key={a.user_id}>
@@ -211,12 +214,18 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
                   </TooltipContent>
                 </Tooltip>
               ))}
+              {assignees.length > 4 && (
+                <span className="text-xs text-muted-foreground ml-1">+{assignees.length - 4}</span>
+              )}
             </div>
-            {assignees.length > 4 && (
-              <span className="text-xs text-muted-foreground ml-1">+{assignees.length - 4}</span>
-            )}
-          </div>
-        )}
+          ) : <div />}
+          {typeof potentialEarning === 'number' && potentialEarning > 0 && (
+            <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-0.5 border-chart-2/30 bg-chart-2/10 text-chart-2 font-semibold">
+              <TrendingUp className="h-2.5 w-2.5" />
+              +{formatLKR(potentialEarning)}
+            </Badge>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

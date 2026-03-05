@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useCreateTask } from '@/hooks/useTasks';
 import { useAddTaskAssignee } from '@/hooks/useAssignees';
 import { Profile, TaskPriority, KanbanColumn } from '@/types/database';
-import { useRateCardDeliverables, getRateForTier } from '@/hooks/useRateCard';
-import { useOrganizationTiers, getTierForBudget, getDefaultCommissionMode } from '@/hooks/useOrganizationTiers';
+import { useOrganizationTiers, getTierForBudget } from '@/hooks/useOrganizationTiers';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useProject } from '@/hooks/useProjects';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CreateTaskDialogProps {
@@ -50,7 +50,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const { currentOrganization } = useOrganization();
   const { data: project } = useProject(projectId);
   const { data: tiers = [] } = useOrganizationTiers(currentOrganization?.id);
-  const deliverables = useRateCardDeliverables(currentOrganization?.id);
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -59,32 +58,11 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [dueDate, setDueDate] = useState('');
   const [budget, setBudget] = useState('');
-  const [workType, setWorkType] = useState<string>('');
-  const [complexity, setComplexity] = useState<string>('');
-  const [commissionMode, setCommissionMode] = useState<string>('role');
 
-  // Get unique deliverable names
-  const deliverableNames = [...new Set(deliverables.map(d => d.name))];
-  const projectTier = tiers.find(t => t.id === project?.tier_id) || getTierForBudget(tiers, Number(project?.budget || 0));
+  // Auto-detect tier from budget
+  const budgetNum = parseFloat(budget) || 0;
+  const autoTier = budgetNum > 0 ? getTierForBudget(tiers, budgetNum) : null;
 
-  // Set default commission mode based on project tier
-  useEffect(() => {
-    if (projectTier) {
-      setCommissionMode(getDefaultCommissionMode(projectTier));
-    }
-  }, [projectTier?.id]);
-
-  // Auto-fill budget when work type + complexity selected
-  useEffect(() => {
-    if (workType && complexity && expensesEnabled && projectTier) {
-      const entry = deliverables.find(d => d.name === workType && d.complexity === complexity);
-      if (entry) {
-        setBudget(String(getRateForTier(entry, projectTier.id)));
-      }
-    }
-  }, [workType, complexity, projectTier?.id]);
-
-  // Get default column (first one or one marked as default)
   const defaultColumn = columns?.find(c => c.is_default) || columns?.[0];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -100,14 +78,15 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         dueDate: dueDate || undefined,
         cost: budget ? parseFloat(budget) : undefined,
         budget: budget ? parseFloat(budget) : undefined,
-        workType: workType || undefined,
-        complexity: complexity || undefined,
-        commissionMode,
       });
 
-      // Add assignees
-      for (const userId of selectedAssignees) {
-        await addAssignee.mutateAsync({ taskId: task.id, userId });
+      // Add assignees — first one gets "Task Manager" role
+      for (let i = 0; i < selectedAssignees.length; i++) {
+        await addAssignee.mutateAsync({
+          taskId: task.id,
+          userId: selectedAssignees[i],
+          role: i === 0 ? 'Task Manager' : undefined,
+        });
       }
       
       toast.success('Task created!');
@@ -126,8 +105,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setSelectedAssignees([]);
     setDueDate('');
     setBudget('');
-    setWorkType('');
-    setComplexity('');
   };
 
   const toggleAssignee = (userId: string) => {
@@ -197,50 +174,26 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           </div>
 
           {expensesEnabled && (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Work Type</Label>
-                  <Select value={workType} onValueChange={v => { setWorkType(v); if (!complexity) setComplexity('standard'); }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {deliverableNames.map(name => (
-                        <SelectItem key={name} value={name}>{name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+            <div className="space-y-2">
+              <Label htmlFor="task-budget">Task Budget</Label>
+              <Input
+                id="task-budget"
+                type="number"
+                value={budget}
+                onChange={(e) => setBudget(e.target.value)}
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+              />
+              {autoTier && (
+                <div className="flex items-center gap-1.5 mt-1">
+                  <Badge variant="secondary" className="text-xs">
+                    {autoTier.name}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">tier (auto-detected)</span>
                 </div>
-                {workType && (
-                  <div className="space-y-2">
-                    <Label>Complexity</Label>
-                    <Select value={complexity} onValueChange={setComplexity}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="quick">Quick</SelectItem>
-                        <SelectItem value="standard">Standard</SelectItem>
-                        <SelectItem value="advanced">Advanced</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="task-budget">Task Budget</Label>
-                <Input
-                  id="task-budget"
-                  type="number"
-                  value={budget}
-                  onChange={(e) => setBudget(e.target.value)}
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-            </>
+              )}
+            </div>
           )}
 
           {columns && columns.length > 0 && (
@@ -270,25 +223,33 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           {members && members.length > 0 && (
             <div className="space-y-2">
               <Label>Assign To</Label>
+              <p className="text-xs text-muted-foreground">First person selected becomes the Task Manager</p>
               <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2">
-                {members.map((member) => (
-                  <div key={member.user_id} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`assignee-${member.user_id}`}
-                      checked={selectedAssignees.includes(member.user_id)}
-                      onCheckedChange={() => toggleAssignee(member.user_id)}
-                    />
-                    <label 
-                      htmlFor={`assignee-${member.user_id}`}
-                      className="text-sm cursor-pointer flex-1"
-                    >
-                      {member.profiles.full_name}
-                      <span className="text-muted-foreground ml-1 text-xs">
-                        ({member.role})
-                      </span>
-                    </label>
-                  </div>
-                ))}
+                {members.map((member) => {
+                  const idx = selectedAssignees.indexOf(member.user_id);
+                  const isTaskManager = idx === 0;
+                  return (
+                    <div key={member.user_id} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`assignee-${member.user_id}`}
+                        checked={selectedAssignees.includes(member.user_id)}
+                        onCheckedChange={() => toggleAssignee(member.user_id)}
+                      />
+                      <label 
+                        htmlFor={`assignee-${member.user_id}`}
+                        className="text-sm cursor-pointer flex-1 flex items-center gap-1.5"
+                      >
+                        {member.profiles.full_name}
+                        {isTaskManager && (
+                          <Badge variant="default" className="text-[10px] h-4 px-1.5 gap-0.5">
+                            <Shield className="h-2.5 w-2.5" />
+                            Task Manager
+                          </Badge>
+                        )}
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
