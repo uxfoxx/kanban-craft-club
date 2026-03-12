@@ -36,11 +36,13 @@ export const TodayTimeCard: React.FC<TodayTimeCardProps> = ({ onViewHistory }) =
    
    if (isLoading) {
      return (
-       <Card className="border-l-4 border-l-primary">
+       <Card>
          <CardHeader className="pb-2">
-           <CardTitle className="text-base font-medium flex items-center gap-2">
-             <Clock className="h-4 w-4 text-primary" />
-             Today's Time Worked
+           <CardTitle className="text-base font-semibold flex items-center gap-2">
+             <div className="p-1.5 rounded-lg bg-primary/10">
+               <Clock className="h-4 w-4 text-primary" />
+             </div>
+             Today's Time
            </CardTitle>
          </CardHeader>
          <CardContent>
@@ -53,11 +55,13 @@ export const TodayTimeCard: React.FC<TodayTimeCardProps> = ({ onViewHistory }) =
    const totalWithActive = totalSeconds + elapsedTime;
    
    return (
-     <Card className="border-l-4 border-l-primary">
+     <Card>
        <CardHeader className="pb-2">
-         <CardTitle className="text-base font-medium flex items-center gap-2">
-           <Clock className="h-4 w-4 text-primary" />
-           Today's Time Worked
+         <CardTitle className="text-base font-semibold flex items-center gap-2">
+           <div className="p-1.5 rounded-lg bg-primary/10">
+             <Clock className="h-4 w-4 text-primary" />
+           </div>
+           Today's Time
          </CardTitle>
        </CardHeader>
        <CardContent className="space-y-3">
@@ -66,15 +70,15 @@ export const TodayTimeCard: React.FC<TodayTimeCardProps> = ({ onViewHistory }) =
          </div>
          
           {activeEntry && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-primary/5 rounded-lg px-3 py-2">
               <Timer className="h-4 w-4 animate-pulse text-primary" />
               <span className="truncate">{activeEntry.tasks?.title || 'Active task'}</span>
-              <span className="font-mono text-primary">{formatDuration(elapsedTime)}</span>
+              <span className="font-mono text-primary ml-auto">{formatDuration(elapsedTime)}</span>
             </div>
           )}
           
           {onViewHistory && (
-            <Button variant="ghost" size="sm" className="w-full mt-2 text-muted-foreground hover:text-foreground" onClick={onViewHistory}>
+            <Button variant="ghost" size="sm" className="w-full mt-2 text-muted-foreground hover:text-foreground rounded-xl" onClick={onViewHistory}>
               View history
               <ArrowRight className="h-3.5 w-3.5 ml-1" />
             </Button>

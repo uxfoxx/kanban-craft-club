@@ -38,7 +38,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   return (
     <div
       className={cn(
-        'flex flex-col rounded-xl p-4 min-h-96 transition-all bg-muted/50 border border-border/50',
+        'flex flex-col rounded-2xl p-4 min-h-96 transition-all glass-subtle',
         isDragOver && 'ring-2 ring-primary ring-offset-2 bg-primary/5'
       )}
       style={{
@@ -49,14 +49,14 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
       onDrop={handleDrop}
     >
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <div 
             className="w-2.5 h-2.5 rounded-full" 
             style={{ backgroundColor: columnColor }}
           />
           <h3 className="font-semibold text-sm text-foreground">{column.name}</h3>
         </div>
-        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-background text-muted-foreground border">
+        <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-background/80 text-muted-foreground border">
           {React.Children.count(children)}
         </span>
       </div>

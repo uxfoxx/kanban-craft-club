@@ -36,10 +36,12 @@ export const TodayEarningsCard: React.FC = () => {
   const { data: earnings = 0, isLoading } = useTodayEarnings();
 
   return (
-    <Card className="border-l-4 border-l-chart-2">
+    <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-medium flex items-center gap-2">
-          <DollarSign className="h-4 w-4 text-chart-2" />
+        <CardTitle className="text-base font-semibold flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-chart-2/10">
+            <DollarSign className="h-4 w-4 text-chart-2" />
+          </div>
           Today's Earnings
         </CardTitle>
       </CardHeader>
@@ -51,7 +53,7 @@ export const TodayEarningsCard: React.FC = () => {
             {formatLKR(earnings)}
           </p>
         )}
-        <p className="text-xs text-muted-foreground mt-1">Confirmed commissions today</p>
+        <p className="text-xs text-muted-foreground mt-1.5">Confirmed commissions today</p>
       </CardContent>
     </Card>
   );

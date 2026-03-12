@@ -56,12 +56,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
 
   const isTimerActive = activeEntry?.task_id === task.id;
 
-  const getPriorityColor = () => {
+  const getPriorityDot = () => {
     switch (task.priority) {
-      case 'high': return 'border-l-destructive';
-      case 'medium': return 'border-l-chart-4';
-      case 'low': return 'border-l-chart-2';
-      default: return 'border-l-muted-foreground';
+      case 'high': return 'bg-destructive';
+      case 'medium': return 'bg-chart-4';
+      case 'low': return 'bg-chart-2';
+      default: return 'bg-muted-foreground';
     }
   };
 
@@ -88,30 +88,32 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
   return (
     <Card
       className={cn(
-        'transition-all hover:shadow-md border-l-[3px] group/card',
-        getPriorityColor(),
-        !deadlineStatus && 'bg-card',
+        'transition-all hover:shadow-md group/card rounded-xl',
         !isMobile && 'cursor-grab active:cursor-grabbing',
         isTimerActive && 'ring-2 ring-primary',
         deadlineStatus === 'overdue' && 'deadline-overdue',
         deadlineStatus === 'urgent' && 'deadline-urgent',
-        deadlineStatus === 'warning' && 'deadline-warning'
+        deadlineStatus === 'warning' && 'deadline-warning',
+        !deadlineStatus && 'bg-card/80 backdrop-blur-sm'
       )}
       draggable={!isMobile}
       onDragStart={!isMobile ? handleDragStart : undefined}
       onClick={onClick}
     >
-      <CardContent className="p-3.5">
+      <CardContent className="p-4">
         {/* Title row */}
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <h4 className="font-semibold text-sm line-clamp-2 flex-1">{task.title}</h4>
+        <div className="flex items-start justify-between gap-2 mb-1.5">
+          <div className="flex items-start gap-2 flex-1 min-w-0">
+            <div className={cn('w-2 h-2 rounded-full mt-1.5 flex-shrink-0', getPriorityDot())} />
+            <h4 className="font-semibold text-sm line-clamp-2">{task.title}</h4>
+          </div>
           {otherColumns.length > 0 && onMoveToColumn && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 flex-shrink-0 opacity-0 group-hover/card:opacity-100 transition-opacity"
+                  className="h-6 w-6 p-0 flex-shrink-0 opacity-0 group-hover/card:opacity-100 transition-opacity rounded-lg"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <ArrowRightLeft className="h-3.5 w-3.5" />
@@ -136,7 +138,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
         </div>
         
         {task.description && (
-          <p className="text-xs text-muted-foreground line-clamp-1 mb-2.5">
+          <p className="text-xs text-muted-foreground line-clamp-1 mb-3 pl-4">
             {task.description}
           </p>
         )}
@@ -177,7 +179,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
                   size="icon"
                   variant={isTimerActive ? 'default' : 'ghost'}
                   className={cn(
-                    'h-7 w-7 flex-shrink-0',
+                    'h-7 w-7 flex-shrink-0 rounded-lg',
                     !isTimerActive && 'opacity-0 group-hover/card:opacity-100 transition-opacity'
                   )}
                   onClick={handleStartTimer}
@@ -202,7 +204,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
 
         {/* Footer: avatars + earning */}
         {(assignees.length > 0 || (typeof potentialEarning === 'number' && potentialEarning > 0)) && (
-          <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-border/40">
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/30">
             {assignees.length > 0 ? (
               <div className="flex -space-x-1.5">
                 {assignees.slice(0, 4).map(a => (
@@ -225,7 +227,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
               </div>
             ) : <div />}
             {typeof potentialEarning === 'number' && potentialEarning > 0 && (
-              <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-0.5 border-chart-2/30 bg-chart-2/10 text-chart-2 font-semibold">
+              <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-0.5 border-chart-2/30 bg-chart-2/10 text-chart-2 font-semibold rounded-full">
                 <TrendingUp className="h-2.5 w-2.5" />
                 +{formatLKR(potentialEarning)}
               </Badge>

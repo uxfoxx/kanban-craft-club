@@ -20,8 +20,8 @@ export const PersonalDashboard: React.FC<PersonalDashboardProps> = ({ onViewTime
     <div className="space-y-6">
       {/* Welcome */}
       <div className="space-y-1">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-          Welcome back, {firstName}!
+        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+          Welcome back, {firstName}
         </h1>
         <p className="text-sm text-muted-foreground">
           {format(today, "EEEE, MMMM d, yyyy")}
@@ -29,14 +29,14 @@ export const PersonalDashboard: React.FC<PersonalDashboardProps> = ({ onViewTime
       </div>
       
       {/* Dashboard Grid */}
-      <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
+      <div className="grid gap-5 md:gap-6 grid-cols-1 lg:grid-cols-3">
         {/* Primary: Upcoming Deadlines */}
         <div className="lg:col-span-2">
           <UpcomingDeadlines />
         </div>
         
         {/* Secondary: Time + Earnings */}
-        <div className="space-y-4">
+        <div className="space-y-5">
           <TodayTimeCard onViewHistory={onViewTimeTracking} />
           <TodayEarningsCard />
         </div>

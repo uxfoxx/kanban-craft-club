@@ -62,17 +62,34 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   const getInitials = (name: string) =>
     name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
 
+  const renderNavItem = (view: ViewType, label: string, Icon: React.ElementType) => (
+    <SidebarMenuItem key={view}>
+      <SidebarMenuButton
+        isActive={currentView === view}
+        onClick={() => onViewChange(view)}
+        tooltip={label}
+        className={cn(
+          'relative rounded-xl transition-all duration-200',
+          currentView === view && 'bg-primary text-primary-foreground font-medium shadow-sm hover:bg-primary/90 hover:text-primary-foreground'
+        )}
+      >
+        <Icon className="h-4 w-4" />
+        <span>{label}</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className="p-4">
+    <Sidebar collapsible="icon" className="glass-subtle !border-r-0">
+      <SidebarHeader className="p-5">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center min-w-0 overflow-hidden max-h-[60px]">
-            <img src={logo} alt="Bandit Theory" className="w-auto max-h-[60px] object-cover flex-shrink-0" />
+          <div className="flex items-center min-w-0 overflow-hidden max-h-[56px]">
+            <img src={logo} alt="Bandit Theory" className="w-auto max-h-[56px] object-cover flex-shrink-0" />
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 flex-shrink-0"
+            className="h-7 w-7 flex-shrink-0 rounded-lg"
             onClick={toggleSidebar}
           >
             {isCollapsed ? (
@@ -84,32 +101,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         </div>
       </SidebarHeader>
 
-      <SidebarSeparator />
+      <SidebarSeparator className="opacity-30" />
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs uppercase tracking-wider text-muted-foreground/70">Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-medium">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {coreNavItems.map(({ view, label, icon: Icon }) => (
-                <SidebarMenuItem key={view}>
-                  <SidebarMenuButton
-                    isActive={currentView === view}
-                    onClick={() => onViewChange(view)}
-                    tooltip={label}
-                    className={cn(
-                      'relative',
-                      currentView === view && 'bg-primary/10 text-primary font-medium'
-                    )}
-                  >
-                    {currentView === view && (
-                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r-full" />
-                    )}
-                    <Icon className="h-4 w-4" />
-                    <span>{label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+            <SidebarMenu className="space-y-1">
+              {coreNavItems.map(({ view, label, icon }) => renderNavItem(view, label, icon))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -117,114 +116,45 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         {/* Plugin nav items */}
         {enabledPlugins.length > 0 && (
           <>
-            <SidebarSeparator />
+            <SidebarSeparator className="opacity-30" />
             <SidebarGroup>
-              <SidebarGroupLabel className="text-xs uppercase tracking-wider text-muted-foreground/70">Modules</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-medium">Modules</SidebarGroupLabel>
               <SidebarGroupContent>
-                <SidebarMenu>
+                <SidebarMenu className="space-y-1">
                   {enabledPlugins.map(plugin => {
                     const navInfo = pluginNavMap[plugin.plugin_name];
                     if (!navInfo) return null;
-                    const Icon = navInfo.icon;
-                    return (
-                      <SidebarMenuItem key={plugin.id}>
-                        <SidebarMenuButton
-                          isActive={currentView === navInfo.view}
-                          onClick={() => onViewChange(navInfo.view)}
-                          tooltip={navInfo.label}
-                          className={cn(
-                            'relative',
-                            currentView === navInfo.view && 'bg-primary/10 text-primary font-medium'
-                          )}
-                        >
-                          {currentView === navInfo.view && (
-                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r-full" />
-                          )}
-                          <Icon className="h-4 w-4" />
-                          <span>{navInfo.label}</span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
+                    return renderNavItem(navInfo.view, navInfo.label, navInfo.icon);
                   })}
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      isActive={currentView === 'plugin-settings'}
-                      onClick={() => onViewChange('plugin-settings')}
-                      tooltip="Plugin Settings"
-                      className={cn(
-                        'relative',
-                        currentView === 'plugin-settings' && 'bg-primary/10 text-primary font-medium'
-                      )}
-                    >
-                      {currentView === 'plugin-settings' && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r-full" />
-                      )}
-                      <Puzzle className="h-4 w-4" />
-                      <span>Plugin Settings</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  {renderNavItem('plugin-settings', 'Plugin Settings', Puzzle)}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
           </>
         )}
 
-        {/* Show plugin settings even if no plugins enabled yet */}
         {enabledPlugins.length === 0 && currentOrganization && (
           <>
-            <SidebarSeparator />
+            <SidebarSeparator className="opacity-30" />
             <SidebarGroup>
-              <SidebarGroupLabel className="text-xs uppercase tracking-wider text-muted-foreground/70">Modules</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-medium">Modules</SidebarGroupLabel>
               <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      isActive={currentView === 'plugin-settings'}
-                      onClick={() => onViewChange('plugin-settings')}
-                      tooltip="Plugin Settings"
-                      className={cn(
-                        'relative',
-                        currentView === 'plugin-settings' && 'bg-primary/10 text-primary font-medium'
-                      )}
-                    >
-                      {currentView === 'plugin-settings' && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r-full" />
-                      )}
-                      <Puzzle className="h-4 w-4" />
-                      <span>Plugin Settings</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                <SidebarMenu className="space-y-1">
+                  {renderNavItem('plugin-settings', 'Plugin Settings', Puzzle)}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
           </>
         )}
 
-        {/* Super Admin */}
         {isSuperAdmin && (
           <>
-            <SidebarSeparator />
+            <SidebarSeparator className="opacity-30" />
             <SidebarGroup>
-              <SidebarGroupLabel className="text-xs uppercase tracking-wider text-muted-foreground/70">System</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-medium">System</SidebarGroupLabel>
               <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      isActive={currentView === 'admin'}
-                      onClick={() => onViewChange('admin')}
-                      tooltip="Admin"
-                      className={cn(
-                        'relative',
-                        currentView === 'admin' && 'bg-primary/10 text-primary font-medium'
-                      )}
-                    >
-                      {currentView === 'admin' && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r-full" />
-                      )}
-                      <Shield className="h-4 w-4" />
-                      <span>Admin</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                <SidebarMenu className="space-y-1">
+                  {renderNavItem('admin', 'Admin', Shield)}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -232,14 +162,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         )}
       </SidebarContent>
 
-      <SidebarSeparator />
+      <SidebarSeparator className="opacity-30" />
 
       <SidebarFooter>
         {profile && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 px-2 py-2.5 w-full rounded-lg hover:bg-sidebar-accent transition-colors">
-                <Avatar className="h-8 w-8 flex-shrink-0">
+              <button className="flex items-center gap-3 px-3 py-3 w-full rounded-xl hover:bg-muted/50 transition-colors">
+                <Avatar className="h-9 w-9 flex-shrink-0 shadow-sm">
                   <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
                     {getInitials(profile.full_name)}
                   </AvatarFallback>

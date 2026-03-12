@@ -38,9 +38,9 @@ const PageTitle: React.FC<{ currentView: ViewType; selectedProjectId: string | n
   const { data: project } = useProject(selectedProjectId || undefined);
 
   if (selectedProjectId && project) {
-    return <h1 className="text-lg font-bold truncate text-foreground">{project.name}</h1>;
+    return <h1 className="text-lg font-semibold truncate text-foreground">{project.name}</h1>;
   }
-  return <h1 className="text-lg font-bold text-foreground">{viewTitles[currentView]}</h1>;
+  return <h1 className="text-lg font-semibold text-foreground">{viewTitles[currentView]}</h1>;
 };
 
 const Dashboard: React.FC = () => {
@@ -60,7 +60,7 @@ const Dashboard: React.FC = () => {
 
   if (loading || orgLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -115,17 +115,17 @@ const Dashboard: React.FC = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen flex w-full">
         <AppSidebar
           currentView={currentView}
           onViewChange={handleViewChange}
           onOpenProfileSettings={() => setProfileSettingsOpen(true)}
         />
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Top bar */}
-          <header className="bg-card h-16 flex items-center justify-between px-5 flex-shrink-0 border-b shadow-sm">
+          {/* Glass top bar */}
+          <header className="glass h-16 flex items-center justify-between px-6 flex-shrink-0 border-b sticky top-0 z-30">
             <PageTitle currentView={currentView} selectedProjectId={selectedProjectId} />
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <ActiveTimer />
               <NotificationBell onNavigateToProject={(projectId) => {
                 setCurrentView('workspace');
@@ -134,9 +134,9 @@ const Dashboard: React.FC = () => {
               {profile && (
                 <button
                   onClick={() => setProfileSettingsOpen(true)}
-                  className="rounded-full ring-2 ring-transparent hover:ring-primary/20 transition-all"
+                  className="rounded-full ring-2 ring-transparent hover:ring-primary/30 transition-all duration-200"
                 >
-                  <Avatar className="h-9 w-9">
+                  <Avatar className="h-9 w-9 shadow-sm">
                     <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
                       {getInitials(profile.full_name)}
                     </AvatarFallback>
