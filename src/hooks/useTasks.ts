@@ -217,10 +217,18 @@ export const useCreateSubtask = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ taskId, title }: { taskId: string; title: string }) => {
+    mutationFn: async ({ taskId, title, work_type, complexity, commission_mode }: { 
+      taskId: string; title: string; work_type?: string; complexity?: string; commission_mode?: string;
+    }) => {
       const { data, error } = await supabase
         .from('subtasks')
-        .insert({ task_id: taskId, title })
+        .insert({ 
+          task_id: taskId, 
+          title,
+          work_type: work_type || null,
+          complexity: complexity || null,
+          commission_mode: commission_mode || 'role',
+        } as any)
         .select()
         .single();
       
