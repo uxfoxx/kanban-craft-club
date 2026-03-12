@@ -117,6 +117,7 @@ export interface Task {
   due_date: string | null;
   cost: number;
   budget: number;
+  team_share: number;
   weight_pct: number | null;
   completed_at: string | null;
   estimated_hours: number | null;
