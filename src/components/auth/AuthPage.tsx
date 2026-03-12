@@ -49,18 +49,20 @@ export const AuthPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <img src={logo} alt="Bandit Theory Creatives" className="h-12 w-12" />
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
+      <Card className="w-full max-w-md shadow-lg border-t-4 border-t-primary">
+        <CardHeader className="text-center space-y-4 pb-2">
+          <div className="flex justify-center">
+            <img src={logo} alt="Bandit Theory Creatives" className="h-16 w-auto object-contain" />
           </div>
-          <CardTitle className="text-2xl font-bold">Bandit Theory Creatives</CardTitle>
-          <CardDescription>Project management made simple</CardDescription>
+          <div>
+            <CardTitle className="text-2xl font-bold">Bandit Theory Creatives</CardTitle>
+            <CardDescription className="mt-1">Project management made simple</CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="login">Sign In</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>

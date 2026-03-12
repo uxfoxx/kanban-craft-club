@@ -33,14 +33,13 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
     }
   };
 
-  // Use column color or fallback to default
   const columnColor = column.color || '#6366f1';
 
   return (
     <div
       className={cn(
-        'flex flex-col rounded-lg p-4 min-h-96 transition-colors bg-muted/30',
-        isDragOver && 'ring-2 ring-primary ring-offset-2'
+        'flex flex-col rounded-xl p-4 min-h-96 transition-all bg-muted/50 border border-border/50',
+        isDragOver && 'ring-2 ring-primary ring-offset-2 bg-primary/5'
       )}
       style={{
         borderTop: `3px solid ${columnColor}`,
@@ -52,12 +51,12 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div 
-            className="w-3 h-3 rounded-full" 
+            className="w-2.5 h-2.5 rounded-full" 
             style={{ backgroundColor: columnColor }}
           />
-          <h3 className="font-semibold text-foreground">{column.name}</h3>
+          <h3 className="font-semibold text-sm text-foreground">{column.name}</h3>
         </div>
-        <span className="text-xs px-2 py-1 rounded-full font-medium bg-muted text-muted-foreground">
+        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-background text-muted-foreground border">
           {React.Children.count(children)}
         </span>
       </div>

@@ -20,10 +20,10 @@ export const PersonalDashboard: React.FC<PersonalDashboardProps> = ({ onViewTime
     <div className="space-y-6">
       {/* Welcome */}
       <div className="space-y-1">
-        <h1 className="text-2xl md:text-3xl font-bold">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
           Welcome back, {firstName}!
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {format(today, "EEEE, MMMM d, yyyy")}
         </p>
       </div>

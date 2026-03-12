@@ -47,32 +47,38 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t md:hidden">
-        <div className="flex items-center justify-around h-16 px-2">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t shadow-lg md:hidden">
+        <div className="flex items-center justify-around h-[4.25rem] px-1">
           {navItems.map(({ view, label, icon }) => (
             <Button
               key={view}
               variant="ghost"
               className={cn(
-                'flex-1 flex flex-col items-center justify-center h-full gap-1 rounded-none',
-                currentView === view && 'text-primary bg-primary/5'
+                'flex-1 flex flex-col items-center justify-center h-full gap-0.5 rounded-none relative',
+                currentView === view && 'text-primary'
               )}
               onClick={() => onViewChange(view)}
             >
+              {currentView === view && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />
+              )}
               {icon}
-              <span className="text-xs">{label}</span>
+              <span className="text-[10px] font-medium">{label}</span>
             </Button>
           ))}
           <Button
             variant="ghost"
             className={cn(
-              'flex-1 flex flex-col items-center justify-center h-full gap-1 rounded-none',
-              isMoreActive && 'text-primary bg-primary/5'
+              'flex-1 flex flex-col items-center justify-center h-full gap-0.5 rounded-none relative',
+              isMoreActive && 'text-primary'
             )}
             onClick={() => setMoreOpen(true)}
           >
+            {isMoreActive && (
+              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />
+            )}
             <MoreHorizontal className="h-5 w-5" />
-            <span className="text-xs">More</span>
+            <span className="text-[10px] font-medium">More</span>
           </Button>
         </div>
       </nav>

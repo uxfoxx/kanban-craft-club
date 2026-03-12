@@ -14,7 +14,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -57,11 +56,11 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ onSelectProject })
 
   return (
     <div className="space-y-6">
-      {/* Header: Org switcher + actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Workspace</h1>
-          <p className="text-sm text-muted-foreground">Projects, team, analytics & financials</p>
+          <h1 className="text-2xl font-bold tracking-tight">Workspace</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Projects, team, analytics & financials</p>
         </div>
         <div className="flex items-center gap-2">
           {organizations.length > 0 && (
@@ -97,7 +96,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ onSelectProject })
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
-          <TabsList>
+          <TabsList className="bg-muted/50">
             <TabsTrigger value="projects" className="gap-1.5">
               <FolderOpen className="h-4 w-4" /> Projects
             </TabsTrigger>

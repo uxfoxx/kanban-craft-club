@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { startOfDay, endOfDay } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const useTodayEarnings = () => {
   const { user } = useAuth();
@@ -35,17 +36,21 @@ export const TodayEarningsCard: React.FC = () => {
   const { data: earnings = 0, isLoading } = useTodayEarnings();
 
   return (
-    <Card>
+    <Card className="border-l-4 border-l-chart-2">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
+        <CardTitle className="text-base font-medium flex items-center gap-2">
           <DollarSign className="h-4 w-4 text-chart-2" />
           Today's Earnings
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-2xl font-bold">
-          {isLoading ? '...' : formatLKR(earnings)}
-        </p>
+        {isLoading ? (
+          <Skeleton className="h-8 w-28" />
+        ) : (
+          <p className="text-2xl font-bold text-chart-2">
+            {formatLKR(earnings)}
+          </p>
+        )}
         <p className="text-xs text-muted-foreground mt-1">Confirmed commissions today</p>
       </CardContent>
     </Card>

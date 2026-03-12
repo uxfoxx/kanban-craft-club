@@ -38,9 +38,9 @@ const PageTitle: React.FC<{ currentView: ViewType; selectedProjectId: string | n
   const { data: project } = useProject(selectedProjectId || undefined);
 
   if (selectedProjectId && project) {
-    return <h1 className="text-lg font-semibold truncate">{project.name}</h1>;
+    return <h1 className="text-lg font-bold truncate text-foreground">{project.name}</h1>;
   }
-  return <h1 className="text-lg font-semibold">{viewTitles[currentView]}</h1>;
+  return <h1 className="text-lg font-bold text-foreground">{viewTitles[currentView]}</h1>;
 };
 
 const Dashboard: React.FC = () => {
@@ -123,18 +123,21 @@ const Dashboard: React.FC = () => {
         />
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top bar */}
-          <header className="border-b bg-card h-14 flex items-center justify-between px-4 flex-shrink-0">
+          <header className="bg-card h-16 flex items-center justify-between px-5 flex-shrink-0 border-b shadow-sm">
             <PageTitle currentView={currentView} selectedProjectId={selectedProjectId} />
-            <div className="flex items-center gap-2 md:gap-3">
+            <div className="flex items-center gap-3">
               <ActiveTimer />
               <NotificationBell onNavigateToProject={(projectId) => {
                 setCurrentView('workspace');
                 handleSelectProject(projectId, 'workspace');
               }} />
               {profile && (
-                <button onClick={() => setProfileSettingsOpen(true)} className="rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                <button
+                  onClick={() => setProfileSettingsOpen(true)}
+                  className="rounded-full ring-2 ring-transparent hover:ring-primary/20 transition-all"
+                >
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
                       {getInitials(profile.full_name)}
                     </AvatarFallback>
                   </Avatar>

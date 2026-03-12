@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Home, Building2, Clock, LogOut, Settings, PanelLeftClose, PanelLeft, CalendarDays, DollarSign, Puzzle, Shield } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import { useSuperAdmin } from '@/hooks/useSuperAdmin';
+import { cn } from '@/lib/utils';
 
 export type ViewType = 'personal' | 'workspace' | 'timetracking' | 'calendar' | 'financials' | 'plugin-settings' | 'admin';
 
@@ -87,7 +88,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-xs uppercase tracking-wider text-muted-foreground/70">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {coreNavItems.map(({ view, label, icon: Icon }) => (
@@ -96,7 +97,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                     isActive={currentView === view}
                     onClick={() => onViewChange(view)}
                     tooltip={label}
+                    className={cn(
+                      'relative',
+                      currentView === view && 'bg-primary/10 text-primary font-medium'
+                    )}
                   >
+                    {currentView === view && (
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r-full" />
+                    )}
                     <Icon className="h-4 w-4" />
                     <span>{label}</span>
                   </SidebarMenuButton>
@@ -111,7 +119,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           <>
             <SidebarSeparator />
             <SidebarGroup>
-              <SidebarGroupLabel>Modules</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-xs uppercase tracking-wider text-muted-foreground/70">Modules</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {enabledPlugins.map(plugin => {
@@ -124,7 +132,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                           isActive={currentView === navInfo.view}
                           onClick={() => onViewChange(navInfo.view)}
                           tooltip={navInfo.label}
+                          className={cn(
+                            'relative',
+                            currentView === navInfo.view && 'bg-primary/10 text-primary font-medium'
+                          )}
                         >
+                          {currentView === navInfo.view && (
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r-full" />
+                          )}
                           <Icon className="h-4 w-4" />
                           <span>{navInfo.label}</span>
                         </SidebarMenuButton>
@@ -136,7 +151,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                       isActive={currentView === 'plugin-settings'}
                       onClick={() => onViewChange('plugin-settings')}
                       tooltip="Plugin Settings"
+                      className={cn(
+                        'relative',
+                        currentView === 'plugin-settings' && 'bg-primary/10 text-primary font-medium'
+                      )}
                     >
+                      {currentView === 'plugin-settings' && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r-full" />
+                      )}
                       <Puzzle className="h-4 w-4" />
                       <span>Plugin Settings</span>
                     </SidebarMenuButton>
@@ -152,7 +174,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           <>
             <SidebarSeparator />
             <SidebarGroup>
-              <SidebarGroupLabel>Modules</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-xs uppercase tracking-wider text-muted-foreground/70">Modules</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
@@ -160,7 +182,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                       isActive={currentView === 'plugin-settings'}
                       onClick={() => onViewChange('plugin-settings')}
                       tooltip="Plugin Settings"
+                      className={cn(
+                        'relative',
+                        currentView === 'plugin-settings' && 'bg-primary/10 text-primary font-medium'
+                      )}
                     >
+                      {currentView === 'plugin-settings' && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r-full" />
+                      )}
                       <Puzzle className="h-4 w-4" />
                       <span>Plugin Settings</span>
                     </SidebarMenuButton>
@@ -176,7 +205,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           <>
             <SidebarSeparator />
             <SidebarGroup>
-              <SidebarGroupLabel>System</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-xs uppercase tracking-wider text-muted-foreground/70">System</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
@@ -184,7 +213,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                       isActive={currentView === 'admin'}
                       onClick={() => onViewChange('admin')}
                       tooltip="Admin"
+                      className={cn(
+                        'relative',
+                        currentView === 'admin' && 'bg-primary/10 text-primary font-medium'
+                      )}
                     >
+                      {currentView === 'admin' && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r-full" />
+                      )}
                       <Shield className="h-4 w-4" />
                       <span>Admin</span>
                     </SidebarMenuButton>
@@ -202,9 +238,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         {profile && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 px-2 py-2 w-full rounded-md hover:bg-sidebar-accent transition-colors">
+              <button className="flex items-center gap-2 px-2 py-2.5 w-full rounded-lg hover:bg-sidebar-accent transition-colors">
                 <Avatar className="h-8 w-8 flex-shrink-0">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
                     {getInitials(profile.full_name)}
                   </AvatarFallback>
                 </Avatar>
