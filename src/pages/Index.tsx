@@ -38,9 +38,9 @@ const PageTitle: React.FC<{ currentView: ViewType; selectedProjectId: string | n
   const { data: project } = useProject(selectedProjectId || undefined);
 
   if (selectedProjectId && project) {
-    return <h1 className="text-lg font-semibold truncate text-foreground">{project.name}</h1>;
+    return <h1 className="text-base font-semibold truncate text-foreground">{project.name}</h1>;
   }
-  return <h1 className="text-lg font-semibold text-foreground">{viewTitles[currentView]}</h1>;
+  return <h1 className="text-base font-semibold text-foreground">{viewTitles[currentView]}</h1>;
 };
 
 const Dashboard: React.FC = () => {
@@ -114,7 +114,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       <div className="min-h-screen flex w-full">
         <AppSidebar
           currentView={currentView}
@@ -122,10 +122,10 @@ const Dashboard: React.FC = () => {
           onOpenProfileSettings={() => setProfileSettingsOpen(true)}
         />
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Glass top bar */}
-          <header className="glass h-16 flex items-center justify-between px-6 flex-shrink-0 border-b sticky top-0 z-30">
+          {/* Slim top bar */}
+          <header className="h-14 flex items-center justify-between px-5 flex-shrink-0 border-b border-border/40 bg-background/60 backdrop-blur-lg sticky top-0 z-30">
             <PageTitle currentView={currentView} selectedProjectId={selectedProjectId} />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <ActiveTimer />
               <NotificationBell onNavigateToProject={(projectId) => {
                 setCurrentView('workspace');
@@ -134,10 +134,10 @@ const Dashboard: React.FC = () => {
               {profile && (
                 <button
                   onClick={() => setProfileSettingsOpen(true)}
-                  className="rounded-full ring-2 ring-transparent hover:ring-primary/30 transition-all duration-200"
+                  className="rounded-full ring-2 ring-transparent hover:ring-primary/20 transition-all duration-200 ml-1"
                 >
-                  <Avatar className="h-9 w-9 shadow-sm">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-foreground text-background text-xs font-semibold">
                       {getInitials(profile.full_name)}
                     </AvatarFallback>
                   </Avatar>

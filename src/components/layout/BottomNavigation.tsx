@@ -18,10 +18,10 @@ interface BottomNavigationProps {
 }
 
 const navItems: { view: ViewType; label: string; icon: React.ReactNode }[] = [
-  { view: 'personal', label: 'Home', icon: <Home className="h-5 w-5" /> },
-  { view: 'workspace', label: 'Work', icon: <Building2 className="h-5 w-5" /> },
-  { view: 'calendar', label: 'Calendar', icon: <CalendarDays className="h-5 w-5" /> },
-  { view: 'timetracking', label: 'Time', icon: <Clock className="h-5 w-5" /> },
+  { view: 'personal', label: 'Home', icon: <Home className="h-4.5 w-4.5" /> },
+  { view: 'workspace', label: 'Work', icon: <Building2 className="h-4.5 w-4.5" /> },
+  { view: 'calendar', label: 'Calendar', icon: <CalendarDays className="h-4.5 w-4.5" /> },
+  { view: 'timetracking', label: 'Time', icon: <Clock className="h-4.5 w-4.5" /> },
 ];
 
 const moreItems: { view: ViewType | 'profile'; label: string; icon: React.ReactNode }[] = [
@@ -47,24 +47,24 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t md:hidden">
-        <div className="flex items-center justify-around h-[4.5rem] px-1">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/70 backdrop-blur-xl border-t border-border/30 md:hidden">
+        <div className="flex items-center justify-around h-16 px-1">
           {navItems.map(({ view, label, icon }) => (
             <Button
               key={view}
               variant="ghost"
               className={cn(
-                'flex-1 flex flex-col items-center justify-center h-full gap-1 rounded-none relative',
-                currentView === view ? 'text-primary' : 'text-muted-foreground'
+                'flex-1 flex flex-col items-center justify-center h-full gap-0.5 rounded-none relative px-0',
+                currentView === view ? 'text-foreground' : 'text-muted-foreground'
               )}
               onClick={() => onViewChange(view)}
             >
               {currentView === view && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[3px] bg-primary rounded-b-full" />
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-foreground rounded-b-full" />
               )}
               <div className={cn(
-                'p-1.5 rounded-xl transition-all',
-                currentView === view && 'bg-primary/10'
+                'p-1 rounded-lg transition-all',
+                currentView === view && 'bg-foreground/10'
               )}>
                 {icon}
               </div>
@@ -74,19 +74,19 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
           <Button
             variant="ghost"
             className={cn(
-              'flex-1 flex flex-col items-center justify-center h-full gap-1 rounded-none relative',
-              isMoreActive ? 'text-primary' : 'text-muted-foreground'
+              'flex-1 flex flex-col items-center justify-center h-full gap-0.5 rounded-none relative px-0',
+              isMoreActive ? 'text-foreground' : 'text-muted-foreground'
             )}
             onClick={() => setMoreOpen(true)}
           >
             {isMoreActive && (
-              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[3px] bg-primary rounded-b-full" />
+              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-foreground rounded-b-full" />
             )}
             <div className={cn(
-              'p-1.5 rounded-xl transition-all',
-              isMoreActive && 'bg-primary/10'
+              'p-1 rounded-lg transition-all',
+              isMoreActive && 'bg-foreground/10'
             )}>
-              <MoreHorizontal className="h-5 w-5" />
+              <MoreHorizontal className="h-4.5 w-4.5" />
             </div>
             <span className="text-[10px] font-medium">More</span>
           </Button>
@@ -94,7 +94,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
       </nav>
 
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-        <SheetContent side="bottom" className="pb-8 rounded-t-3xl">
+        <SheetContent side="bottom" className="pb-8 rounded-t-2xl">
           <SheetHeader>
             <SheetTitle>More</SheetTitle>
           </SheetHeader>
@@ -103,7 +103,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
               <Button
                 key={view}
                 variant="ghost"
-                className="w-full justify-start gap-3 h-12 rounded-xl"
+                className="w-full justify-start gap-3 h-11 rounded-xl"
                 onClick={() => {
                   if (view === 'profile') {
                     onOpenProfileSettings?.();

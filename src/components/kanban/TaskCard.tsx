@@ -88,7 +88,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
   return (
     <Card
       className={cn(
-        'transition-all hover:shadow-md group/card rounded-xl',
+        'transition-all hover:shadow-md group/card rounded-xl border-border/30',
         !isMobile && 'cursor-grab active:cursor-grabbing',
         isTimerActive && 'ring-2 ring-primary',
         deadlineStatus === 'overdue' && 'deadline-overdue',
@@ -100,12 +100,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
       onDragStart={!isMobile ? handleDragStart : undefined}
       onClick={onClick}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-3.5">
         {/* Title row */}
-        <div className="flex items-start justify-between gap-2 mb-1.5">
+        <div className="flex items-start justify-between gap-2 mb-1">
           <div className="flex items-start gap-2 flex-1 min-w-0">
-            <div className={cn('w-2 h-2 rounded-full mt-1.5 flex-shrink-0', getPriorityDot())} />
-            <h4 className="font-semibold text-sm line-clamp-2">{task.title}</h4>
+            <div className={cn('w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0', getPriorityDot())} />
+            <h4 className="font-medium text-sm line-clamp-2">{task.title}</h4>
           </div>
           {otherColumns.length > 0 && onMoveToColumn && (
             <DropdownMenu>
@@ -116,7 +116,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
                   className="h-6 w-6 p-0 flex-shrink-0 opacity-0 group-hover/card:opacity-100 transition-opacity rounded-lg"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <ArrowRightLeft className="h-3.5 w-3.5" />
+                  <ArrowRightLeft className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -138,17 +138,17 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
         </div>
         
         {task.description && (
-          <p className="text-xs text-muted-foreground line-clamp-1 mb-3 pl-4">
+          <p className="text-[11px] text-muted-foreground line-clamp-1 mb-2.5 pl-3.5">
             {task.description}
           </p>
         )}
         
         {/* Meta row */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             {task.due_date && (
               <div className={cn(
-                'flex items-center gap-1 text-xs',
+                'flex items-center gap-1 text-[11px]',
                 deadlineStatus === 'overdue' && 'text-destructive font-semibold',
                 deadlineStatus === 'urgent' && 'text-destructive/80 font-medium',
                 deadlineStatus === 'warning' && 'text-chart-4 font-medium',
@@ -159,7 +159,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
               </div>
             )}
             {typeof timeSpent === 'number' && timeSpent > 0 && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                 <Clock className="h-3 w-3" />
                 {formatDuration(timeSpent)}
               </div>
@@ -179,16 +179,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
                   size="icon"
                   variant={isTimerActive ? 'default' : 'ghost'}
                   className={cn(
-                    'h-7 w-7 flex-shrink-0 rounded-lg',
+                    'h-6 w-6 flex-shrink-0 rounded-lg',
                     !isTimerActive && 'opacity-0 group-hover/card:opacity-100 transition-opacity'
                   )}
                   onClick={handleStartTimer}
                   disabled={isTimerActive}
                 >
                   {isTimerActive ? (
-                    <span className="relative flex h-2.5 w-2.5">
+                    <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-foreground opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary-foreground" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-primary-foreground" />
                     </span>
                   ) : (
                     <Play className="h-3 w-3" />
@@ -204,14 +204,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
 
         {/* Footer: avatars + earning */}
         {(assignees.length > 0 || (typeof potentialEarning === 'number' && potentialEarning > 0)) && (
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/30">
+          <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-border/20">
             {assignees.length > 0 ? (
               <div className="flex -space-x-1.5">
                 {assignees.slice(0, 4).map(a => (
                   <Tooltip key={a.user_id}>
                     <TooltipTrigger asChild>
-                      <Avatar className="h-6 w-6 border-2 border-card">
-                        <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-medium">
+                      <Avatar className="h-5 w-5 border-2 border-card">
+                        <AvatarFallback className="text-[9px] bg-muted text-muted-foreground font-medium">
                           {getInitials(a.profile.full_name)}
                         </AvatarFallback>
                       </Avatar>
@@ -222,12 +222,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, columnName, onClick, a
                   </Tooltip>
                 ))}
                 {assignees.length > 4 && (
-                  <span className="text-xs text-muted-foreground ml-1.5">+{assignees.length - 4}</span>
+                  <span className="text-[10px] text-muted-foreground ml-1">+{assignees.length - 4}</span>
                 )}
               </div>
             ) : <div />}
             {typeof potentialEarning === 'number' && potentialEarning > 0 && (
-              <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-0.5 border-chart-2/30 bg-chart-2/10 text-chart-2 font-semibold rounded-full">
+              <Badge variant="outline" className="text-[9px] h-4 px-1.5 gap-0.5 border-chart-2/30 bg-chart-2/10 text-chart-2 font-semibold rounded-full">
                 <TrendingUp className="h-2.5 w-2.5" />
                 +{formatLKR(potentialEarning)}
               </Badge>
