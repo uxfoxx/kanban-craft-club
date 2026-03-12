@@ -10,8 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Check, XCircle, Pencil, Trash2, Clock, DollarSign, MoreHorizontal, ChevronRight, TrendingUp } from 'lucide-react';
+import { Check, XCircle, Pencil, Trash2, Clock, MoreHorizontal, ChevronRight, TrendingUp } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,15 +25,17 @@ interface SubtaskRowProps {
   subtask: Subtask;
   organizationMembers?: OrganizationMemberWithProfile[];
   taskBudget?: number;
+  teamShare?: number;
   isOrgAdmin?: boolean;
   expensesEnabled?: boolean;
   currentUserId?: string;
   projectTierId?: string;
   orgId?: string;
+  tierSlug?: string;
   onOpenDetail?: () => void;
 }
 
-export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMembers, taskBudget = 0, isOrgAdmin = false, expensesEnabled = false, currentUserId, projectTierId, orgId, onOpenDetail }) => {
+export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMembers, taskBudget = 0, teamShare = 0, isOrgAdmin = false, expensesEnabled = false, currentUserId, projectTierId, orgId, tierSlug, onOpenDetail }) => {
   const toggleSubtask = useToggleSubtask();
   const deleteSubtask = useDeleteSubtask();
   const updateSubtask = useUpdateSubtask();
@@ -44,24 +45,32 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
   const rateCardRoles = useRateCardRoles(orgId);
   const rateCardDeliverables = useRateCardDeliverables(orgId);
 
-  // Compute current user's earning from this subtask
+  const isMajor = tierSlug === 'major';
+
+  // Compute rate from rate card
+  let subtaskRate = 0;
+  if (projectTierId && expensesEnabled) {
+    const mode = subtask.commission_mode || 'role';
+    if (mode === 'role') {
+      const role = assignees[0]?.role;
+      if (role) {
+        const entry = rateCardRoles.find(r => r.name === role && (!isMajor || r.sub_category === subtask.work_type));
+        if (entry) subtaskRate = getRateForTier(entry, projectTierId);
+      }
+    } else if (mode === 'type' && subtask.work_type) {
+      const entry = rateCardDeliverables.find(d => d.name === subtask.work_type && d.complexity === subtask.complexity);
+      if (entry) subtaskRate = getRateForTier(entry, projectTierId);
+    }
+  }
+
+  const perPersonRate = assignees.length > 0 ? subtaskRate / assignees.length : subtaskRate;
+
+  // Current user's earning
   let myEarning = 0;
   if (currentUserId && projectTierId && expensesEnabled) {
-    const myAssignment = assignees.find(a => a.user_id === currentUserId);
-    if (myAssignment) {
-      const mode = subtask.commission_mode || 'role';
-      if (subtask.commission_type && subtask.commission_value > 0) {
-        const assigneeCount = assignees.length || 1;
-        myEarning = subtask.commission_type === 'percentage'
-          ? ((subtask.commission_value / 100) * taskBudget) / assigneeCount
-          : subtask.commission_value / assigneeCount;
-      } else if (mode === 'role' && (myAssignment as any).role) {
-        const entry = rateCardRoles.find(r => r.name === (myAssignment as any).role);
-        if (entry) myEarning = getRateForTier(entry, projectTierId);
-      } else if (mode === 'type' && subtask.work_type) {
-        const entry = rateCardDeliverables.find(d => d.name === subtask.work_type && d.complexity === subtask.complexity);
-        if (entry) myEarning = getRateForTier(entry, projectTierId);
-      }
+    const isAssigned = assignees.some(a => a.user_id === currentUserId);
+    if (isAssigned && subtaskRate > 0) {
+      myEarning = perPersonRate;
     }
   }
 
@@ -111,8 +120,17 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
             <span className={cn('text-sm block truncate', subtask.completed && 'line-through text-muted-foreground')}>
               {subtask.title}
             </span>
-            {/* Summary line */}
-            <div className="flex items-center gap-2 mt-0.5">
+            {/* Summary badges */}
+            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              {expensesEnabled && subtask.work_type && (
+                <Badge variant="outline" className="text-[10px] h-4 px-1">{subtask.work_type}</Badge>
+              )}
+              {expensesEnabled && subtask.complexity && (
+                <Badge variant="outline" className="text-[10px] h-4 px-1">{subtask.complexity}</Badge>
+              )}
+              {expensesEnabled && subtask.commission_mode === 'role' && assignees[0]?.role && (
+                <Badge variant="outline" className="text-[10px] h-4 px-1">{assignees[0].role}</Badge>
+              )}
               {assignees.length > 0 && (
                 <span className="text-xs text-muted-foreground">{assignees.length} assignee{assignees.length > 1 ? 's' : ''}</span>
               )}
@@ -121,10 +139,10 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
                   <Clock className="h-2.5 w-2.5" /> {formatDuration(totalTime)}
                 </span>
               )}
-              {expensesEnabled && subtask.commission_type && subtask.commission_value > 0 && (
-                <Badge variant="outline" className="text-[10px] h-4 px-1">
-                  <DollarSign className="h-2.5 w-2.5" />
-                  {subtask.commission_type === 'percentage' ? `${subtask.commission_value}%` : formatLKR(subtask.commission_value)}
+              {subtaskRate > 0 && (
+                <Badge variant="outline" className="text-[10px] h-4 px-1 gap-0.5 border-chart-2/30 bg-chart-2/10 text-chart-2 font-semibold">
+                  {formatLKR(subtaskRate)}
+                  {assignees.length > 1 && ` ÷${assignees.length}`}
                 </Badge>
               )}
               {myEarning > 0 && (

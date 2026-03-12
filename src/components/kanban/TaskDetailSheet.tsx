@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Task, KanbanColumn, TimeEntry } from '@/types/database';
 import { useIsOrgAdmin } from '@/hooks/useIsOrgAdmin';
-import { useSubtasks, useCreateSubtask, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
+import { useSubtasks, useCreateSubtask, useUpdateTask, useDeleteTask, useUpdateSubtask } from '@/hooks/useTasks';
 import { useTimeEntries, formatDuration, useDeleteTimeEntry } from '@/hooks/useTimeTracking';
 import { formatLKR } from '@/lib/currency';
 import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee } from '@/hooks/useAssignees';
 import { useOrganizationMembersForProject } from '@/hooks/useOrganizations';
 import { useOrganizationTiers, getTierForBudget } from '@/hooks/useOrganizationTiers';
+import { useRateCard, useRateCardRoles, useRateCardDeliverables, getRateForTier, useRateCardForTier } from '@/hooks/useRateCard';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProject } from '@/hooks/useProjects';
@@ -50,7 +51,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Clock, Flag, Calendar as CalendarIcon, X, Trash2, Pencil, Check, XCircle, DollarSign, ArrowLeft, PartyPopper, AlertTriangle, Shield, TrendingUp } from 'lucide-react';
+import { Plus, Clock, Flag, Calendar as CalendarIcon, X, Trash2, Pencil, Check, XCircle, DollarSign, ArrowLeft, PartyPopper, Shield, TrendingUp, ToggleLeft, ToggleRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -82,13 +83,15 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const { data: project } = useProject(projectId);
   const createSubtask = useCreateSubtask();
   const updateTask = useUpdateTask();
+  const updateSubtask = useUpdateSubtask();
   const deleteTask = useDeleteTask();
   const deleteTimeEntry = useDeleteTimeEntry();
   const addAssignee = useAddTaskAssignee();
   const removeAssignee = useRemoveTaskAssignee();
 
   const { data: orgTiers = [] } = useOrganizationTiers(currentOrganization?.id);
-  const projectTier = orgTiers.find(t => t.id === project?.tier_id) || getTierForBudget(orgTiers, Number(project?.budget || 0));
+  const rateCardRoles = useRateCardRoles(currentOrganization?.id);
+  const rateCardDeliverables = useRateCardDeliverables(currentOrganization?.id);
 
   // Get current user's earnings for this task
   const { data: earningsMap = {} } = useProjectSubtaskEarnings(
@@ -96,11 +99,20 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   );
   const myTaskEarning = task ? earningsMap[task.id] || 0 : 0;
 
-  // Auto-detect tier from task budget
+  // Task's tier — from task budget or project tier
   const taskBudget = task ? Number((task as any).budget || task.cost || 0) : 0;
+  const taskTeamShare = task ? Number((task as any).team_share || 0) : 0;
   const taskTier = taskBudget > 0 ? getTierForBudget(orgTiers, taskBudget) : null;
+  const tierSlug = taskTier?.slug?.toLowerCase();
+  const isMajor = tierSlug === 'major';
+  const isMinorOrNano = tierSlug === 'minor' || tierSlug === 'nano';
 
   const [newSubtask, setNewSubtask] = useState('');
+  const [newSubtaskType, setNewSubtaskType] = useState<string>('');
+  const [newSubtaskRole, setNewSubtaskRole] = useState<string>('');
+  const [newSubtaskMode, setNewSubtaskMode] = useState<'role' | 'type'>('role');
+  const [newSubtaskDeliverable, setNewSubtaskDeliverable] = useState<string>('');
+  const [newSubtaskComplexity, setNewSubtaskComplexity] = useState<string>('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
   const [isEditingDescription, setIsEditingDescription] = useState(false);
@@ -112,28 +124,14 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const [isDelivering, setIsDelivering] = useState(false);
 
   // Local state for debounced inputs
-  const [localEstimatedHours, setLocalEstimatedHours] = useState('');
   const [localBudget, setLocalBudget] = useState('');
-  const [localWeightPct, setLocalWeightPct] = useState('');
+  const [localTeamShare, setLocalTeamShare] = useState('');
 
   const taskId = task?.id;
   useEffect(() => {
-    setLocalEstimatedHours(task?.estimated_hours != null ? String(task.estimated_hours) : '');
     setLocalBudget((task as any)?.budget || task?.cost ? String((task as any)?.budget || task?.cost) : '');
-    setLocalWeightPct(task?.weight_pct != null ? String(task.weight_pct) : '');
+    setLocalTeamShare((task as any)?.team_share ? String((task as any).team_share) : '');
   }, [taskId]);
-
-  // Debounced save for estimated_hours
-  const isFirstRenderEH = useRef(true);
-  useEffect(() => {
-    if (isFirstRenderEH.current) { isFirstRenderEH.current = false; return; }
-    const timeout = setTimeout(() => {
-      if (!task) return;
-      const val = localEstimatedHours ? parseFloat(localEstimatedHours) : null;
-      updateTask.mutateAsync({ taskId: task.id, updates: { estimated_hours: val } as any, projectId }).catch(() => {});
-    }, 800);
-    return () => clearTimeout(timeout);
-  }, [localEstimatedHours]);
 
   // Debounced save for budget
   const isFirstRenderBudget = useRef(true);
@@ -147,26 +145,52 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
     return () => clearTimeout(timeout);
   }, [localBudget]);
 
-  // Debounced save for weight_pct
-  const isFirstRenderWeight = useRef(true);
+  // Debounced save for team_share
+  const isFirstRenderTeamShare = useRef(true);
   useEffect(() => {
-    if (isFirstRenderWeight.current) { isFirstRenderWeight.current = false; return; }
+    if (isFirstRenderTeamShare.current) { isFirstRenderTeamShare.current = false; return; }
     const timeout = setTimeout(() => {
       if (!task) return;
-      const val = localWeightPct ? parseFloat(localWeightPct) : null;
-      updateTask.mutateAsync({ taskId: task.id, updates: { weight_pct: val } as any, projectId }).catch(() => {});
+      const val = parseFloat(localTeamShare) || 0;
+      updateTask.mutateAsync({ taskId: task.id, updates: { team_share: val } as any, projectId }).catch(() => {});
     }, 800);
     return () => clearTimeout(timeout);
-  }, [localWeightPct]);
+  }, [localTeamShare]);
 
   const { currentPage, navigateTo, goBack, isRoot, resetTo } = useSheetPageStack();
+
+  // Get roles filtered by sub_category for MAJOR tier
+  const majorTypes = ['Films', 'Photography', 'Design'];
+  const rolesForType = (type: string) => {
+    return rateCardRoles.filter(r => r.sub_category === type);
+  };
 
   const handleAddSubtask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!task || !newSubtask.trim()) return;
     try {
-      await createSubtask.mutateAsync({ taskId: task.id, title: newSubtask.trim() });
+      const subtaskData: any = { taskId: task.id, title: newSubtask.trim() };
+      
+      if (isMajor && newSubtaskType) {
+        subtaskData.work_type = newSubtaskType;
+        subtaskData.commission_mode = 'role';
+      } else if (isMinorOrNano) {
+        subtaskData.commission_mode = newSubtaskMode;
+        if (newSubtaskMode === 'role') {
+          // role set on subtask-level
+        } else {
+          subtaskData.work_type = newSubtaskDeliverable || null;
+          subtaskData.complexity = newSubtaskComplexity || null;
+        }
+      }
+
+      await createSubtask.mutateAsync(subtaskData);
       setNewSubtask('');
+      setNewSubtaskType('');
+      setNewSubtaskRole('');
+      setNewSubtaskMode('role');
+      setNewSubtaskDeliverable('');
+      setNewSubtaskComplexity('');
       toast.success('Subtask added');
     } catch { toast.error('Failed to add subtask'); }
   };
@@ -257,7 +281,6 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const handleAddAssignee = async (userId: string) => {
     if (!task) return;
     try {
-      // If no assignees yet, first one becomes Task Manager
       const isFirst = !assignees || assignees.length === 0;
       await addAssignee.mutateAsync({ taskId: task.id, userId, role: isFirst ? 'Task Manager' : undefined });
       toast.success('Assignee added');
@@ -279,8 +302,10 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const assigneeUserIds = assignees?.map(a => a.user_id) || [];
   const unassignedMembers = organizationMembers.filter(m => !assigneeUserIds.includes(m.user_id));
   const commentCount = comments?.length || 0;
-  const estimatedSeconds = task?.estimated_hours ? task.estimated_hours * 3600 : 0;
-  const isOverEstimate = estimatedSeconds > 0 && totalTimeSpent > estimatedSeconds;
+
+  // Split assignees into Team Lead and Others
+  const teamLead = assignees?.find(a => (a as any).role === 'Task Manager');
+  const otherAssignees = assignees?.filter(a => (a as any).role !== 'Task Manager') || [];
 
   const selectedSubtask = subtasks?.find(s => s.id === selectedSubtaskId);
 
@@ -376,6 +401,9 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                   </SelectContent>
                 </Select>
               )}
+              {taskTier && (
+                <Badge variant="secondary" className="text-xs">{taskTier.name}</Badge>
+              )}
             </SheetDescription>
           </SheetHeader>
         </div>
@@ -395,9 +423,12 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                 <SubtaskDetailPage
                   subtask={selectedSubtask}
                   organizationMembers={organizationMembers}
-                  taskBudget={(task as any).budget || task.cost || 0}
+                  taskBudget={taskBudget}
+                  teamShare={taskTeamShare}
                   isOrgAdmin={isAdmin}
                   expensesEnabled={expensesEnabled}
+                  taskTier={taskTier}
+                  orgId={currentOrganization?.id}
                 />
               </div>
             </div>
@@ -441,80 +472,86 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
 
                   <Separator />
 
-                  {/* Assignees - single section with Task Manager badge */}
+                  {/* Team Lead */}
                   <div>
-                    <h4 className="text-sm font-medium mb-3">Assignees</h4>
-                    {assignees && assignees.length > 0 ? (
-                      <div className="space-y-2">
-                        {assignees.map((assignee, index) => {
-                          const assigneeRole = (assignee as any).role as string | null;
-                          const isTaskManager = assigneeRole === 'Task Manager';
-                          return (
-                            <div key={assignee.id} className="flex items-center justify-between p-3 rounded-lg border">
-                              <div className="flex items-center gap-3">
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage src={assignee.profiles?.avatar_url || undefined} />
-                                  <AvatarFallback className="text-xs">{assignee.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="text-sm font-medium flex items-center gap-1.5">
-                                    {assignee.profiles?.full_name || 'Unknown'}
-                                    {isTaskManager && (
-                                      <Badge variant="default" className="text-[10px] h-4 px-1.5 gap-0.5">
-                                        <Shield className="h-2.5 w-2.5" />
-                                        Task Manager
-                                      </Badge>
-                                    )}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">{assignee.profiles?.email}</p>
-                                </div>
-                              </div>
-                              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleRemoveAssignee(assignee.user_id)}>
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          );
-                        })}
+                    <h4 className="text-sm font-medium mb-3 flex items-center gap-1.5">
+                      <Shield className="h-4 w-4" /> Team Lead
+                    </h4>
+                    {teamLead ? (
+                      <div className="flex items-center justify-between p-3 rounded-lg border">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={teamLead.profiles?.avatar_url || undefined} />
+                            <AvatarFallback className="text-xs">{teamLead.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="text-sm font-medium">{teamLead.profiles?.full_name || 'Unknown'}</p>
+                            <p className="text-xs text-muted-foreground">{teamLead.profiles?.email}</p>
+                          </div>
+                        </div>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleRemoveAssignee(teamLead.user_id)}>
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground text-center py-4">No assignees yet</p>
-                    )}
-                    {unassignedMembers.length > 0 && (
-                      <div className="mt-3">
-                        <Select onValueChange={handleAddAssignee}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Add assignee..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {unassignedMembers.map((member) => (
-                              <SelectItem key={member.user_id} value={member.user_id}>
-                                {member.profiles?.full_name || member.profiles?.email || 'Unknown'}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2">No team lead assigned</p>
+                        {unassignedMembers.length > 0 && (
+                          <Select onValueChange={handleAddAssignee}>
+                            <SelectTrigger><SelectValue placeholder="Assign team lead..." /></SelectTrigger>
+                            <SelectContent>
+                              {unassignedMembers.map((member) => (
+                                <SelectItem key={member.user_id} value={member.user_id}>
+                                  {member.profiles?.full_name || member.profiles?.email || 'Unknown'}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
                     )}
                   </div>
 
                   <Separator />
 
-                  {/* Estimated Hours */}
+                  {/* Assignees */}
                   <div>
-                    <h4 className="text-sm font-medium mb-2">Estimated Hours</h4>
-                    <Input
-                      type="number"
-                      value={localEstimatedHours}
-                      onChange={(e) => setLocalEstimatedHours(e.target.value)}
-                      placeholder="e.g. 8"
-                      min="0"
-                      step="0.5"
-                      className="w-32"
-                    />
-                    {isOverEstimate && (
-                      <div className="flex items-center gap-1.5 mt-2 text-destructive text-xs font-medium">
-                        <AlertTriangle className="h-3.5 w-3.5" />
-                        Time tracked exceeds estimate by {formatDuration(totalTimeSpent - estimatedSeconds)}
+                    <h4 className="text-sm font-medium mb-3">Assignees</h4>
+                    {otherAssignees.length > 0 ? (
+                      <div className="space-y-2">
+                        {otherAssignees.map((assignee) => (
+                          <div key={assignee.id} className="flex items-center justify-between p-3 rounded-lg border">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={assignee.profiles?.avatar_url || undefined} />
+                                <AvatarFallback className="text-xs">{assignee.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="text-sm font-medium">{assignee.profiles?.full_name || 'Unknown'}</p>
+                                <p className="text-xs text-muted-foreground">{assignee.profiles?.email}</p>
+                              </div>
+                            </div>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleRemoveAssignee(assignee.user_id)}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-2">No additional assignees</p>
+                    )}
+                    {unassignedMembers.filter(m => m.user_id !== teamLead?.user_id).length > 0 && (
+                      <div className="mt-3">
+                        <Select onValueChange={handleAddAssignee}>
+                          <SelectTrigger><SelectValue placeholder="Add assignee..." /></SelectTrigger>
+                          <SelectContent>
+                            {unassignedMembers.filter(m => m.user_id !== teamLead?.user_id).map((member) => (
+                              <SelectItem key={member.user_id} value={member.user_id}>
+                                {member.profiles?.full_name || member.profiles?.email || 'Unknown'}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     )}
                   </div>
@@ -584,22 +621,97 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                         <span className="text-xs text-muted-foreground">{completedSubtasks}/{totalSubtasks}</span>
                       </div>
                     )}
-                    <form onSubmit={handleAddSubtask} className="flex gap-2 mb-3">
-                      <Input value={newSubtask} onChange={(e) => setNewSubtask(e.target.value)} placeholder="Add a subtask..." className="flex-1" />
-                      <Button type="submit" size="sm" disabled={!newSubtask.trim()}><Plus className="h-4 w-4" /></Button>
+
+                    {/* Add subtask form - tier-aware */}
+                    <form onSubmit={handleAddSubtask} className="space-y-3 mb-4 p-3 rounded-lg border bg-muted/30">
+                      <Input value={newSubtask} onChange={(e) => setNewSubtask(e.target.value)} placeholder="Subtask title..." className="flex-1" />
+                      
+                      {expensesEnabled && isMajor && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <Select value={newSubtaskType} onValueChange={(v) => { setNewSubtaskType(v); setNewSubtaskRole(''); }}>
+                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Type..." /></SelectTrigger>
+                            <SelectContent>
+                              {majorTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          {newSubtaskType && (
+                            <Select value={newSubtaskRole} onValueChange={setNewSubtaskRole}>
+                              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Role..." /></SelectTrigger>
+                              <SelectContent>
+                                {rolesForType(newSubtaskType).map(r => (
+                                  <SelectItem key={r.id} value={r.name}>
+                                    {r.name} {taskTier && getRateForTier(r, taskTier.id) > 0 ? `(${formatLKR(getRateForTier(r, taskTier.id))})` : ''}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                      )}
+
+                      {expensesEnabled && isMinorOrNano && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Button type="button" variant={newSubtaskMode === 'role' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => setNewSubtaskMode('role')}>
+                              Role-based
+                            </Button>
+                            <Button type="button" variant={newSubtaskMode === 'type' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => setNewSubtaskMode('type')}>
+                              Deliverable
+                            </Button>
+                          </div>
+                          {newSubtaskMode === 'role' ? (
+                            <Select value={newSubtaskRole} onValueChange={setNewSubtaskRole}>
+                              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select role..." /></SelectTrigger>
+                              <SelectContent>
+                                {rateCardRoles.filter(r => taskTier && getRateForTier(r, taskTier.id) > 0).map(r => (
+                                  <SelectItem key={r.id} value={r.name}>
+                                    {r.name} ({formatLKR(taskTier ? getRateForTier(r, taskTier.id) : 0)})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <div className="grid grid-cols-2 gap-2">
+                              <Select value={newSubtaskDeliverable} onValueChange={setNewSubtaskDeliverable}>
+                                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Deliverable..." /></SelectTrigger>
+                                <SelectContent>
+                                  {[...new Set(rateCardDeliverables.map(d => d.name))].map(name => (
+                                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Select value={newSubtaskComplexity} onValueChange={setNewSubtaskComplexity}>
+                                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Complexity..." /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Quick">Quick</SelectItem>
+                                  <SelectItem value="Standard">Standard</SelectItem>
+                                  <SelectItem value="Advanced">Advanced</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <Button type="submit" size="sm" disabled={!newSubtask.trim()} className="w-full">
+                        <Plus className="h-4 w-4 mr-1" /> Add Subtask
+                      </Button>
                     </form>
+
                     <div className="space-y-2">
                       {subtasks?.map((subtask) => (
                         <SubtaskRow
                           key={subtask.id}
                           subtask={subtask}
                           organizationMembers={organizationMembers}
-                          taskBudget={(task as any).budget || task.cost || 0}
+                          taskBudget={taskBudget}
+                          teamShare={taskTeamShare}
                           isOrgAdmin={isAdmin}
                           expensesEnabled={expensesEnabled}
                           currentUserId={user?.id}
-                          projectTierId={projectTier?.id}
+                          projectTierId={taskTier?.id}
                           orgId={currentOrganization?.id}
+                          tierSlug={tierSlug}
                           onOpenDetail={() => {
                             setSelectedSubtaskId(subtask.id);
                             navigateTo('subtask-detail');
@@ -624,23 +736,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                     </div>
                     {totalTimeSpent > 0 && (
                       <div className="mb-3">
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-2xl font-bold">{formatDuration(totalTimeSpent)}</span>
-                          {estimatedSeconds > 0 && (
-                            <span className="text-sm text-muted-foreground">/ {(task as any).estimated_hours}h estimated</span>
-                          )}
-                        </div>
-                        {estimatedSeconds > 0 && (
-                          <Progress
-                            value={Math.min((totalTimeSpent / estimatedSeconds) * 100, 100)}
-                            className={cn("h-2 mt-2", isOverEstimate && "[&>div]:bg-destructive")}
-                          />
-                        )}
-                        {isOverEstimate && (
-                          <p className="text-xs text-destructive mt-1 flex items-center gap-1">
-                            <AlertTriangle className="h-3 w-3" /> Over estimate
-                          </p>
-                        )}
+                        <span className="text-2xl font-bold">{formatDuration(totalTimeSpent)}</span>
                       </div>
                     )}
                     {timeEntries && timeEntries.length > 0 ? (
@@ -672,34 +768,42 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
               {expensesEnabled && (
                 <TabsContent value="finance" className="flex-1 overflow-y-auto px-6 pb-20 md:pb-6 mt-0 pt-4">
                   <div className="space-y-4">
-                    {/* Auto-detected tier badge */}
-                    {taskTier && (
-                      <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border">
-                        <Badge variant="secondary">{taskTier.name}</Badge>
-                        <span className="text-xs text-muted-foreground">Tier (auto-detected from budget)</span>
-                      </div>
-                    )}
-
                     {isAdmin ? (
                       <>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Task Budget</label>
-                          <Input
-                            type="number"
-                            value={localBudget}
-                            onChange={(e) => setLocalBudget(e.target.value)}
-                            min="0" step="0.01"
-                          />
-                        </div>
+                        {/* Tier dropdown */}
+                        {orgTiers.length > 0 && (
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Tier</label>
+                            <div className="flex items-center gap-2">
+                              {taskTier ? (
+                                <Badge variant="secondary">{taskTier.name}</Badge>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">Auto-detected from budget</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
 
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Weight %</label>
-                          <Input
-                            type="number"
-                            value={localWeightPct}
-                            onChange={(e) => setLocalWeightPct(e.target.value)}
-                            min="0" max="100" step="0.01"
-                          />
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Task Budget (LKR)</label>
+                            <Input
+                              type="number"
+                              value={localBudget}
+                              onChange={(e) => setLocalBudget(e.target.value)}
+                              min="0" step="0.01"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Team Share (LKR)</label>
+                            <Input
+                              type="number"
+                              value={localTeamShare}
+                              onChange={(e) => setLocalTeamShare(e.target.value)}
+                              min="0" step="0.01"
+                            />
+                            <p className="text-xs text-muted-foreground">Amount divided among subtask workers</p>
+                          </div>
                         </div>
                       </>
                     ) : (
@@ -762,46 +866,62 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
 
 // --- Subtask Detail Page (shown inside the task sheet) ---
 import { useSubtaskTimeEntries, useDeleteSubtaskTimeEntry, useActiveSubtaskTimeEntry, useStartSubtaskTimeEntry, useStopSubtaskTimeEntry } from '@/hooks/useSubtaskTimeTracking';
-import { useSubtaskAssignees, useAddSubtaskAssignee, useRemoveSubtaskAssignee } from '@/hooks/useAssignees';
+import { useSubtaskAssignees, useAddSubtaskAssignee, useRemoveSubtaskAssignee, useUpdateSubtaskAssigneeRole } from '@/hooks/useAssignees';
 import { SubtaskTimeEntryDialog } from '@/components/time/SubtaskTimeEntryDialog';
-import { Subtask } from '@/types/database';
+import { Subtask, OrganizationTier } from '@/types/database';
 import { OrganizationMemberWithProfile } from '@/hooks/useOrganizations';
 import { supabase } from '@/integrations/supabase/client';
 import { Play, Square } from 'lucide-react';
+import { useRateCardRoles as useRCRoles, useRateCardDeliverables as useRCDeliverables, getRateForTier as getRate } from '@/hooks/useRateCard';
 
 const SubtaskDetailPage: React.FC<{
   subtask: Subtask;
   organizationMembers: OrganizationMemberWithProfile[];
   taskBudget: number;
+  teamShare: number;
   isOrgAdmin: boolean;
   expensesEnabled?: boolean;
-}> = ({ subtask, organizationMembers, taskBudget, isOrgAdmin, expensesEnabled }) => {
+  taskTier?: OrganizationTier | null;
+  orgId?: string;
+}> = ({ subtask, organizationMembers, taskBudget, teamShare, isOrgAdmin, expensesEnabled, taskTier, orgId }) => {
   const { data: timeEntries = [] } = useSubtaskTimeEntries(subtask.id);
   const { data: assignees = [] } = useSubtaskAssignees(subtask.id);
   const { data: globalActiveTimer } = useActiveSubtaskTimeEntry();
   const deleteTimeEntry = useDeleteSubtaskTimeEntry();
   const addAssignee = useAddSubtaskAssignee();
   const removeAssignee = useRemoveSubtaskAssignee();
+  const updateAssigneeRole = useUpdateSubtaskAssigneeRole();
   const startTimer = useStartSubtaskTimeEntry();
   const stopTimer = useStopSubtaskTimeEntry();
+  const updateSubtask = useUpdateSubtask();
   const [showTimeEntryDialog, setShowTimeEntryDialog] = useState(false);
   const [timerElapsed, setTimerElapsed] = useState(0);
 
-  const [localCommissionValue, setLocalCommissionValue] = useState<string>('');
-  const subtaskIdRef = subtask.id;
-  useEffect(() => {
-    setLocalCommissionValue(subtask.commission_value ? String(subtask.commission_value) : '');
-  }, [subtaskIdRef]);
+  const roles = useRCRoles(orgId);
+  const deliverables = useRCDeliverables(orgId);
+  const tierSlug = taskTier?.slug?.toLowerCase();
+  const isMajor = tierSlug === 'major';
+  const isMinorOrNano = tierSlug === 'minor' || tierSlug === 'nano';
 
-  const isFirstRenderCommission = useRef(true);
-  useEffect(() => {
-    if (isFirstRenderCommission.current) { isFirstRenderCommission.current = false; return; }
-    const timeout = setTimeout(() => {
-      const val = parseFloat(localCommissionValue) || 0;
-      supabase.from('subtasks').update({ commission_value: val } as any).eq('id', subtask.id).then(() => {});
-    }, 800);
-    return () => clearTimeout(timeout);
-  }, [localCommissionValue]);
+  // Compute auto commission from rate card
+  const getSubtaskRate = () => {
+    if (!taskTier) return 0;
+    const mode = subtask.commission_mode || 'role';
+    if (mode === 'role') {
+      // For major: use work_type as sub_category filter
+      const role = assignees[0]?.role;
+      if (!role) return 0;
+      const entry = roles.find(r => r.name === role && (!isMajor || r.sub_category === subtask.work_type));
+      return entry ? getRate(entry, taskTier.id) : 0;
+    } else if (mode === 'type' && subtask.work_type) {
+      const entry = deliverables.find(d => d.name === subtask.work_type && d.complexity === subtask.complexity);
+      return entry ? getRate(entry, taskTier.id) : 0;
+    }
+    return 0;
+  };
+
+  const autoRate = getSubtaskRate();
+  const perPersonRate = assignees.length > 0 ? autoRate / assignees.length : autoRate;
 
   const activeTimer = globalActiveTimer?.subtask_id === subtask.id ? globalActiveTimer : null;
 
@@ -816,6 +936,10 @@ const SubtaskDetailPage: React.FC<{
 
   const totalTime = timeEntries.reduce((acc, entry) => acc + (entry.duration_seconds || 0), 0) + (activeTimer ? timerElapsed : 0);
   const availableMembers = organizationMembers?.filter(m => !assignees.some(a => a.user_id === m.user_id)) || [];
+
+  // Major type roles for the subtask's type
+  const majorTypes = ['Films', 'Photography', 'Design'];
+  const rolesForType = (type: string) => roles.filter(r => r.sub_category === type);
 
   return (
     <div className="space-y-6">
@@ -835,18 +959,123 @@ const SubtaskDetailPage: React.FC<{
 
       <Separator />
 
-      {/* Assignees */}
+      {/* Tier-based commission info */}
+      {expensesEnabled && taskTier && (
+        <>
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium flex items-center gap-2"><DollarSign className="h-4 w-4" /> Commission</h4>
+            <div className="p-3 rounded-lg bg-muted/50 border space-y-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="secondary" className="text-xs">{taskTier.name}</Badge>
+                {subtask.commission_mode === 'role' && <Badge variant="outline" className="text-xs">Role-based</Badge>}
+                {subtask.commission_mode === 'type' && <Badge variant="outline" className="text-xs">Deliverable</Badge>}
+                {subtask.work_type && <Badge variant="outline" className="text-xs">{subtask.work_type}</Badge>}
+                {subtask.complexity && <Badge variant="outline" className="text-xs">{subtask.complexity}</Badge>}
+              </div>
+              {autoRate > 0 && (
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Rate: </span>
+                  <span className="font-semibold text-chart-2">{formatLKR(autoRate)}</span>
+                  {assignees.length > 1 && (
+                    <span className="text-muted-foreground"> ÷ {assignees.length} = {formatLKR(perPersonRate)} each</span>
+                  )}
+                </div>
+              )}
+
+              {/* MAJOR: change type */}
+              {isOrgAdmin && isMajor && (
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <Select value={subtask.work_type || ''} onValueChange={async (v) => {
+                    try { await updateSubtask.mutateAsync({ subtaskId: subtask.id, taskId: subtask.task_id, work_type: v }); toast.success('Updated'); } catch { toast.error('Failed'); }
+                  }}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Type..." /></SelectTrigger>
+                    <SelectContent>
+                      {majorTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* MINOR/NANO: mode toggle + fields */}
+              {isOrgAdmin && isMinorOrNano && (
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant={subtask.commission_mode === 'role' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={async () => {
+                      try { await updateSubtask.mutateAsync({ subtaskId: subtask.id, taskId: subtask.task_id, commission_mode: 'role' }); toast.success('Updated'); } catch { toast.error('Failed'); }
+                    }}>
+                      Role-based
+                    </Button>
+                    <Button type="button" variant={subtask.commission_mode === 'type' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={async () => {
+                      try { await updateSubtask.mutateAsync({ subtaskId: subtask.id, taskId: subtask.task_id, commission_mode: 'type' }); toast.success('Updated'); } catch { toast.error('Failed'); }
+                    }}>
+                      Deliverable
+                    </Button>
+                  </div>
+                  {subtask.commission_mode === 'type' && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Select value={subtask.work_type || ''} onValueChange={async (v) => {
+                        try { await updateSubtask.mutateAsync({ subtaskId: subtask.id, taskId: subtask.task_id, work_type: v }); toast.success('Updated'); } catch { toast.error('Failed'); }
+                      }}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Deliverable..." /></SelectTrigger>
+                        <SelectContent>
+                          {[...new Set(deliverables.map(d => d.name))].map(name => (
+                            <SelectItem key={name} value={name}>{name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select value={subtask.complexity || ''} onValueChange={async (v) => {
+                        try { await updateSubtask.mutateAsync({ subtaskId: subtask.id, taskId: subtask.task_id, complexity: v }); toast.success('Updated'); } catch { toast.error('Failed'); }
+                      }}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Complexity..." /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Quick">Quick</SelectItem>
+                          <SelectItem value="Standard">Standard</SelectItem>
+                          <SelectItem value="Advanced">Advanced</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          <Separator />
+        </>
+      )}
+
+      {/* Assignees with role selection */}
       <div className="space-y-3">
         <h4 className="text-sm font-medium">Assignees</h4>
         {assignees.length > 0 ? (
           <div className="space-y-2">
             {assignees.map((a) => (
               <div key={a.id} className="flex items-center justify-between p-2 rounded-lg border">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
                   <Avatar className="h-7 w-7"><AvatarImage src={a.profiles?.avatar_url || undefined} /><AvatarFallback className="text-xs">{a.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback></Avatar>
-                  <span className="text-sm">{a.profiles?.full_name || a.profiles?.email}</span>
+                  <span className="text-sm truncate">{a.profiles?.full_name || a.profiles?.email}</span>
+                  {/* Role selector for MAJOR or role-based MINOR/NANO */}
+                  {expensesEnabled && taskTier && (subtask.commission_mode === 'role' || isMajor) && isOrgAdmin && (
+                    <Select value={a.role || ''} onValueChange={async (v) => {
+                      try { await updateAssigneeRole.mutateAsync({ subtaskId: subtask.id, userId: a.user_id, role: v || null }); toast.success('Role updated'); } catch { toast.error('Failed'); }
+                    }}>
+                      <SelectTrigger className="h-7 w-[120px] text-xs ml-auto"><SelectValue placeholder="Role..." /></SelectTrigger>
+                      <SelectContent>
+                        {(isMajor && subtask.work_type ? rolesForType(subtask.work_type) : roles.filter(r => taskTier && getRate(r, taskTier.id) > 0)).map(r => (
+                          <SelectItem key={r.id} value={r.name}>
+                            {r.name} ({formatLKR(taskTier ? getRate(r, taskTier.id) : 0)})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {a.role && <Badge variant="outline" className="text-[10px] h-4 px-1 ml-1">{a.role}</Badge>}
+                  {perPersonRate > 0 && (
+                    <Badge variant="outline" className="text-[10px] h-4 px-1 gap-0.5 border-chart-2/30 bg-chart-2/10 text-chart-2">
+                      {formatLKR(perPersonRate)}
+                    </Badge>
+                  )}
                 </div>
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={async () => { try { await removeAssignee.mutateAsync({ subtaskId: subtask.id, userId: a.user_id }); toast.success('Removed'); } catch { toast.error('Failed'); } }}>
+                <Button size="icon" variant="ghost" className="h-7 w-7 flex-shrink-0" onClick={async () => { try { await removeAssignee.mutateAsync({ subtaskId: subtask.id, userId: a.user_id }); toast.success('Removed'); } catch { toast.error('Failed'); } }}>
                   <X className="h-3 w-3" />
                 </Button>
               </div>
@@ -866,57 +1095,6 @@ const SubtaskDetailPage: React.FC<{
       </div>
 
       <Separator />
-
-      {/* Commission */}
-      {expensesEnabled && taskBudget > 0 && (
-        <>
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium flex items-center gap-2"><DollarSign className="h-4 w-4" /> Commission</h4>
-            {isOrgAdmin ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Select
-                    value={subtask.commission_type || 'none'}
-                    onValueChange={async (val) => {
-                      const type = val === 'none' ? null : val;
-                      try { await supabase.from('subtasks').update({ commission_type: type } as any).eq('id', subtask.id); toast.success('Updated'); } catch { toast.error('Failed'); }
-                    }}
-                  >
-                    <SelectTrigger className="h-8 w-[140px] text-sm"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No Commission</SelectItem>
-                      <SelectItem value="percentage">Percentage</SelectItem>
-                      <SelectItem value="fixed">Fixed Amount</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {subtask.commission_type && (
-                    <Input
-                      type="number"
-                      value={localCommissionValue}
-                      onChange={(e) => setLocalCommissionValue(e.target.value)}
-                      className="h-8 w-24 text-sm" min="0" step="0.01"
-                      placeholder={subtask.commission_type === 'percentage' ? '%' : 'LKR'}
-                    />
-                  )}
-                </div>
-                {subtask.commission_type && subtask.commission_value > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    = {formatLKR(subtask.commission_type === 'percentage' ? (subtask.commission_value / 100) * taskBudget : subtask.commission_value)}
-                    {subtask.commission_type === 'percentage' && ` (${subtask.commission_value}% of ${formatLKR(taskBudget)})`}
-                  </p>
-                )}
-              </div>
-            ) : (
-              subtask.commission_type && subtask.commission_value > 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Commission: {formatLKR(subtask.commission_type === 'percentage' ? (subtask.commission_value / 100) * taskBudget : subtask.commission_value)}
-                </p>
-              ) : <p className="text-xs text-muted-foreground italic">No commission set</p>
-            )}
-          </div>
-          <Separator />
-        </>
-      )}
 
       {/* Time Entries */}
       <div className="space-y-3">
