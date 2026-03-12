@@ -1,86 +1,104 @@
 
 
-# Full Plan: Tier-Based Commission Overhaul with LKR Currency
+# Full Plan: Task Manager Role, Scrollable Modals, Earning Badges, Auto-Tier, and Privacy
 
-## What We're Building
+## Summary of All New Requirements
 
-A complete restructuring of the commission system to match the real-world rate card structure shown in the reference images. The system behavior changes based on which tier a task belongs to.
+1. **First assignee on main task = "Task Manager"** -- when creating a task and assigning someone, label them as Task Manager (stored in `task_assignees.role`)
+2. **Scrollable modals** -- all dialog/sheet content that overflows should scroll properly (currently some tall modals are cut off)
+3. **Potential earnings badge on TaskCard** -- green `+LKR X` badge showing how much the current user can earn if the task is delivered, visible on the kanban board
+4. **Potential earnings on SubtaskRow** -- show the current user's potential earning from that subtask
+5. **User sees only their own finances** -- regular members see only their personal earnings, not other people's commissions
+6. **Auto-detect tier from task budget** -- the task automatically shows/uses the correct tier based on budget thresholds; no manual tier selection needed on tasks
 
-### Tier Behavior Summary
+## Existing System (Already Implemented)
 
-```text
-MAJOR (≥350k):  Subtasks have Type (Films/Photography/Design) + Role → fixed rate from rate card, split among assignees
-MINOR (<350k):  Subtasks are either Role-based OR Deliverable-based (with Quick/Standard/Advanced complexity)
-NANO  (<100k):  Same structure as MINOR, different rates
-```
-
-## Database Change
-
-**Add `team_share` column to `tasks` table** — this is the amount actually divided among workers. `budget` remains display-only.
-
-```sql
-ALTER TABLE public.tasks ADD COLUMN team_share numeric DEFAULT 0;
-```
-
-No other schema changes needed — `work_type`, `complexity`, `commission_mode` already exist on subtasks; `sub_category` already exists on `commission_rate_card`.
-
-**Update `recalculate_project_financials`** to use `team_share` instead of `budget` when calculating subtask payouts.
+- `organization_tiers` table with budget thresholds
+- `rate_card_rates` join table for tier-specific rates
+- `withdrawal_requests` table with RLS
+- `commission_mode` on tasks/subtasks
+- `recalculate_project_financials` function (delivery-based: `completed_at IS NOT NULL`)
+- `TierSettings`, `RateCardSettings`, `WithdrawalManagement`, `WithdrawalRequestDialog` UI
+- `UserWallet` with withdrawal request flow
 
 ---
 
-## UI Changes
+## Changes
 
-### 1. CreateTaskDialog — Rename + Add Fields
-- Rename "Assign To" → **"Team Lead"** (first selected person gets `Task Manager` role — keep existing logic, just change label)
-- Add **"Team Share"** field (LKR amount that gets divided among subtask workers)
-- Change tier from auto-detected badge to a **Tier dropdown** (select from org tiers)
-- Keep Task Budget as display-only field
-- Remove any leftover work_type/complexity/commission_mode fields
+### 1. Task Manager Role on First Assignee
 
-### 2. TaskDetailSheet — Overview Tab
-- **Separate sections**: "Team Lead" (first assignee with Task Manager role) and "Assignees" (all other assignees)
-- **Remove Estimated Hours** section entirely
-- Keep Description, Deliver to Client, Delete Task
+**`CreateTaskDialog.tsx`**
+- Remove work_type, complexity, commissionMode state and UI fields (leftover from previous iteration -- lines 62-64, 66-85, 199-243)
+- When creating a task, the first selected assignee gets `role: 'Task Manager'` via `addAssignee.mutateAsync({ taskId, userId, role: 'Task Manager' })`; subsequent assignees get no role
+- Show "(Task Manager)" label next to the first assignee in the checkbox list
 
-### 3. TaskDetailSheet — Finance Tab
-- Show **Task Budget** (display only) and **Team Share** (editable for admins)
-- Show **Tier** as a dropdown (editable for admins)
-- Remove Weight % field
-- Keep personal earning display for non-admins
+**`TaskDetailSheet.tsx` -- Assignees section (lines 440-505)**
+- Remove the role dropdown for task-level assignees (lines 458-472) -- roles at task level are only "Task Manager" for the first assignee, not editable via rate card role picker
+- Show "Task Manager" badge next to the first assignee instead of a role selector
+- Remove duplicate Assignees section (lines 531-573)
 
-### 4. Subtask System — Complete Rework Based on Tier
+### 2. Scrollable Modals
 
-**When adding a subtask (Work tab):**
+**`src/components/ui/dialog.tsx`**
+- Add `max-h-[85vh] overflow-y-auto` to `DialogContent` class so all dialogs scroll when content overflows
 
-**MAJOR tier:**
-- Subtask form shows: Title + **Type** dropdown (Films, Photography, Design) + **Role** dropdown (filtered by selected type from rate card `sub_category`) 
-- Commission auto-calculated from role's rate for the MAJOR tier
-- If 2+ assignees on a subtask, the role rate is split equally
+**`CreateTaskDialog.tsx`**
+- The `DialogContent` already has `sm:max-w-lg`; adding scroll at the dialog.tsx level fixes all dialogs globally
 
-**MINOR/NANO tier:**
-- Subtask form shows: Title + **Commission Mode** toggle (Role-based / Deliverable-based)
-- **Role-based**: Role dropdown (all roles in rate card for this tier that have rates > 0)
-- **Deliverable-based**: Deliverable name dropdown + Complexity dropdown (Quick/Standard/Advanced)
-- Commission auto-calculated from rate card
-- Split among assignees
+### 3. Potential Earnings on TaskCard (Green Badge)
 
-### 5. SubtaskRow — Show Earning Info
-- Show the subtask's type/role or deliverable/complexity as badges
-- Show the per-person rate (total rate ÷ assignee count)
+**`TaskCard.tsx`**
+- Accept new prop: `potentialEarning?: number`
+- If `potentialEarning > 0` and task is not delivered (`completed_at` is null), show a green `+LKR X` badge in the card footer
+- If task IS delivered, show a checkmark earning badge instead
 
-### 6. SubtaskDetailPage — Rework Commission Section
-- Replace current percentage/fixed commission controls with the tier-based system described above
-- Show role dropdown per assignee (MAJOR) or on the subtask (MINOR/NANO)
-- Show auto-calculated commission amount from rate card
-- Remove manual commission type/value inputs (percentage/fixed) — commissions are always rate-card-driven
+**`KanbanBoard.tsx`**
+- Compute per-task potential earnings for the current user:
+  - For each task, look at subtasks where the current user is an assignee
+  - Based on subtask commission_mode: if role-based, lookup user's subtask_assignee role in rate card; if type-based, lookup subtask work_type + complexity
+  - Sum up the amounts per task
+  - Pass as `potentialEarning` prop to `TaskCard`
+- This requires fetching subtask assignees and subtask data for the project -- add a new hook `useProjectSubtaskEarnings(projectId, userId)` that returns a `Map<taskId, earning>`
 
-### 7. RateCardSettings — Already Correct
-- The existing rate card settings already support roles with sub_categories and deliverables with complexity per tier. No changes needed.
+**New hook: `useProjectSubtaskEarnings.ts`**
+- Fetches all subtasks for project tasks, their assignees, and rate card data
+- Filters for current user's assignments only
+- Calculates potential earning per task
+- Returns `Record<string, number>` (taskId → earning)
 
-### 8. Remove Unused Fields
-- Remove `work_type`, `complexity` display from main task level (these are subtask-only)
-- Remove manual `commission_type`/`commission_value` editing on subtasks (replaced by rate card lookups)
-- Remove `estimated_hours` from TaskDetailSheet overview
+### 4. Potential Earnings on SubtaskRow
+
+**`SubtaskRow.tsx`**
+- Accept new props: `currentUserId?: string`, `projectTierId?: string`, `orgId?: string`
+- If the current user is an assignee of this subtask, compute their earning:
+  - Role-based: lookup assignee's role in rate card
+  - Type-based: lookup subtask's work_type + complexity in rate card
+- Show a green earning badge: `+LKR X` next to the subtask summary
+
+### 5. User-Only Financial Visibility
+
+**`TaskDetailSheet.tsx` -- Finance Tab (lines 726-812)**
+- Remove "Commissions (Rate Card)" section that shows all assignees' commissions (lines 783-799)
+- For non-admin users: only show the current user's potential earning from this task
+- For admins: show a summary of total commission allocation but not individual breakdowns by default
+
+**`SubtaskDetailPage` (lines 851-1042)**
+- Non-admin users: hide commission type/value editing controls
+- Show only "Your potential earning: LKR X" for the current user
+- Already partially implemented: the `isOrgAdmin` check at line 955 controls edit access
+
+### 6. Auto-Detect Tier from Task Budget
+
+**`CreateTaskDialog.tsx`**
+- When budget is entered, auto-detect the tier using `getTierForBudget(tiers, budget)` and show a read-only tier badge (e.g., "Major", "Minor", "Nano")
+- No tier dropdown on tasks -- tier is purely derived from the project's tier or the task budget threshold
+
+**`TaskDetailSheet.tsx` -- Finance Tab**
+- Show auto-detected tier as a read-only badge based on task budget
+- Commission mode auto-derived: shown as info text, not editable
+
+**`TaskCard.tsx`**
+- Optionally show a small tier indicator badge if expenses are enabled
 
 ---
 
@@ -88,25 +106,22 @@ No other schema changes needed — `work_type`, `complexity`, `commission_mode` 
 
 | File | Change |
 |------|--------|
-| **Migration SQL** | Add `team_share` to tasks; update `recalculate_project_financials` to use `team_share` |
-| `CreateTaskDialog.tsx` | Rename "Assign To" → "Team Lead"; add Team Share field; add Tier dropdown |
-| `TaskDetailSheet.tsx` (Overview) | Split assignees into Team Lead + Assignees sections; remove Estimated Hours |
-| `TaskDetailSheet.tsx` (Finance) | Add Team Share + Tier dropdown; remove Weight % |
-| `TaskDetailSheet.tsx` (Work tab) | Rework subtask add form based on tier (type+role for MAJOR, mode toggle for MINOR/NANO) |
-| `SubtaskRow.tsx` | Show type/role or deliverable/complexity badges with rate |
-| `SubtaskDetailPage` (inside TaskDetailSheet) | Replace commission controls with tier-based role/deliverable selectors |
-| `useProjectSubtaskEarnings.ts` | Update to use `team_share` and tier-aware lookups |
-| `TaskCard.tsx` | No changes needed (earning badge already works) |
-| `RateCardSettings.tsx` | No changes needed |
-| `TierSettings.tsx` | No changes needed |
+| `src/components/ui/dialog.tsx` | Add `max-h-[85vh] overflow-y-auto` to DialogContent |
+| `src/components/kanban/CreateTaskDialog.tsx` | Remove work_type/complexity/commissionMode; first assignee gets "Task Manager" role; show auto-tier badge when budget entered |
+| `src/components/kanban/TaskCard.tsx` | Add green `+LKR X` potential earning badge |
+| `src/components/kanban/KanbanBoard.tsx` | Compute and pass per-task potential earnings for current user |
+| `src/components/kanban/SubtaskRow.tsx` | Show current user's earning badge from rate card |
+| `src/components/kanban/TaskDetailSheet.tsx` | Remove duplicate assignees section; remove role dropdown from task assignees; show "Task Manager" badge; remove all-assignee commission display from Finance tab; show only current user's earning; show auto-tier badge |
+| `src/hooks/useProjectSubtaskEarnings.ts` | **New** -- compute per-task earnings for current user across project |
+| `.lovable/plan.md` | Update status |
 
 ## Implementation Order
 
-1. Migration: add `team_share` column, update financial function
-2. CreateTaskDialog: Team Lead label, Team Share field, Tier dropdown
-3. TaskDetailSheet Overview: split Team Lead / Assignees, remove Estimated Hours
-4. TaskDetailSheet Finance: Team Share + Tier dropdown
-5. Subtask system: rework add form + SubtaskDetailPage based on tier
-6. SubtaskRow: tier-aware badges
-7. Update earnings hook for `team_share`
+1. Fix `dialog.tsx` for scrollable modals (quick global fix)
+2. Clean up `CreateTaskDialog` -- remove leftover fields, add Task Manager role logic, auto-tier badge
+3. Clean up `TaskDetailSheet` -- remove duplicates, role dropdowns, per-assignee commissions; add user-only earning view and auto-tier badge
+4. Create `useProjectSubtaskEarnings` hook
+5. Update `TaskCard` with earning badge
+6. Update `SubtaskRow` with earning badge
+7. Update `KanbanBoard` to pass earnings data
 

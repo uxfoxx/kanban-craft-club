@@ -5,6 +5,7 @@ import { useOrganizationTiers, getTierForBudget } from '@/hooks/useOrganizationT
 
 /**
  * Computes per-task potential earnings for the current user across a project.
+ * Uses rate card lookups based on subtask commission_mode, work_type, complexity, and assignee roles.
  * Returns Record<taskId, earningAmount>.
  */
 export const useProjectSubtaskEarnings = (projectId?: string, userId?: string, orgId?: string, projectBudget?: number) => {
@@ -20,7 +21,7 @@ export const useProjectSubtaskEarnings = (projectId?: string, userId?: string, o
       // Fetch all tasks for the project
       const { data: tasks } = await supabase
         .from('tasks')
-        .select('id, budget, commission_mode')
+        .select('id, budget, team_share, commission_mode')
         .eq('project_id', projectId);
       if (!tasks || tasks.length === 0) return {};
 
@@ -29,65 +30,57 @@ export const useProjectSubtaskEarnings = (projectId?: string, userId?: string, o
       // Fetch subtasks for these tasks
       const { data: subtasks } = await supabase
         .from('subtasks')
-        .select('id, task_id, commission_mode, commission_type, commission_value, work_type, complexity')
+        .select('id, task_id, commission_mode, work_type, complexity')
         .in('task_id', taskIds);
       if (!subtasks || subtasks.length === 0) return {};
 
       const subtaskIds = subtasks.map(s => s.id);
 
-      // Fetch subtask assignees for current user only
-      const { data: myAssignments } = await supabase
+      // Fetch all subtask assignees (need counts + current user's role)
+      const { data: allAssignments } = await supabase
         .from('subtask_assignees')
-        .select('subtask_id, role')
-        .eq('user_id', userId)
+        .select('subtask_id, user_id, role')
         .in('subtask_id', subtaskIds);
-      if (!myAssignments || myAssignments.length === 0) return {};
+      if (!allAssignments) return {};
 
-      const mySubtaskMap = new Map(myAssignments.map(a => [a.subtask_id, a.role]));
-
-      // Determine project tier
-      const projectTier = getTierForBudget(tiers, projectBudget || 0);
-      const tierId = projectTier?.id;
+      // Group by subtask
+      const assignmentsBySubtask = new Map<string, typeof allAssignments>();
+      for (const a of allAssignments) {
+        const list = assignmentsBySubtask.get(a.subtask_id) || [];
+        list.push(a);
+        assignmentsBySubtask.set(a.subtask_id, list);
+      }
 
       const earningsPerTask: Record<string, number> = {};
 
       for (const subtask of subtasks) {
-        const myRole = mySubtaskMap.get(subtask.id);
-        if (myRole === undefined && !mySubtaskMap.has(subtask.id)) continue;
+        const assignments = assignmentsBySubtask.get(subtask.id) || [];
+        const myAssignment = assignments.find(a => a.user_id === userId);
+        if (!myAssignment) continue;
 
         const parentTask = tasks.find(t => t.id === subtask.task_id);
         if (!parentTask) continue;
 
-        let earning = 0;
-        const mode = subtask.commission_mode || parentTask.commission_mode || 'role';
+        // Determine tier from task budget
+        const taskBudget = Number((parentTask as any).budget || 0);
+        const taskTier = getTierForBudget(tiers, taskBudget);
+        if (!taskTier) continue;
 
-        // Manual override on subtask takes priority
-        if (subtask.commission_type && subtask.commission_value > 0) {
-          const taskBudget = Number(parentTask.budget) || 0;
-          // Get count of assignees for this subtask
-          const { count } = await supabase
-            .from('subtask_assignees')
-            .select('id', { count: 'exact', head: true })
-            .eq('subtask_id', subtask.id);
-          const assigneeCount = count || 1;
-          
-          if (subtask.commission_type === 'percentage') {
-            earning = ((subtask.commission_value / 100) * taskBudget) / assigneeCount;
-          } else {
-            earning = subtask.commission_value / assigneeCount;
-          }
-        } else if (tierId) {
-          if (mode === 'role' && myRole) {
-            const entry = rateCardRoles.find(r => r.name === myRole);
-            if (entry) earning = getRateForTier(entry, tierId);
-          } else if (mode === 'type' && subtask.work_type) {
-            const entry = rateCardDeliverables.find(d => d.name === subtask.work_type && d.complexity === subtask.complexity);
-            if (entry) earning = getRateForTier(entry, tierId);
-          }
+        let rate = 0;
+        const mode = subtask.commission_mode || 'role';
+        const isMajor = taskTier.slug?.toLowerCase() === 'major';
+
+        if (mode === 'role' && myAssignment.role) {
+          const entry = rateCardRoles.find(r => r.name === myAssignment.role && (!isMajor || r.sub_category === subtask.work_type));
+          if (entry) rate = getRateForTier(entry, taskTier.id);
+        } else if (mode === 'type' && subtask.work_type) {
+          const entry = rateCardDeliverables.find(d => d.name === subtask.work_type && d.complexity === subtask.complexity);
+          if (entry) rate = getRateForTier(entry, taskTier.id);
         }
 
-        if (earning > 0) {
-          earningsPerTask[parentTask.id] = (earningsPerTask[parentTask.id] || 0) + earning;
+        if (rate > 0) {
+          const perPerson = rate / (assignments.length || 1);
+          earningsPerTask[parentTask.id] = (earningsPerTask[parentTask.id] || 0) + perPerson;
         }
       }
 

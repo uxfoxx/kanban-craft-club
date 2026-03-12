@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { useCreateTask } from '@/hooks/useTasks';
 import { useAddTaskAssignee } from '@/hooks/useAssignees';
 import { Profile, TaskPriority, KanbanColumn } from '@/types/database';
-import { useOrganizationTiers, getTierForBudget } from '@/hooks/useOrganizationTiers';
+import { useOrganizationTiers } from '@/hooks/useOrganizationTiers';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useProject } from '@/hooks/useProjects';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -48,7 +47,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const createTask = useCreateTask();
   const addAssignee = useAddTaskAssignee();
   const { currentOrganization } = useOrganization();
-  const { data: project } = useProject(projectId);
   const { data: tiers = [] } = useOrganizationTiers(currentOrganization?.id);
   
   const [title, setTitle] = useState('');
@@ -58,10 +56,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [dueDate, setDueDate] = useState('');
   const [budget, setBudget] = useState('');
-
-  // Auto-detect tier from budget
-  const budgetNum = parseFloat(budget) || 0;
-  const autoTier = budgetNum > 0 ? getTierForBudget(tiers, budgetNum) : null;
+  const [teamShare, setTeamShare] = useState('');
+  const [selectedTierId, setSelectedTierId] = useState<string>('');
 
   const defaultColumn = columns?.find(c => c.is_default) || columns?.[0];
 
@@ -76,8 +72,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         priority,
         columnId: columnId || defaultColumn?.id,
         dueDate: dueDate || undefined,
-        cost: budget ? parseFloat(budget) : undefined,
         budget: budget ? parseFloat(budget) : undefined,
+        teamShare: teamShare ? parseFloat(teamShare) : undefined,
       });
 
       // Add assignees — first one gets "Task Manager" role
@@ -105,6 +101,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setSelectedAssignees([]);
     setDueDate('');
     setBudget('');
+    setTeamShare('');
+    setSelectedTierId('');
   };
 
   const toggleAssignee = (userId: string) => {
@@ -174,26 +172,52 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           </div>
 
           {expensesEnabled && (
-            <div className="space-y-2">
-              <Label htmlFor="task-budget">Task Budget</Label>
-              <Input
-                id="task-budget"
-                type="number"
-                value={budget}
-                onChange={(e) => setBudget(e.target.value)}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-              />
-              {autoTier && (
-                <div className="flex items-center gap-1.5 mt-1">
-                  <Badge variant="secondary" className="text-xs">
-                    {autoTier.name}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">tier (auto-detected)</span>
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="task-budget">Task Budget (LKR)</Label>
+                  <Input
+                    id="task-budget"
+                    type="number"
+                    value={budget}
+                    onChange={(e) => setBudget(e.target.value)}
+                    placeholder="Display only"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="task-team-share">Team Share (LKR)</Label>
+                  <Input
+                    id="task-team-share"
+                    type="number"
+                    value={teamShare}
+                    onChange={(e) => setTeamShare(e.target.value)}
+                    placeholder="Amount to divide"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+
+              {tiers.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Tier</Label>
+                  <Select value={selectedTierId} onValueChange={setSelectedTierId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select tier..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tiers.map((tier) => (
+                        <SelectItem key={tier.id} value={tier.id}>
+                          {tier.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
-            </div>
+            </>
           )}
 
           {columns && columns.length > 0 && (
@@ -222,12 +246,12 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           
           {members && members.length > 0 && (
             <div className="space-y-2">
-              <Label>Assign To</Label>
-              <p className="text-xs text-muted-foreground">First person selected becomes the Task Manager</p>
+              <Label>Team Lead</Label>
+              <p className="text-xs text-muted-foreground">First person selected becomes the Team Lead</p>
               <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2">
                 {members.map((member) => {
                   const idx = selectedAssignees.indexOf(member.user_id);
-                  const isTaskManager = idx === 0;
+                  const isTeamLead = idx === 0;
                   return (
                     <div key={member.user_id} className="flex items-center gap-2">
                       <Checkbox
@@ -240,10 +264,10 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                         className="text-sm cursor-pointer flex-1 flex items-center gap-1.5"
                       >
                         {member.profiles.full_name}
-                        {isTaskManager && (
+                        {isTeamLead && (
                           <Badge variant="default" className="text-[10px] h-4 px-1.5 gap-0.5">
                             <Shield className="h-2.5 w-2.5" />
-                            Task Manager
+                            Team Lead
                           </Badge>
                         )}
                       </label>

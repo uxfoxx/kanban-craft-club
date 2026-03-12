@@ -104,11 +104,8 @@ export const useCreateTask = () => {
       priority,
       columnId,
       dueDate,
-      cost,
       budget,
-      workType,
-      complexity,
-      commissionMode,
+      teamShare,
     }: {
       projectId: string;
       title: string;
@@ -116,11 +113,8 @@ export const useCreateTask = () => {
       priority?: TaskPriority;
       columnId?: string;
       dueDate?: string;
-      cost?: number;
       budget?: number;
-      workType?: string;
-      complexity?: string;
-      commissionMode?: string;
+      teamShare?: number;
     }) => {
       const { data, error } = await supabase
         .from('tasks')
@@ -132,11 +126,9 @@ export const useCreateTask = () => {
           column_id: columnId,
           created_by: user!.id,
           due_date: dueDate,
-          cost: budget ?? cost ?? 0,
-          budget: budget ?? cost ?? 0,
-          work_type: workType || null,
-          complexity: complexity || null,
-          commission_mode: commissionMode || 'role',
+          cost: budget ?? 0,
+          budget: budget ?? 0,
+          team_share: teamShare ?? 0,
         } as any)
         .select()
         .single();
@@ -225,10 +217,18 @@ export const useCreateSubtask = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ taskId, title }: { taskId: string; title: string }) => {
+    mutationFn: async ({ taskId, title, work_type, complexity, commission_mode }: { 
+      taskId: string; title: string; work_type?: string; complexity?: string; commission_mode?: string;
+    }) => {
       const { data, error } = await supabase
         .from('subtasks')
-        .insert({ task_id: taskId, title })
+        .insert({ 
+          task_id: taskId, 
+          title,
+          work_type: work_type || null,
+          complexity: complexity || null,
+          commission_mode: commission_mode || 'role',
+        } as any)
         .select()
         .single();
       

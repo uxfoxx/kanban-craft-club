@@ -934,6 +934,7 @@ export type Database = {
           priority: string
           project_id: string
           status: string
+          team_share: number | null
           title: string
           updated_at: string
           weight_pct: number | null
@@ -956,6 +957,7 @@ export type Database = {
           priority?: string
           project_id: string
           status?: string
+          team_share?: number | null
           title: string
           updated_at?: string
           weight_pct?: number | null
@@ -978,6 +980,7 @@ export type Database = {
           priority?: string
           project_id?: string
           status?: string
+          team_share?: number | null
           title?: string
           updated_at?: string
           weight_pct?: number | null
