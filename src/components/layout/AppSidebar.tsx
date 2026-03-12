@@ -69,58 +69,69 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         onClick={() => onViewChange(view)}
         tooltip={label}
         className={cn(
-          'relative rounded-xl transition-all duration-200',
-          currentView === view && 'bg-primary text-primary-foreground font-medium shadow-sm hover:bg-primary/90 hover:text-primary-foreground'
+          'relative rounded-xl transition-all duration-200 h-10',
+          currentView === view
+            ? 'bg-foreground text-background font-medium shadow-sm hover:bg-foreground/90 hover:text-background'
+            : 'hover:bg-muted/60'
         )}
       >
-        <Icon className="h-4 w-4" />
+        <Icon className="h-[18px] w-[18px]" />
         <span>{label}</span>
       </SidebarMenuButton>
     </SidebarMenuItem>
   );
 
   return (
-    <Sidebar collapsible="icon" className="glass-subtle !border-r-0">
-      <SidebarHeader className="p-5">
+    <Sidebar collapsible="icon" className="border-r border-border/40 bg-sidebar">
+      <SidebarHeader className="p-4">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center min-w-0 overflow-hidden max-h-[56px]">
-            <img src={logo} alt="Bandit Theory" className="w-auto max-h-[56px] object-cover flex-shrink-0" />
+          <div className="flex items-center min-w-0 overflow-hidden max-h-[48px]">
+            <img src={logo} alt="Logo" className="w-auto max-h-[48px] object-cover flex-shrink-0" />
           </div>
+          {!isCollapsed && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 flex-shrink-0 rounded-lg text-muted-foreground hover:text-foreground"
+              onClick={toggleSidebar}
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        {isCollapsed && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 flex-shrink-0 rounded-lg"
+            className="h-7 w-7 mx-auto rounded-lg text-muted-foreground hover:text-foreground"
             onClick={toggleSidebar}
           >
-            {isCollapsed ? (
-              <PanelLeft className="h-4 w-4" />
-            ) : (
-              <PanelLeftClose className="h-4 w-4" />
-            )}
+            <PanelLeft className="h-4 w-4" />
           </Button>
-        </div>
+        )}
       </SidebarHeader>
-
-      <SidebarSeparator className="opacity-30" />
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-medium">Navigation</SidebarGroupLabel>
+          {!isCollapsed && (
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/50 font-medium px-3">Menu</SidebarGroupLabel>
+          )}
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
+            <SidebarMenu className="space-y-0.5 px-2">
               {coreNavItems.map(({ view, label, icon }) => renderNavItem(view, label, icon))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Plugin nav items */}
         {enabledPlugins.length > 0 && (
           <>
-            <SidebarSeparator className="opacity-30" />
+            <SidebarSeparator className="opacity-20 mx-3" />
             <SidebarGroup>
-              <SidebarGroupLabel className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-medium">Modules</SidebarGroupLabel>
+              {!isCollapsed && (
+                <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/50 font-medium px-3">Modules</SidebarGroupLabel>
+              )}
               <SidebarGroupContent>
-                <SidebarMenu className="space-y-1">
+                <SidebarMenu className="space-y-0.5 px-2">
                   {enabledPlugins.map(plugin => {
                     const navInfo = pluginNavMap[plugin.plugin_name];
                     if (!navInfo) return null;
@@ -135,11 +146,13 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
 
         {enabledPlugins.length === 0 && currentOrganization && (
           <>
-            <SidebarSeparator className="opacity-30" />
+            <SidebarSeparator className="opacity-20 mx-3" />
             <SidebarGroup>
-              <SidebarGroupLabel className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-medium">Modules</SidebarGroupLabel>
+              {!isCollapsed && (
+                <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/50 font-medium px-3">Modules</SidebarGroupLabel>
+              )}
               <SidebarGroupContent>
-                <SidebarMenu className="space-y-1">
+                <SidebarMenu className="space-y-0.5 px-2">
                   {renderNavItem('plugin-settings', 'Plugin Settings', Puzzle)}
                 </SidebarMenu>
               </SidebarGroupContent>
@@ -149,11 +162,13 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
 
         {isSuperAdmin && (
           <>
-            <SidebarSeparator className="opacity-30" />
+            <SidebarSeparator className="opacity-20 mx-3" />
             <SidebarGroup>
-              <SidebarGroupLabel className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-medium">System</SidebarGroupLabel>
+              {!isCollapsed && (
+                <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/50 font-medium px-3">System</SidebarGroupLabel>
+              )}
               <SidebarGroupContent>
-                <SidebarMenu className="space-y-1">
+                <SidebarMenu className="space-y-0.5 px-2">
                   {renderNavItem('admin', 'Admin', Shield)}
                 </SidebarMenu>
               </SidebarGroupContent>
@@ -162,22 +177,22 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         )}
       </SidebarContent>
 
-      <SidebarSeparator className="opacity-30" />
+      <SidebarSeparator className="opacity-20 mx-3" />
 
-      <SidebarFooter>
+      <SidebarFooter className="p-2">
         {profile && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-3 px-3 py-3 w-full rounded-xl hover:bg-muted/50 transition-colors">
-                <Avatar className="h-9 w-9 flex-shrink-0 shadow-sm">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+              <button className="flex items-center gap-3 px-2 py-2.5 w-full rounded-xl hover:bg-muted/50 transition-colors">
+                <Avatar className="h-8 w-8 flex-shrink-0">
+                  <AvatarFallback className="bg-foreground text-background text-xs font-semibold">
                     {getInitials(profile.full_name)}
                   </AvatarFallback>
                 </Avatar>
                 {!isCollapsed && (
                   <div className="flex flex-col min-w-0 text-left">
                     <span className="text-sm font-medium truncate">{profile.full_name}</span>
-                    <span className="text-xs text-muted-foreground truncate">{profile.email}</span>
+                    <span className="text-[11px] text-muted-foreground truncate">{profile.email}</span>
                   </div>
                 )}
               </button>

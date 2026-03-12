@@ -38,10 +38,8 @@ export const TodayTimeCard: React.FC<TodayTimeCardProps> = ({ onViewHistory }) =
      return (
        <Card>
          <CardHeader className="pb-2">
-           <CardTitle className="text-base font-semibold flex items-center gap-2">
-             <div className="p-1.5 rounded-lg bg-primary/10">
-               <Clock className="h-4 w-4 text-primary" />
-             </div>
+           <CardTitle className="flex items-center gap-2">
+             <Clock className="h-4 w-4 text-muted-foreground" />
              Today's Time
            </CardTitle>
          </CardHeader>
@@ -57,30 +55,28 @@ export const TodayTimeCard: React.FC<TodayTimeCardProps> = ({ onViewHistory }) =
    return (
      <Card>
        <CardHeader className="pb-2">
-         <CardTitle className="text-base font-semibold flex items-center gap-2">
-           <div className="p-1.5 rounded-lg bg-primary/10">
-             <Clock className="h-4 w-4 text-primary" />
-           </div>
+         <CardTitle className="flex items-center gap-2">
+           <Clock className="h-4 w-4 text-muted-foreground" />
            Today's Time
          </CardTitle>
        </CardHeader>
        <CardContent className="space-y-3">
-         <div className="text-3xl font-bold text-primary">
+         <div className="text-2xl font-bold text-primary">
            {formatDuration(totalWithActive)}
          </div>
          
           {activeEntry && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-primary/5 rounded-lg px-3 py-2">
-              <Timer className="h-4 w-4 animate-pulse text-primary" />
-              <span className="truncate">{activeEntry.tasks?.title || 'Active task'}</span>
-              <span className="font-mono text-primary ml-auto">{formatDuration(elapsedTime)}</span>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+              <Timer className="h-3.5 w-3.5 animate-pulse text-primary" />
+              <span className="truncate text-xs">{activeEntry.tasks?.title || 'Active task'}</span>
+              <span className="font-mono text-primary ml-auto text-xs">{formatDuration(elapsedTime)}</span>
             </div>
           )}
           
           {onViewHistory && (
-            <Button variant="ghost" size="sm" className="w-full mt-2 text-muted-foreground hover:text-foreground rounded-xl" onClick={onViewHistory}>
+            <Button variant="ghost" size="sm" className="w-full mt-1 text-muted-foreground hover:text-foreground rounded-xl text-xs" onClick={onViewHistory}>
               View history
-              <ArrowRight className="h-3.5 w-3.5 ml-1" />
+              <ArrowRight className="h-3 w-3 ml-1" />
             </Button>
           )}
         </CardContent>

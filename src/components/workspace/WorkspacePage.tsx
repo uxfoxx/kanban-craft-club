@@ -55,12 +55,12 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ onSelectProject })
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Workspace</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Projects, team, analytics & financials</p>
+          <h1 className="text-xl font-semibold tracking-tight">Workspace</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Projects, team, analytics & financials</p>
         </div>
         <div className="flex items-center gap-2">
           {organizations.length > 0 && (
@@ -71,8 +71,8 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ onSelectProject })
                 if (org) setCurrentOrganization(org);
               }}
             >
-              <SelectTrigger className="w-[180px] rounded-xl">
-                <Building2 className="h-4 w-4 mr-2 flex-shrink-0" />
+              <SelectTrigger className="w-[160px] rounded-xl h-9 text-sm">
+                <Building2 className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
                 <SelectValue placeholder="Select org" />
               </SelectTrigger>
               <SelectContent>
@@ -82,12 +82,12 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ onSelectProject })
               </SelectContent>
             </Select>
           )}
-          <Button variant="outline" size="sm" onClick={() => setCreateOrgDialogOpen(true)} className="rounded-xl">
-            <Plus className="h-4 w-4 mr-1" /> New Org
+          <Button variant="outline" size="sm" onClick={() => setCreateOrgDialogOpen(true)} className="rounded-xl h-9">
+            <Plus className="h-3.5 w-3.5 mr-1" /> New Org
           </Button>
           {currentOrganization && (
-            <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} className="rounded-xl">
-              <Settings className="h-4 w-4" />
+            <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} className="rounded-xl h-9 w-9">
+              <Settings className="h-3.5 w-3.5" />
             </Button>
           )}
         </div>
@@ -96,21 +96,21 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ onSelectProject })
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
-          <TabsList className="glass-subtle rounded-xl">
-            <TabsTrigger value="projects" className="gap-1.5 rounded-lg">
-              <FolderOpen className="h-4 w-4" /> Projects
+          <TabsList className="bg-muted/50 rounded-xl">
+            <TabsTrigger value="projects" className="gap-1.5 rounded-lg text-xs">
+              <FolderOpen className="h-3.5 w-3.5" /> Projects
             </TabsTrigger>
             {currentOrganization && (
               <>
-                <TabsTrigger value="activity" className="gap-1.5 rounded-lg">
-                  <Activity className="h-4 w-4" /> Activity
+                <TabsTrigger value="activity" className="gap-1.5 rounded-lg text-xs">
+                  <Activity className="h-3.5 w-3.5" /> Activity
                 </TabsTrigger>
-                <TabsTrigger value="analytics" className="gap-1.5 rounded-lg">
-                  <BarChart3 className="h-4 w-4" /> Analytics
+                <TabsTrigger value="analytics" className="gap-1.5 rounded-lg text-xs">
+                  <BarChart3 className="h-3.5 w-3.5" /> Analytics
                 </TabsTrigger>
                 {expensesEnabled && (
-                  <TabsTrigger value="financials" className="gap-1.5 rounded-lg">
-                    <DollarSign className="h-4 w-4" /> Financials
+                  <TabsTrigger value="financials" className="gap-1.5 rounded-lg text-xs">
+                    <DollarSign className="h-3.5 w-3.5" /> Financials
                   </TabsTrigger>
                 )}
               </>

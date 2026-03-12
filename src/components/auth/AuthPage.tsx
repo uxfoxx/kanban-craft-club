@@ -50,18 +50,15 @@ export const AuthPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-chart-3/5" />
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/8 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-chart-3/8 rounded-full blur-3xl" />
+      <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted" />
       
-      <Card className="w-full max-w-md relative z-10">
+      <Card className="w-full max-w-md relative z-10 shadow-lg">
         <CardHeader className="text-center space-y-4 pb-2">
           <div className="flex justify-center">
-            <img src={logo} alt="Bandit Theory Creatives" className="h-16 w-auto object-contain" />
+            <img src={logo} alt="Logo" className="h-14 w-auto object-contain" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">Bandit Theory Creatives</CardTitle>
+            <CardTitle className="text-xl font-bold">Bandit Theory Creatives</CardTitle>
             <CardDescription className="mt-1">Project management made simple</CardDescription>
           </div>
         </CardHeader>

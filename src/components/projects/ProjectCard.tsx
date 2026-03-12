@@ -59,20 +59,18 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onSelect, org
 
   return (
     <>
-      <Card className="transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:border-primary/20 relative group">
+      <Card className="transition-all duration-200 hover:shadow-md hover:border-border/60 relative group">
         <div className="cursor-pointer" onClick={() => onSelect(project.id)}>
           <CardHeader className="pb-2">
             <div className="flex items-start justify-between">
-              <CardTitle className="flex items-center gap-2 flex-1 text-base">
-                <div className="p-1.5 rounded-lg bg-primary/10">
-                  <FolderOpen className="h-4 w-4 text-primary flex-shrink-0" />
-                </div>
+              <CardTitle className="flex items-center gap-2 flex-1">
+                <FolderOpen className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 <span className="line-clamp-1">{project.name}</span>
               </CardTitle>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                    <MoreVertical className="h-4 w-4" />
+                  <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                    <MoreVertical className="h-3.5 w-3.5" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -86,17 +84,17 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onSelect, org
               </DropdownMenu>
             </div>
             {organizationName && (
-              <Badge variant="secondary" className="w-fit gap-1 text-xs mt-1.5 rounded-full">
+              <Badge variant="secondary" className="w-fit gap-1 text-[10px] mt-1 rounded-full">
                 <Building2 className="h-3 w-3" />
                 {organizationName}
               </Badge>
             )}
           </CardHeader>
           <CardContent className="pt-0">
-            <CardDescription className="line-clamp-2 mb-3">
+            <CardDescription className="line-clamp-2 mb-2 text-xs">
               {project.description || 'No description'}
             </CardDescription>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground">
               {project.start_date
                 ? `Started ${format(new Date(project.start_date), 'MMM d, yyyy')}`
                 : `Created ${format(new Date(project.created_at), 'MMM d, yyyy')}`}
