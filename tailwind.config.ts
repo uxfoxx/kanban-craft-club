@@ -96,7 +96,7 @@ export default {
   		},
   		fontFamily: {
   			sans: [
-  				'Source Sans Pro',
+  				'Inter',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif',
@@ -115,7 +115,6 @@ export default {
   				'serif'
   			],
   			mono: [
-  				'Space Mono',
   				'ui-monospace',
   				'SFMono-Regular',
   				'Menlo',

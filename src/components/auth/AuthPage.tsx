@@ -49,8 +49,13 @@ export const AuthPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
-      <Card className="w-full max-w-md shadow-lg border-t-4 border-t-primary">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-chart-3/5" />
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/8 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-chart-3/8 rounded-full blur-3xl" />
+      
+      <Card className="w-full max-w-md relative z-10">
         <CardHeader className="text-center space-y-4 pb-2">
           <div className="flex justify-center">
             <img src={logo} alt="Bandit Theory Creatives" className="h-16 w-auto object-contain" />
@@ -62,9 +67,9 @@ export const AuthPage: React.FC = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="login">Sign In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-4 rounded-xl">
+              <TabsTrigger value="login" className="rounded-lg">Sign In</TabsTrigger>
+              <TabsTrigger value="signup" className="rounded-lg">Sign Up</TabsTrigger>
             </TabsList>
             
             <TabsContent value="login">
@@ -78,6 +83,7 @@ export const AuthPage: React.FC = () => {
                     onChange={(e) => setLoginEmail(e.target.value)}
                     placeholder="you@example.com"
                     required
+                    className="rounded-xl"
                   />
                 </div>
                 <div className="space-y-2">
@@ -99,9 +105,10 @@ export const AuthPage: React.FC = () => {
                     onChange={(e) => setLoginPassword(e.target.value)}
                     placeholder="••••••••"
                     required
+                    className="rounded-xl"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full rounded-xl" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Sign In
                 </Button>
@@ -119,6 +126,7 @@ export const AuthPage: React.FC = () => {
                     onChange={(e) => setSignupName(e.target.value)}
                     placeholder="John Doe"
                     required
+                    className="rounded-xl"
                   />
                 </div>
                 <div className="space-y-2">
@@ -130,6 +138,7 @@ export const AuthPage: React.FC = () => {
                     onChange={(e) => setSignupEmail(e.target.value)}
                     placeholder="you@example.com"
                     required
+                    className="rounded-xl"
                   />
                 </div>
                 <div className="space-y-2">
@@ -142,9 +151,10 @@ export const AuthPage: React.FC = () => {
                     placeholder="••••••••"
                     minLength={6}
                     required
+                    className="rounded-xl"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full rounded-xl" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Create Account
                 </Button>

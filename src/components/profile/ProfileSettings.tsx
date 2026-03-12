@@ -12,8 +12,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Loader2, Save } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
+import { Separator } from '@/components/ui/separator';
+import { Loader2, Save, Volume2, VolumeX, Play } from 'lucide-react';
 import { toast } from 'sonner';
+import { useNotificationSoundSettings } from '@/hooks/useNotificationSoundSettings';
+import { NOTIFICATION_SOUND_TYPES, playTestSound } from '@/lib/notificationSounds';
 
 interface ProfileSettingsProps {
   open: boolean;
@@ -23,6 +28,7 @@ interface ProfileSettingsProps {
 export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ open, onOpenChange }) => {
   const { profile, refreshProfile } = useAuth();
   const updateProfile = useUpdateProfile();
+  const { settings: soundSettings, toggleEnabled, setVolume, toggleMuteType } = useNotificationSoundSettings();
   
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState('');
@@ -66,7 +72,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ open, onOpenCh
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent>
+      <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Profile Settings</SheetTitle>
           <SheetDescription>Update your personal information</SheetDescription>
@@ -74,7 +80,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ open, onOpenCh
         
         <form onSubmit={handleSave} className="mt-6 space-y-6">
           <div className="flex justify-center">
-            <Avatar className="h-20 w-20">
+            <Avatar className="h-20 w-20 shadow-md">
               <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
                 {profile ? getInitials(profile.full_name) : 'U'}
               </AvatarFallback>
@@ -87,7 +93,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ open, onOpenCh
               id="email"
               value={profile?.email || ''}
               disabled
-              className="bg-muted"
+              className="bg-muted rounded-xl"
             />
             <p className="text-xs text-muted-foreground">Email cannot be changed</p>
           </div>
@@ -100,6 +106,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ open, onOpenCh
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Your full name"
               required
+              className="rounded-xl"
             />
           </div>
           
@@ -110,10 +117,68 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ open, onOpenCh
               value={role}
               onChange={(e) => setRole(e.target.value)}
               placeholder="e.g., Developer, Designer, Manager"
+              className="rounded-xl"
             />
           </div>
+
+          <Separator />
+
+          {/* Notification Sounds */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold">Notification Sounds</h3>
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {soundSettings.enabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4 text-muted-foreground" />}
+                <Label>Enable sounds</Label>
+              </div>
+              <Switch checked={soundSettings.enabled} onCheckedChange={toggleEnabled} />
+            </div>
+
+            {soundSettings.enabled && (
+              <>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Volume: {soundSettings.volume}%</Label>
+                  <Slider
+                    value={[soundSettings.volume]}
+                    onValueChange={([v]) => setVolume(v)}
+                    min={0}
+                    max={100}
+                    step={5}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  {NOTIFICATION_SOUND_TYPES.map(({ key, label }) => (
+                    <div key={key} className="flex items-center justify-between py-1.5">
+                      <span className="text-sm">{label}</span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs rounded-lg"
+                          onClick={() => playTestSound(key)}
+                        >
+                          <Play className="h-3 w-3 mr-1" />
+                          Test
+                        </Button>
+                        <Switch
+                          checked={!soundSettings.mutedTypes.includes(key)}
+                          onCheckedChange={() => toggleMuteType(key)}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <Separator />
           
-          <Button type="submit" className="w-full" disabled={isSaving}>
+          <Button type="submit" className="w-full rounded-xl" disabled={isSaving}>
             {isSaving ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (

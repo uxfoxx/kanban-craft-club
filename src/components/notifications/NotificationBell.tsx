@@ -10,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useNotifications, useUnreadCount, useMarkAsRead, useMarkAllAsRead, useClearNotifications } from '@/hooks/useNotifications';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { playNotificationSound } from '@/lib/notificationSounds';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -27,15 +28,21 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onNavigateTo
   const { isSupported, isSubscribed, permission, requestPermission, sendLocalNotification } = usePushNotifications();
   const prevUnreadRef = useRef(unreadCount);
 
-  // Send push notification when new notifications arrive
+  // Send push notification + play sound when new notifications arrive
   useEffect(() => {
-    if (unreadCount > prevUnreadRef.current && isSubscribed && notifications.length > 0) {
+    if (unreadCount > prevUnreadRef.current && notifications.length > 0) {
       const latest = notifications[0];
       if (latest && !latest.read) {
-        sendLocalNotification(latest.title, {
-          body: latest.message || undefined,
-          tag: latest.id,
-        });
+        // Play notification sound
+        playNotificationSound(latest.type);
+        
+        // Send push notification if subscribed
+        if (isSubscribed) {
+          sendLocalNotification(latest.title, {
+            body: latest.message || undefined,
+            tag: latest.id,
+          });
+        }
       }
     }
     prevUnreadRef.current = unreadCount;
@@ -58,26 +65,26 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onNavigateTo
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative rounded-xl">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge
               variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full"
             >
               {unreadCount > 9 ? '9+' : unreadCount}
             </Badge>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0 bg-popover" align="end">
+      <PopoverContent className="w-80 p-0 rounded-2xl overflow-hidden" align="end">
         {/* Push notification prompt */}
         {isSupported && !isSubscribed && (
           <div className="p-3 border-b bg-muted/30">
             <div className="flex items-center gap-2">
               <BellRing className="h-4 w-4 text-primary flex-shrink-0" />
               <p className="text-xs text-muted-foreground flex-1">Get push notifications</p>
-              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={requestPermission}>
+              <Button size="sm" variant="outline" className="h-7 text-xs rounded-lg" onClick={requestPermission}>
                 Enable
               </Button>
             </div>
@@ -91,7 +98,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onNavigateTo
                 variant="ghost"
                 size="sm"
                 onClick={() => markAllAsRead.mutate()}
-                className="h-8 text-xs"
+                className="h-8 text-xs rounded-lg"
               >
                 <CheckCheck className="h-3 w-3 mr-1" />
                 Mark all read
@@ -102,7 +109,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onNavigateTo
                 variant="ghost"
                 size="sm"
                 onClick={() => clearNotifications.mutate()}
-                className="h-8 text-xs text-destructive hover:text-destructive"
+                className="h-8 text-xs text-destructive hover:text-destructive rounded-lg"
               >
                 <Trash2 className="h-3 w-3" />
               </Button>
@@ -116,13 +123,13 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onNavigateTo
               <p className="text-sm">No notifications yet</p>
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="divide-y divide-border/50">
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
                   className={cn(
-                    'p-3 hover:bg-muted/50 cursor-pointer transition-colors',
-                    !notification.read && 'bg-muted/30'
+                    'p-3 hover:bg-muted/30 cursor-pointer transition-colors',
+                    !notification.read && 'bg-primary/5'
                   )}
                   onClick={() => {
                     if (!notification.read) {

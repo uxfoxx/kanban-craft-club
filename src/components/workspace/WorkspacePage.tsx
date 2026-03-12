@@ -59,7 +59,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ onSelectProject })
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Workspace</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Workspace</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Projects, team, analytics & financials</p>
         </div>
         <div className="flex items-center gap-2">
@@ -71,7 +71,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ onSelectProject })
                 if (org) setCurrentOrganization(org);
               }}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px] rounded-xl">
                 <Building2 className="h-4 w-4 mr-2 flex-shrink-0" />
                 <SelectValue placeholder="Select org" />
               </SelectTrigger>
@@ -82,11 +82,11 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ onSelectProject })
               </SelectContent>
             </Select>
           )}
-          <Button variant="outline" size="sm" onClick={() => setCreateOrgDialogOpen(true)}>
+          <Button variant="outline" size="sm" onClick={() => setCreateOrgDialogOpen(true)} className="rounded-xl">
             <Plus className="h-4 w-4 mr-1" /> New Org
           </Button>
           {currentOrganization && (
-            <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)}>
+            <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} className="rounded-xl">
               <Settings className="h-4 w-4" />
             </Button>
           )}
@@ -96,20 +96,20 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ onSelectProject })
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
-          <TabsList className="bg-muted/50">
-            <TabsTrigger value="projects" className="gap-1.5">
+          <TabsList className="glass-subtle rounded-xl">
+            <TabsTrigger value="projects" className="gap-1.5 rounded-lg">
               <FolderOpen className="h-4 w-4" /> Projects
             </TabsTrigger>
             {currentOrganization && (
               <>
-                <TabsTrigger value="activity" className="gap-1.5">
+                <TabsTrigger value="activity" className="gap-1.5 rounded-lg">
                   <Activity className="h-4 w-4" /> Activity
                 </TabsTrigger>
-                <TabsTrigger value="analytics" className="gap-1.5">
+                <TabsTrigger value="analytics" className="gap-1.5 rounded-lg">
                   <BarChart3 className="h-4 w-4" /> Analytics
                 </TabsTrigger>
                 {expensesEnabled && (
-                  <TabsTrigger value="financials" className="gap-1.5">
+                  <TabsTrigger value="financials" className="gap-1.5 rounded-lg">
                     <DollarSign className="h-4 w-4" /> Financials
                   </TabsTrigger>
                 )}
@@ -155,7 +155,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ onSelectProject })
               <Label htmlFor="org-description">Description</Label>
               <Textarea id="org-description" value={orgDescription} onChange={(e) => setOrgDescription(e.target.value)} placeholder="What does your organization do?" rows={3} />
             </div>
-            <Button type="submit" className="w-full" disabled={createOrganization.isPending}>
+            <Button type="submit" className="w-full rounded-xl" disabled={createOrganization.isPending}>
               {createOrganization.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Organization
             </Button>

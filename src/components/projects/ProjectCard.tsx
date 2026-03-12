@@ -59,17 +59,19 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onSelect, org
 
   return (
     <>
-      <Card className="transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-primary/30 relative group">
+      <Card className="transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:border-primary/20 relative group">
         <div className="cursor-pointer" onClick={() => onSelect(project.id)}>
           <CardHeader className="pb-2">
             <div className="flex items-start justify-between">
               <CardTitle className="flex items-center gap-2 flex-1 text-base">
-                <FolderOpen className="h-4 w-4 text-primary flex-shrink-0" />
+                <div className="p-1.5 rounded-lg bg-primary/10">
+                  <FolderOpen className="h-4 w-4 text-primary flex-shrink-0" />
+                </div>
                 <span className="line-clamp-1">{project.name}</span>
               </CardTitle>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -84,7 +86,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onSelect, org
               </DropdownMenu>
             </div>
             {organizationName && (
-              <Badge variant="secondary" className="w-fit gap-1 text-xs mt-1">
+              <Badge variant="secondary" className="w-fit gap-1 text-xs mt-1.5 rounded-full">
                 <Building2 className="h-3 w-3" />
                 {organizationName}
               </Badge>
