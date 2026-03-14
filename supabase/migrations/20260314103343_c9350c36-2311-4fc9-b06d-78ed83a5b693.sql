@@ -1,0 +1,1 @@
+ALTER TABLE public.tasks ADD COLUMN tier_id uuid REFERENCES public.organization_tiers(id) ON DELETE SET NULL;
