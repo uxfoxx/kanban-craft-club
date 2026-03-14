@@ -125,7 +125,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const [activeTab, setActiveTab] = useState('overview');
   const [isDelivering, setIsDelivering] = useState(false);
 
-  // Local state for debounced inputs
+  // Local state for debounced budget input
   const [localBudget, setLocalBudget] = useState('');
   const [localTeamShare, setLocalTeamShare] = useState('');
 
