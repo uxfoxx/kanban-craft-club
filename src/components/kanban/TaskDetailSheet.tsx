@@ -127,7 +127,6 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
 
   // Local state for debounced budget input
   const [localBudget, setLocalBudget] = useState('');
-  const [localTeamShare, setLocalTeamShare] = useState('');
 
   const taskId = task?.id;
   useEffect(() => {
