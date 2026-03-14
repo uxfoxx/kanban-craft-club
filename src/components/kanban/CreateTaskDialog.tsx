@@ -72,7 +72,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         columnId: columnId || defaultColumn?.id,
         dueDate: dueDate || undefined,
         budget: budget ? parseFloat(budget) : undefined,
-        teamShare: teamShare ? parseFloat(teamShare) : undefined,
+        tierId: selectedTierId || undefined,
       });
 
       // Add assignees — first one gets "Task Manager" role
