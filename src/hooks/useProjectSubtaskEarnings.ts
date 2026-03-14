@@ -21,7 +21,7 @@ export const useProjectSubtaskEarnings = (projectId?: string, userId?: string, o
       // Fetch all tasks for the project
       const { data: tasks } = await supabase
         .from('tasks')
-        .select('id, budget, team_share, commission_mode')
+        .select('id, budget, commission_mode')
         .eq('project_id', projectId);
       if (!tasks || tasks.length === 0) return {};
 

@@ -56,7 +56,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [dueDate, setDueDate] = useState('');
   const [budget, setBudget] = useState('');
-  const [teamShare, setTeamShare] = useState('');
   const [selectedTierId, setSelectedTierId] = useState<string>('');
 
   const defaultColumn = columns?.find(c => c.is_default) || columns?.[0];
@@ -73,7 +72,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         columnId: columnId || defaultColumn?.id,
         dueDate: dueDate || undefined,
         budget: budget ? parseFloat(budget) : undefined,
-        teamShare: teamShare ? parseFloat(teamShare) : undefined,
+        tierId: selectedTierId || undefined,
       });
 
       // Add assignees — first one gets "Task Manager" role
@@ -101,7 +100,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setSelectedAssignees([]);
     setDueDate('');
     setBudget('');
-    setTeamShare('');
     setSelectedTierId('');
   };
 
@@ -173,31 +171,17 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
           {expensesEnabled && (
             <>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="task-budget">Task Budget (LKR)</Label>
-                  <Input
-                    id="task-budget"
-                    type="number"
-                    value={budget}
-                    onChange={(e) => setBudget(e.target.value)}
-                    placeholder="Display only"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="task-team-share">Team Share (LKR)</Label>
-                  <Input
-                    id="task-team-share"
-                    type="number"
-                    value={teamShare}
-                    onChange={(e) => setTeamShare(e.target.value)}
-                    placeholder="Amount to divide"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="task-budget">Task Budget (LKR)</Label>
+                <Input
+                  id="task-budget"
+                  type="number"
+                  value={budget}
+                  onChange={(e) => setBudget(e.target.value)}
+                  placeholder="Task budget"
+                  min="0"
+                  step="0.01"
+                />
               </div>
 
               {tiers.length > 0 && (

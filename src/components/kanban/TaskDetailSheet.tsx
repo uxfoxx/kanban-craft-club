@@ -99,10 +99,12 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   );
   const myTaskEarning = task ? earningsMap[task.id] || 0 : 0;
 
-  // Task's tier — from task budget or project tier
+  // Task's tier — manual tier_id or fall back to budget-based detection
   const taskBudget = task ? Number((task as any).budget || task.cost || 0) : 0;
-  const taskTeamShare = task ? Number((task as any).team_share || 0) : 0;
-  const taskTier = taskBudget > 0 ? getTierForBudget(orgTiers, taskBudget) : null;
+  const manualTierId = (task as any)?.tier_id;
+  const taskTier = manualTierId 
+    ? orgTiers.find(t => t.id === manualTierId) 
+    : (taskBudget > 0 ? getTierForBudget(orgTiers, taskBudget) : null);
   const tierSlug = taskTier?.slug?.toLowerCase();
   const isMajor = tierSlug === 'major';
   const isMinorOrNano = tierSlug === 'minor' || tierSlug === 'nano';
@@ -123,14 +125,12 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const [activeTab, setActiveTab] = useState('overview');
   const [isDelivering, setIsDelivering] = useState(false);
 
-  // Local state for debounced inputs
+  // Local state for debounced budget input
   const [localBudget, setLocalBudget] = useState('');
-  const [localTeamShare, setLocalTeamShare] = useState('');
 
   const taskId = task?.id;
   useEffect(() => {
     setLocalBudget((task as any)?.budget || task?.cost ? String((task as any)?.budget || task?.cost) : '');
-    setLocalTeamShare((task as any)?.team_share ? String((task as any).team_share) : '');
   }, [taskId]);
 
   // Debounced save for budget
@@ -145,17 +145,13 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
     return () => clearTimeout(timeout);
   }, [localBudget]);
 
-  // Debounced save for team_share
-  const isFirstRenderTeamShare = useRef(true);
-  useEffect(() => {
-    if (isFirstRenderTeamShare.current) { isFirstRenderTeamShare.current = false; return; }
-    const timeout = setTimeout(() => {
-      if (!task) return;
-      const val = parseFloat(localTeamShare) || 0;
-      updateTask.mutateAsync({ taskId: task.id, updates: { team_share: val } as any, projectId }).catch(() => {});
-    }, 800);
-    return () => clearTimeout(timeout);
-  }, [localTeamShare]);
+  const handleTierChange = async (tierId: string) => {
+    if (!task) return;
+    try {
+      await updateTask.mutateAsync({ taskId: task.id, updates: { tier_id: tierId } as any, projectId });
+      toast.success('Tier updated');
+    } catch { toast.error('Failed to update tier'); }
+  };
 
   const { currentPage, navigateTo, goBack, isRoot, resetTo } = useSheetPageStack();
 
@@ -424,7 +420,6 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                   subtask={selectedSubtask}
                   organizationMembers={organizationMembers}
                   taskBudget={taskBudget}
-                  teamShare={taskTeamShare}
                   isOrgAdmin={isAdmin}
                   expensesEnabled={expensesEnabled}
                   taskTier={taskTier}
@@ -705,7 +700,6 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                           subtask={subtask}
                           organizationMembers={organizationMembers}
                           taskBudget={taskBudget}
-                          teamShare={taskTeamShare}
                           isOrgAdmin={isAdmin}
                           expensesEnabled={expensesEnabled}
                           currentUserId={user?.id}
@@ -774,36 +768,29 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                         {orgTiers.length > 0 && (
                           <div className="space-y-2">
                             <label className="text-sm font-medium">Tier</label>
-                            <div className="flex items-center gap-2">
-                              {taskTier ? (
-                                <Badge variant="secondary">{taskTier.name}</Badge>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">Auto-detected from budget</span>
-                              )}
-                            </div>
+                            <Select value={manualTierId || ''} onValueChange={handleTierChange}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select tier..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {orgTiers.map((tier) => (
+                                  <SelectItem key={tier.id} value={tier.id}>
+                                    {tier.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">Task Budget (LKR)</label>
-                            <Input
-                              type="number"
-                              value={localBudget}
-                              onChange={(e) => setLocalBudget(e.target.value)}
-                              min="0" step="0.01"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">Team Share (LKR)</label>
-                            <Input
-                              type="number"
-                              value={localTeamShare}
-                              onChange={(e) => setLocalTeamShare(e.target.value)}
-                              min="0" step="0.01"
-                            />
-                            <p className="text-xs text-muted-foreground">Amount divided among subtask workers</p>
-                          </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Task Budget (LKR)</label>
+                          <Input
+                            type="number"
+                            value={localBudget}
+                            onChange={(e) => setLocalBudget(e.target.value)}
+                            min="0" step="0.01"
+                          />
                         </div>
                       </>
                     ) : (
@@ -878,12 +865,11 @@ const SubtaskDetailPage: React.FC<{
   subtask: Subtask;
   organizationMembers: OrganizationMemberWithProfile[];
   taskBudget: number;
-  teamShare: number;
   isOrgAdmin: boolean;
   expensesEnabled?: boolean;
   taskTier?: OrganizationTier | null;
   orgId?: string;
-}> = ({ subtask, organizationMembers, taskBudget, teamShare, isOrgAdmin, expensesEnabled, taskTier, orgId }) => {
+}> = ({ subtask, organizationMembers, taskBudget, isOrgAdmin, expensesEnabled, taskTier, orgId }) => {
   const { data: timeEntries = [] } = useSubtaskTimeEntries(subtask.id);
   const { data: assignees = [] } = useSubtaskAssignees(subtask.id);
   const { data: globalActiveTimer } = useActiveSubtaskTimeEntry();

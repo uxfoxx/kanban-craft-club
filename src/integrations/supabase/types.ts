@@ -935,6 +935,7 @@ export type Database = {
           project_id: string
           status: string
           team_share: number | null
+          tier_id: string | null
           title: string
           updated_at: string
           weight_pct: number | null
@@ -958,6 +959,7 @@ export type Database = {
           project_id: string
           status?: string
           team_share?: number | null
+          tier_id?: string | null
           title: string
           updated_at?: string
           weight_pct?: number | null
@@ -981,6 +983,7 @@ export type Database = {
           project_id?: string
           status?: string
           team_share?: number | null
+          tier_id?: string | null
           title?: string
           updated_at?: string
           weight_pct?: number | null
@@ -999,6 +1002,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "organization_tiers"
             referencedColumns: ["id"]
           },
         ]
