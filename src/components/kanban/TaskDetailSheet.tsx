@@ -769,36 +769,29 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                         {orgTiers.length > 0 && (
                           <div className="space-y-2">
                             <label className="text-sm font-medium">Tier</label>
-                            <div className="flex items-center gap-2">
-                              {taskTier ? (
-                                <Badge variant="secondary">{taskTier.name}</Badge>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">Auto-detected from budget</span>
-                              )}
-                            </div>
+                            <Select value={manualTierId || ''} onValueChange={handleTierChange}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select tier..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {orgTiers.map((tier) => (
+                                  <SelectItem key={tier.id} value={tier.id}>
+                                    {tier.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">Task Budget (LKR)</label>
-                            <Input
-                              type="number"
-                              value={localBudget}
-                              onChange={(e) => setLocalBudget(e.target.value)}
-                              min="0" step="0.01"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">Team Share (LKR)</label>
-                            <Input
-                              type="number"
-                              value={localTeamShare}
-                              onChange={(e) => setLocalTeamShare(e.target.value)}
-                              min="0" step="0.01"
-                            />
-                            <p className="text-xs text-muted-foreground">Amount divided among subtask workers</p>
-                          </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Task Budget (LKR)</label>
+                          <Input
+                            type="number"
+                            value={localBudget}
+                            onChange={(e) => setLocalBudget(e.target.value)}
+                            min="0" step="0.01"
+                          />
                         </div>
                       </>
                     ) : (
