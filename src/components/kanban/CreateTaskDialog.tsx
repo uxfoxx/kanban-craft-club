@@ -56,7 +56,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [dueDate, setDueDate] = useState('');
   const [budget, setBudget] = useState('');
-  const [teamShare, setTeamShare] = useState('');
   const [selectedTierId, setSelectedTierId] = useState<string>('');
 
   const defaultColumn = columns?.find(c => c.is_default) || columns?.[0];
