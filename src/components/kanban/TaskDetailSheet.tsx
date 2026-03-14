@@ -873,12 +873,11 @@ const SubtaskDetailPage: React.FC<{
   subtask: Subtask;
   organizationMembers: OrganizationMemberWithProfile[];
   taskBudget: number;
-  teamShare: number;
   isOrgAdmin: boolean;
   expensesEnabled?: boolean;
   taskTier?: OrganizationTier | null;
   orgId?: string;
-}> = ({ subtask, organizationMembers, taskBudget, teamShare, isOrgAdmin, expensesEnabled, taskTier, orgId }) => {
+}> = ({ subtask, organizationMembers, taskBudget, isOrgAdmin, expensesEnabled, taskTier, orgId }) => {
   const { data: timeEntries = [] } = useSubtaskTimeEntries(subtask.id);
   const { data: assignees = [] } = useSubtaskAssignees(subtask.id);
   const { data: globalActiveTimer } = useActiveSubtaskTimeEntry();
