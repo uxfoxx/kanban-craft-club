@@ -100,7 +100,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setSelectedAssignees([]);
     setDueDate('');
     setBudget('');
-    setTeamShare('');
     setSelectedTierId('');
   };
 
