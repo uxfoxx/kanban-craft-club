@@ -132,7 +132,6 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const taskId = task?.id;
   useEffect(() => {
     setLocalBudget((task as any)?.budget || task?.cost ? String((task as any)?.budget || task?.cost) : '');
-    setLocalTeamShare((task as any)?.team_share ? String((task as any).team_share) : '');
   }, [taskId]);
 
   // Debounced save for budget
@@ -147,17 +146,13 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
     return () => clearTimeout(timeout);
   }, [localBudget]);
 
-  // Debounced save for team_share
-  const isFirstRenderTeamShare = useRef(true);
-  useEffect(() => {
-    if (isFirstRenderTeamShare.current) { isFirstRenderTeamShare.current = false; return; }
-    const timeout = setTimeout(() => {
-      if (!task) return;
-      const val = parseFloat(localTeamShare) || 0;
-      updateTask.mutateAsync({ taskId: task.id, updates: { team_share: val } as any, projectId }).catch(() => {});
-    }, 800);
-    return () => clearTimeout(timeout);
-  }, [localTeamShare]);
+  const handleTierChange = async (tierId: string) => {
+    if (!task) return;
+    try {
+      await updateTask.mutateAsync({ taskId: task.id, updates: { tier_id: tierId } as any, projectId });
+      toast.success('Tier updated');
+    } catch { toast.error('Failed to update tier'); }
+  };
 
   const { currentPage, navigateTo, goBack, isRoot, resetTo } = useSheetPageStack();
 
