@@ -421,7 +421,6 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                   subtask={selectedSubtask}
                   organizationMembers={organizationMembers}
                   taskBudget={taskBudget}
-                  taskBudget={taskBudget}
                   isOrgAdmin={isAdmin}
                   expensesEnabled={expensesEnabled}
                   taskTier={taskTier}
