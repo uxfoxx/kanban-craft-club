@@ -171,31 +171,17 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
           {expensesEnabled && (
             <>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="task-budget">Task Budget (LKR)</Label>
-                  <Input
-                    id="task-budget"
-                    type="number"
-                    value={budget}
-                    onChange={(e) => setBudget(e.target.value)}
-                    placeholder="Display only"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="task-team-share">Team Share (LKR)</Label>
-                  <Input
-                    id="task-team-share"
-                    type="number"
-                    value={teamShare}
-                    onChange={(e) => setTeamShare(e.target.value)}
-                    placeholder="Amount to divide"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="task-budget">Task Budget (LKR)</Label>
+                <Input
+                  id="task-budget"
+                  type="number"
+                  value={budget}
+                  onChange={(e) => setBudget(e.target.value)}
+                  placeholder="Task budget"
+                  min="0"
+                  step="0.01"
+                />
               </div>
 
               {tiers.length > 0 && (

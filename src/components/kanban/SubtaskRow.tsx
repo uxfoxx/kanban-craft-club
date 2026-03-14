@@ -25,7 +25,6 @@ interface SubtaskRowProps {
   subtask: Subtask;
   organizationMembers?: OrganizationMemberWithProfile[];
   taskBudget?: number;
-  teamShare?: number;
   isOrgAdmin?: boolean;
   expensesEnabled?: boolean;
   currentUserId?: string;
@@ -35,7 +34,7 @@ interface SubtaskRowProps {
   onOpenDetail?: () => void;
 }
 
-export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMembers, taskBudget = 0, teamShare = 0, isOrgAdmin = false, expensesEnabled = false, currentUserId, projectTierId, orgId, tierSlug, onOpenDetail }) => {
+export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMembers, taskBudget = 0, isOrgAdmin = false, expensesEnabled = false, currentUserId, projectTierId, orgId, tierSlug, onOpenDetail }) => {
   const toggleSubtask = useToggleSubtask();
   const deleteSubtask = useDeleteSubtask();
   const updateSubtask = useUpdateSubtask();
