@@ -1,30 +1,49 @@
 
+Root cause: the role input is not really failing because tier saving is broken. The main issue is that when a subtask is created from the task sheet, the selected role/type is not being written into any persisted field that the subtask detail and earnings logic actually use.
 
-# Fix: Role Input Fields in Tasks + Stale Task State
+What’s wrong now:
+- In `CreateTaskDialog.tsx`, tier selection already gets passed as `tierId` during task creation.
+- In `useTasks.ts`, `tier_id` is already inserted into `tasks`.
+- In `KanbanBoard.tsx`, stale selected-task syncing is already present.
+- But in `TaskDetailSheet.tsx`, when adding a subtask:
+  - for MAJOR, `newSubtaskRole` is collected in UI but never saved
+  - for MINOR/NANO role mode, `newSubtaskRole` is also collected but never saved
+- Later, subtask commission UI reads role from `subtask_assignees[0].role`, so a newly created subtask has no role until the user manually sets one after creation. That makes it look like “tier starts working later”.
 
-## Problems Found
+Implementation plan:
+1. Fix subtask creation so selected role is persisted immediately
+- In `TaskDetailSheet.tsx`, after `createSubtask.mutateAsync(...)`, capture the returned subtask.
+- If a role-based subtask was created and `newSubtaskRole` is selected, automatically create/update the first subtask assignee role record, or store it using the same structure the rest of the screen already depends on.
+- For MAJOR: save both `work_type` and the selected role.
+- For MINOR/NANO role mode: save the selected role right away.
+- For MINOR/NANO deliverable mode: keep saving `work_type` + `complexity`.
 
-1. **Role/Type inputs invisible when no tier selected** — The subtask add form only shows role/deliverable inputs when `isMajor` or `isMinorOrNano` is true. If no tier is set on the task, these are both false, so no commission inputs appear at all.
+2. Make the add-subtask form safer and clearer
+- In `TaskDetailSheet.tsx`, prevent submitting a role-based subtask without a selected role.
+- Prevent submitting a MAJOR subtask without both type and role.
+- Prevent submitting a deliverable-based subtask without deliverable and complexity.
+- Add small inline validation text so the flow is obvious.
 
-2. **Role dropdown empty when no rates configured** — For minor/nano, the role select filters by `getRateForTier(r, taskTier.id) > 0`. If no rate_card_rates rows exist for the tier, the dropdown renders empty.
+3. Make role selection depend on the effective task tier consistently
+- Keep using `task.tier_id` first, with budget fallback only when no manual tier exists.
+- Ensure the tier badge and dropdown continue reflecting the current task state after updates.
 
-3. **Stale selectedTask after tier update** — Previously approved fix: `KanbanBoard.tsx` doesn't sync `selectedTask` with fresh query data, so after updating tier_id the sheet still shows old values.
+4. Improve the UX so users understand why fields appear
+- In the subtask form, show a short explanation:
+  - Major: choose category + role
+  - Minor/Nano: choose role-based or deliverable-based
+- If no tier is selected, keep showing the “select a tier” hint, but make it more prominent and block incomplete submission.
 
-## Changes
+5. Verify related subtask detail behavior
+- In the subtask detail section of `TaskDetailSheet.tsx`, keep role dropdowns visible and populated from the rate card.
+- Ensure the saved role appears immediately in:
+  - subtask badges
+  - earnings/rate display
+  - assignee role selector
 
-### 1. `src/components/kanban/TaskDetailSheet.tsx`
-- Show role/type inputs even when expenses are enabled but no tier is selected yet — display a hint "Select a tier to configure subtask rates"
-- For the role dropdown: show ALL roles from rate card (not just ones with rate > 0), but append the rate if available. This way users can still select a role even if rates aren't fully configured
-- Same for MAJOR type roles: show all roles matching the sub_category, even if rate is 0
+Files to update:
+- `src/components/kanban/TaskDetailSheet.tsx` — main fix; persist selected role on subtask creation and add validation UX
+- Possibly `src/hooks/useTasks.ts` only if the current create-subtask mutation must return/use extra fields, but likely no backend/schema change is needed
 
-### 2. `src/components/kanban/KanbanBoard.tsx`
-- Add `useEffect` import
-- Add effect to sync `selectedTask` with fresh `tasks` data after mutations (the previously approved fix)
-
-## Files Modified
-
-| File | Change |
-|------|--------|
-| `src/components/kanban/TaskDetailSheet.tsx` | Show roles without rate filter, add "select tier" hint |
-| `src/components/kanban/KanbanBoard.tsx` | Sync selectedTask with fresh query data |
-
+Technical note:
+No database migration appears necessary for this fix. The issue is in the frontend flow: the form gathers role data, but the create flow never persists it into the role source that the rest of the commission system reads.
