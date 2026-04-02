@@ -4,7 +4,7 @@ import { useIsOrgAdmin } from '@/hooks/useIsOrgAdmin';
 import { useSubtasks, useCreateSubtask, useUpdateTask, useDeleteTask, useUpdateSubtask } from '@/hooks/useTasks';
 import { useTimeEntries, formatDuration, useDeleteTimeEntry } from '@/hooks/useTimeTracking';
 import { formatLKR } from '@/lib/currency';
-import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee } from '@/hooks/useAssignees';
+import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee, useAddSubtaskAssignee } from '@/hooks/useAssignees';
 import { useOrganizationMembersForProject } from '@/hooks/useOrganizations';
 import { useOrganizationTiers, getTierForBudget } from '@/hooks/useOrganizationTiers';
 import { useRateCard, useRateCardRoles, useRateCardDeliverables, getRateForTier, useRateCardForTier } from '@/hooks/useRateCard';
