@@ -4,7 +4,7 @@ import { useIsOrgAdmin } from '@/hooks/useIsOrgAdmin';
 import { useSubtasks, useCreateSubtask, useUpdateTask, useDeleteTask, useUpdateSubtask } from '@/hooks/useTasks';
 import { useTimeEntries, formatDuration, useDeleteTimeEntry } from '@/hooks/useTimeTracking';
 import { formatLKR } from '@/lib/currency';
-import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee } from '@/hooks/useAssignees';
+import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee, useAddSubtaskAssignee as useAddSubAssignee } from '@/hooks/useAssignees';
 import { useOrganizationMembersForProject } from '@/hooks/useOrganizations';
 import { useOrganizationTiers, getTierForBudget } from '@/hooks/useOrganizationTiers';
 import { useRateCard, useRateCardRoles, useRateCardDeliverables, getRateForTier, useRateCardForTier } from '@/hooks/useRateCard';
@@ -88,6 +88,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const deleteTimeEntry = useDeleteTimeEntry();
   const addAssignee = useAddTaskAssignee();
   const removeAssignee = useRemoveTaskAssignee();
+  const addSubtaskAssignee = useAddSubAssignee();
 
   const { data: orgTiers = [] } = useOrganizationTiers(currentOrganization?.id);
   const rateCardRoles = useRateCardRoles(currentOrganization?.id);
@@ -164,6 +165,23 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const handleAddSubtask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!task || !newSubtask.trim()) return;
+
+    // Validation
+    if (expensesEnabled && taskTier) {
+      if (isMajor && (!newSubtaskType || !newSubtaskRole)) {
+        toast.error('Please select both a type and role for Major tier subtasks');
+        return;
+      }
+      if (isMinorOrNano && newSubtaskMode === 'role' && !newSubtaskRole) {
+        toast.error('Please select a role for this subtask');
+        return;
+      }
+      if (isMinorOrNano && newSubtaskMode === 'type' && (!newSubtaskDeliverable || !newSubtaskComplexity)) {
+        toast.error('Please select both deliverable and complexity');
+        return;
+      }
+    }
+
     try {
       const subtaskData: any = { taskId: task.id, title: newSubtask.trim() };
       
@@ -172,15 +190,28 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
         subtaskData.commission_mode = 'role';
       } else if (isMinorOrNano) {
         subtaskData.commission_mode = newSubtaskMode;
-        if (newSubtaskMode === 'role') {
-          // role set on subtask-level
-        } else {
+        if (newSubtaskMode === 'type') {
           subtaskData.work_type = newSubtaskDeliverable || null;
           subtaskData.complexity = newSubtaskComplexity || null;
         }
       }
 
-      await createSubtask.mutateAsync(subtaskData);
+      const created = await createSubtask.mutateAsync(subtaskData);
+
+      // Persist the selected role as a subtask assignee record
+      if (newSubtaskRole && created?.id && user?.id) {
+        try {
+          await addSubtaskAssignee.mutateAsync({
+            subtaskId: created.id,
+            userId: user.id,
+            role: newSubtaskRole,
+          });
+        } catch {
+          // Non-critical: subtask was created, role assignment failed
+          console.warn('Subtask created but role assignment failed');
+        }
+      }
+
       setNewSubtask('');
       setNewSubtaskType('');
       setNewSubtaskRole('');
