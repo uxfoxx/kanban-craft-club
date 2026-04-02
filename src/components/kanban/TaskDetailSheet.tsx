@@ -621,6 +621,10 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                     <form onSubmit={handleAddSubtask} className="space-y-3 mb-4 p-3 rounded-lg border bg-muted/30">
                       <Input value={newSubtask} onChange={(e) => setNewSubtask(e.target.value)} placeholder="Subtask title..." className="flex-1" />
                       
+                      {expensesEnabled && !taskTier && (
+                        <p className="text-xs text-muted-foreground italic">Select a tier in the Finance tab to configure subtask rates</p>
+                      )}
+
                       {expensesEnabled && isMajor && (
                         <div className="grid grid-cols-2 gap-2">
                           <Select value={newSubtaskType} onValueChange={(v) => { setNewSubtaskType(v); setNewSubtaskRole(''); }}>
@@ -635,7 +639,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                               <SelectContent>
                                 {rolesForType(newSubtaskType).map(r => (
                                   <SelectItem key={r.id} value={r.name}>
-                                    {r.name} {taskTier && getRateForTier(r, taskTier.id) > 0 ? `(${formatLKR(getRateForTier(r, taskTier.id))})` : ''}
+                                    {r.name} {taskTier && getRateForTier(r, taskTier.id) > 0 ? ` (${formatLKR(getRateForTier(r, taskTier.id))})` : ''}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -658,9 +662,9 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                             <Select value={newSubtaskRole} onValueChange={setNewSubtaskRole}>
                               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select role..." /></SelectTrigger>
                               <SelectContent>
-                                {rateCardRoles.filter(r => taskTier && getRateForTier(r, taskTier.id) > 0).map(r => (
+                                {rateCardRoles.map(r => (
                                   <SelectItem key={r.id} value={r.name}>
-                                    {r.name} ({formatLKR(taskTier ? getRateForTier(r, taskTier.id) : 0)})
+                                    {r.name} {taskTier && getRateForTier(r, taskTier.id) > 0 ? `(${formatLKR(getRateForTier(r, taskTier.id))})` : ''}
                                   </SelectItem>
                                 ))}
                               </SelectContent>

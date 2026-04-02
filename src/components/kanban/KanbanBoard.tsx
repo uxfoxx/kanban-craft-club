@@ -54,6 +54,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, onBack }) =
   const addMember = useAddProjectMember();
   
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  // Keep selectedTask in sync with fresh query data
+  useEffect(() => {
+    if (selectedTask && tasks) {
+      const fresh = tasks.find(t => t.id === selectedTask.id);
+      if (fresh) setSelectedTask(fresh);
+    }
+  }, [tasks]);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [memberDialogOpen, setMemberDialogOpen] = useState(false);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
