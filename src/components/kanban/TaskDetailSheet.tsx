@@ -88,6 +88,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const deleteTimeEntry = useDeleteTimeEntry();
   const addAssignee = useAddTaskAssignee();
   const removeAssignee = useRemoveTaskAssignee();
+  const addSubtaskAssignee = useAddSubAssignee();
 
   const { data: orgTiers = [] } = useOrganizationTiers(currentOrganization?.id);
   const rateCardRoles = useRateCardRoles(currentOrganization?.id);
