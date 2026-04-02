@@ -1,42 +1,30 @@
 
 
-# Fix: Tier not showing in dropdown & badge after update
+# Fix: Role Input Fields in Tasks + Stale Task State
 
-## Root Cause
+## Problems Found
 
-`selectedTask` in `KanbanBoard.tsx` is stored in `useState<Task | null>`. When the user clicks a task, the task object is captured at that moment. After `handleTierChange` updates `tier_id` via `updateTask`, the query is invalidated and fresh data arrives — but `selectedTask` still holds the stale object without the updated `tier_id`.
+1. **Role/Type inputs invisible when no tier selected** — The subtask add form only shows role/deliverable inputs when `isMajor` or `isMinorOrNano` is true. If no tier is set on the task, these are both false, so no commission inputs appear at all.
 
-This means:
-- The tier dropdown in Finance tab shows empty (stale `manualTierId` is still null/old value)
-- The tier badge pill in the header also shows stale data
-- Same issue when creating a task with a tier — clicking the task after creation shows the old snapshot
+2. **Role dropdown empty when no rates configured** — For minor/nano, the role select filters by `getRateForTier(r, taskTier.id) > 0`. If no rate_card_rates rows exist for the tier, the dropdown renders empty.
 
-## Fix
+3. **Stale selectedTask after tier update** — Previously approved fix: `KanbanBoard.tsx` doesn't sync `selectedTask` with fresh query data, so after updating tier_id the sheet still shows old values.
 
-### `src/components/kanban/KanbanBoard.tsx`
-- Add `useEffect` to keep `selectedTask` in sync with the latest `tasks` query data
-- When `tasks` array updates and `selectedTask` is set, find the matching task by ID and update state
+## Changes
 
-```typescript
-// After line 56: const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-// Add:
-useEffect(() => {
-  if (selectedTask && tasks) {
-    const fresh = tasks.find(t => t.id === selectedTask.id);
-    if (fresh) {
-      setSelectedTask(fresh);
-    }
-  }
-}, [tasks]);
-```
+### 1. `src/components/kanban/TaskDetailSheet.tsx`
+- Show role/type inputs even when expenses are enabled but no tier is selected yet — display a hint "Select a tier to configure subtask rates"
+- For the role dropdown: show ALL roles from rate card (not just ones with rate > 0), but append the rate if available. This way users can still select a role even if rates aren't fully configured
+- Same for MAJOR type roles: show all roles matching the sub_category, even if rate is 0
 
-- Change import from `useState, useMemo` to `useState, useMemo, useEffect`
-
-This single change fixes both the dropdown value and the tier badge pill, since `task.tier_id` will now be up-to-date after any mutation.
+### 2. `src/components/kanban/KanbanBoard.tsx`
+- Add `useEffect` import
+- Add effect to sync `selectedTask` with fresh `tasks` data after mutations (the previously approved fix)
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/components/kanban/KanbanBoard.tsx` | Add useEffect to sync selectedTask with fresh query data |
+| `src/components/kanban/TaskDetailSheet.tsx` | Show roles without rate filter, add "select tier" hint |
+| `src/components/kanban/KanbanBoard.tsx` | Sync selectedTask with fresh query data |
 
