@@ -929,15 +929,14 @@ const SubtaskDetailPage: React.FC<{
   const isMajor = tierSlug === 'major';
   const isMinorOrNano = tierSlug === 'minor' || tierSlug === 'nano';
 
-  // Compute auto commission from rate card
+  // Compute auto commission from rate card (case-insensitive sub_category matching)
   const getSubtaskRate = () => {
     if (!taskTier) return 0;
     const mode = subtask.commission_mode || 'role';
     if (mode === 'role') {
-      // For major: use work_type as sub_category filter
       const role = assignees[0]?.role;
       if (!role) return 0;
-      const entry = roles.find(r => r.name === role && (!isMajor || r.sub_category === subtask.work_type));
+      const entry = roles.find(r => r.name === role && (!isMajor || r.sub_category?.toLowerCase() === subtask.work_type?.toLowerCase()));
       return entry ? getRate(entry, taskTier.id) : 0;
     } else if (mode === 'type' && subtask.work_type) {
       const entry = deliverables.find(d => d.name === subtask.work_type && d.complexity === subtask.complexity);
