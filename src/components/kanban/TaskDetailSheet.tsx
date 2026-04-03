@@ -156,10 +156,15 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
 
   const { currentPage, navigateTo, goBack, isRoot, resetTo } = useSheetPageStack();
 
-  // Get roles filtered by sub_category for MAJOR tier
-  const majorTypes = ['Films', 'Photography', 'Design'];
+  // Get roles filtered by sub_category for MAJOR tier (normalize to lowercase for matching)
+  const majorTypes = [
+    { value: 'films', label: 'Films' },
+    { value: 'photography', label: 'Photography' },
+    { value: 'design', label: 'Design' },
+  ];
   const rolesForType = (type: string) => {
-    return rateCardRoles.filter(r => r.sub_category === type);
+    const normalized = type.toLowerCase();
+    return rateCardRoles.filter(r => r.sub_category?.toLowerCase() === normalized);
   };
 
   const handleAddSubtask = async (e: React.FormEvent) => {
