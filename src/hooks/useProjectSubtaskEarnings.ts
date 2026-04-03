@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useRateCardRoles, useRateCardDeliverables, getRateForTier } from '@/hooks/useRateCard';
-import { useOrganizationTiers, getTierForBudget } from '@/hooks/useOrganizationTiers';
+import { useOrganizationTiers } from '@/hooks/useOrganizationTiers';
 
 /**
  * Computes per-task potential earnings for the current user across a project.
