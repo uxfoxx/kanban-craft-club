@@ -6,7 +6,7 @@ import { useTimeEntries, formatDuration, useDeleteTimeEntry } from '@/hooks/useT
 import { formatLKR } from '@/lib/currency';
 import { useTaskAssignees, useAddTaskAssignee, useRemoveTaskAssignee, useAddSubtaskAssignee as useAddSubAssignee } from '@/hooks/useAssignees';
 import { useOrganizationMembersForProject } from '@/hooks/useOrganizations';
-import { useOrganizationTiers, getTierForBudget } from '@/hooks/useOrganizationTiers';
+import { useOrganizationTiers } from '@/hooks/useOrganizationTiers';
 import { useRateCard, useRateCardRoles, useRateCardDeliverables, getRateForTier, useRateCardForTier } from '@/hooks/useRateCard';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -100,12 +100,12 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   );
   const myTaskEarning = task ? earningsMap[task.id] || 0 : 0;
 
-  // Task's tier — manual tier_id or fall back to budget-based detection
+  // Task's tier — manual tier_id only (budget is display-only)
   const taskBudget = task ? Number((task as any).budget || task.cost || 0) : 0;
   const manualTierId = (task as any)?.tier_id;
   const taskTier = manualTierId 
     ? orgTiers.find(t => t.id === manualTierId) 
-    : (taskBudget > 0 ? getTierForBudget(orgTiers, taskBudget) : null);
+    : null;
   const tierSlug = taskTier?.slug?.toLowerCase();
   const isMajor = tierSlug === 'major';
   const isMinorOrNano = tierSlug === 'minor' || tierSlug === 'nano';
@@ -156,10 +156,15 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
 
   const { currentPage, navigateTo, goBack, isRoot, resetTo } = useSheetPageStack();
 
-  // Get roles filtered by sub_category for MAJOR tier
-  const majorTypes = ['Films', 'Photography', 'Design'];
+  // Get roles filtered by sub_category for MAJOR tier (normalize to lowercase for matching)
+  const majorTypes = [
+    { value: 'films', label: 'Films' },
+    { value: 'photography', label: 'Photography' },
+    { value: 'design', label: 'Design' },
+  ];
   const rolesForType = (type: string) => {
-    return rateCardRoles.filter(r => r.sub_category === type);
+    const normalized = type.toLowerCase();
+    return rateCardRoles.filter(r => r.sub_category?.toLowerCase() === normalized);
   };
 
   const handleAddSubtask = async (e: React.FormEvent) => {
@@ -661,7 +666,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                           <Select value={newSubtaskType} onValueChange={(v) => { setNewSubtaskType(v); setNewSubtaskRole(''); }}>
                             <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Type..." /></SelectTrigger>
                             <SelectContent>
-                              {majorTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                              {majorTypes.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                             </SelectContent>
                           </Select>
                           {newSubtaskType && (
@@ -924,15 +929,14 @@ const SubtaskDetailPage: React.FC<{
   const isMajor = tierSlug === 'major';
   const isMinorOrNano = tierSlug === 'minor' || tierSlug === 'nano';
 
-  // Compute auto commission from rate card
+  // Compute auto commission from rate card (case-insensitive sub_category matching)
   const getSubtaskRate = () => {
     if (!taskTier) return 0;
     const mode = subtask.commission_mode || 'role';
     if (mode === 'role') {
-      // For major: use work_type as sub_category filter
       const role = assignees[0]?.role;
       if (!role) return 0;
-      const entry = roles.find(r => r.name === role && (!isMajor || r.sub_category === subtask.work_type));
+      const entry = roles.find(r => r.name === role && (!isMajor || r.sub_category?.toLowerCase() === subtask.work_type?.toLowerCase()));
       return entry ? getRate(entry, taskTier.id) : 0;
     } else if (mode === 'type' && subtask.work_type) {
       const entry = deliverables.find(d => d.name === subtask.work_type && d.complexity === subtask.complexity);
@@ -958,9 +962,16 @@ const SubtaskDetailPage: React.FC<{
   const totalTime = timeEntries.reduce((acc, entry) => acc + (entry.duration_seconds || 0), 0) + (activeTimer ? timerElapsed : 0);
   const availableMembers = organizationMembers?.filter(m => !assignees.some(a => a.user_id === m.user_id)) || [];
 
-  // Major type roles for the subtask's type
-  const majorTypes = ['Films', 'Photography', 'Design'];
-  const rolesForType = (type: string) => roles.filter(r => r.sub_category === type);
+  // Major type roles for the subtask's type (case-insensitive matching)
+  const majorTypes = [
+    { value: 'films', label: 'Films' },
+    { value: 'photography', label: 'Photography' },
+    { value: 'design', label: 'Design' },
+  ];
+  const rolesForType = (type: string) => {
+    const normalized = type.toLowerCase();
+    return roles.filter(r => r.sub_category?.toLowerCase() === normalized);
+  };
 
   return (
     <div className="space-y-6">
@@ -1011,7 +1022,7 @@ const SubtaskDetailPage: React.FC<{
                   }}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Type..." /></SelectTrigger>
                     <SelectContent>
-                      {majorTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      {majorTypes.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1081,7 +1092,7 @@ const SubtaskDetailPage: React.FC<{
                     }}>
                       <SelectTrigger className="h-7 w-[120px] text-xs ml-auto"><SelectValue placeholder="Role..." /></SelectTrigger>
                       <SelectContent>
-                        {(isMajor && subtask.work_type ? rolesForType(subtask.work_type) : roles.filter(r => taskTier && getRate(r, taskTier.id) > 0)).map(r => (
+                        {(isMajor && subtask.work_type ? rolesForType(subtask.work_type) : roles).map(r => (
                           <SelectItem key={r.id} value={r.name}>
                             {r.name} ({formatLKR(taskTier ? getRate(r, taskTier.id) : 0)})
                           </SelectItem>

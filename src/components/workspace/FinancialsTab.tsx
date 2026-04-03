@@ -6,6 +6,7 @@ import { useOrgCommissions } from '@/hooks/useOrgFinancials';
 import { useProjects } from '@/hooks/useProjects';
 import { useUpdateCommission } from '@/hooks/useUpdateCommission';
 import { UserWallet } from '@/components/personal/UserWallet';
+import { OrgFinancesPage } from './OrgFinancesPage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { DollarSign, TrendingUp, TrendingDown, ChevronDown, ChevronRight, Pencil, X, Check, RotateCcw } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, ChevronDown, ChevronRight, Pencil, X, Check, RotateCcw, Users } from 'lucide-react';
 import { TaskCommission } from '@/types/database';
 import { formatLKR } from '@/lib/currency';
 
@@ -122,7 +123,7 @@ const CommissionRow: React.FC<{
   );
 };
 
-export const FinancialsTab: React.FC = () => { // cleaned
+export const FinancialsTab: React.FC = () => {
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
   const { data: isAdmin = false } = useIsOrgAdmin();
@@ -133,6 +134,7 @@ export const FinancialsTab: React.FC = () => { // cleaned
   const [projectFilter, setProjectFilter] = useState<string>('all');
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<EditingState | null>(null);
+  const [showTeamFinances, setShowTeamFinances] = useState(false);
 
   // Filter commissions: members only see their own
   const commissions = isAdmin ? allCommissions : allCommissions.filter(c => c.user_id === user?.id);
@@ -176,6 +178,10 @@ export const FinancialsTab: React.FC = () => { // cleaned
     resetCommission({ commissionId: c.id, projectId: c.project_id });
   };
 
+  if (showTeamFinances) {
+    return <OrgFinancesPage onBack={() => setShowTeamFinances(false)} />;
+  }
+
   if (comLoading) {
     return <div className="space-y-4"><Skeleton className="h-32" /><Skeleton className="h-48" /><Skeleton className="h-64" /></div>;
   }
@@ -183,6 +189,13 @@ export const FinancialsTab: React.FC = () => { // cleaned
   return (
     <div className="space-y-6">
       <UserWallet />
+
+      {/* Team Finances Button - Admin Only */}
+      {isAdmin && (
+        <Button variant="outline" className="w-full" onClick={() => setShowTeamFinances(true)}>
+          <Users className="h-4 w-4 mr-2" /> View Team Finances
+        </Button>
+      )}
 
       {/* Organization Overview - Admin Only */}
       {isAdmin && (

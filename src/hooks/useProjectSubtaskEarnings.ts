@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useRateCardRoles, useRateCardDeliverables, getRateForTier } from '@/hooks/useRateCard';
-import { useOrganizationTiers, getTierForBudget } from '@/hooks/useOrganizationTiers';
+import { useOrganizationTiers } from '@/hooks/useOrganizationTiers';
 
 /**
  * Computes per-task potential earnings for the current user across a project.
@@ -61,9 +61,10 @@ export const useProjectSubtaskEarnings = (projectId?: string, userId?: string, o
         const parentTask = tasks.find(t => t.id === subtask.task_id);
         if (!parentTask) continue;
 
-        // Determine tier from task budget
-        const taskBudget = Number((parentTask as any).budget || 0);
-        const taskTier = getTierForBudget(tiers, taskBudget);
+        // Use manually selected tier only (budget is display-only)
+        const manualTierId = (parentTask as any).tier_id;
+        if (!manualTierId) continue;
+        const taskTier = tiers.find(t => t.id === manualTierId);
         if (!taskTier) continue;
 
         let rate = 0;
@@ -71,7 +72,7 @@ export const useProjectSubtaskEarnings = (projectId?: string, userId?: string, o
         const isMajor = taskTier.slug?.toLowerCase() === 'major';
 
         if (mode === 'role' && myAssignment.role) {
-          const entry = rateCardRoles.find(r => r.name === myAssignment.role && (!isMajor || r.sub_category === subtask.work_type));
+          const entry = rateCardRoles.find(r => r.name === myAssignment.role && (!isMajor || r.sub_category?.toLowerCase() === subtask.work_type?.toLowerCase()));
           if (entry) rate = getRateForTier(entry, taskTier.id);
         } else if (mode === 'type' && subtask.work_type) {
           const entry = rateCardDeliverables.find(d => d.name === subtask.work_type && d.complexity === subtask.complexity);
