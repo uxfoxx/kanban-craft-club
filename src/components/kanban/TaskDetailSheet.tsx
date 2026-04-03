@@ -100,12 +100,12 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   );
   const myTaskEarning = task ? earningsMap[task.id] || 0 : 0;
 
-  // Task's tier — manual tier_id or fall back to budget-based detection
+  // Task's tier — manual tier_id only (budget is display-only)
   const taskBudget = task ? Number((task as any).budget || task.cost || 0) : 0;
   const manualTierId = (task as any)?.tier_id;
   const taskTier = manualTierId 
     ? orgTiers.find(t => t.id === manualTierId) 
-    : (taskBudget > 0 ? getTierForBudget(orgTiers, taskBudget) : null);
+    : null;
   const tierSlug = taskTier?.slug?.toLowerCase();
   const isMajor = tierSlug === 'major';
   const isMinorOrNano = tierSlug === 'minor' || tierSlug === 'nano';
