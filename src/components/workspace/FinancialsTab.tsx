@@ -6,6 +6,7 @@ import { useOrgCommissions } from '@/hooks/useOrgFinancials';
 import { useProjects } from '@/hooks/useProjects';
 import { useUpdateCommission } from '@/hooks/useUpdateCommission';
 import { UserWallet } from '@/components/personal/UserWallet';
+import { OrgFinancesPage } from './OrgFinancesPage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { DollarSign, TrendingUp, TrendingDown, ChevronDown, ChevronRight, Pencil, X, Check, RotateCcw } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, ChevronDown, ChevronRight, Pencil, X, Check, RotateCcw, Users } from 'lucide-react';
 import { TaskCommission } from '@/types/database';
 import { formatLKR } from '@/lib/currency';
 
