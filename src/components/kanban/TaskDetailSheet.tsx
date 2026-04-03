@@ -1092,7 +1092,7 @@ const SubtaskDetailPage: React.FC<{
                     }}>
                       <SelectTrigger className="h-7 w-[120px] text-xs ml-auto"><SelectValue placeholder="Role..." /></SelectTrigger>
                       <SelectContent>
-                        {(isMajor && subtask.work_type ? rolesForType(subtask.work_type) : roles.filter(r => taskTier && getRate(r, taskTier.id) > 0)).map(r => (
+                        {(isMajor && subtask.work_type ? rolesForType(subtask.work_type) : roles).map(r => (
                           <SelectItem key={r.id} value={r.name}>
                             {r.name} ({formatLKR(taskTier ? getRate(r, taskTier.id) : 0)})
                           </SelectItem>

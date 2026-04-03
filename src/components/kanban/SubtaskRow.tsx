@@ -46,14 +46,14 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
 
   const isMajor = tierSlug === 'major';
 
-  // Compute rate from rate card
+  // Compute rate from rate card (case-insensitive sub_category matching)
   let subtaskRate = 0;
   if (projectTierId && expensesEnabled) {
     const mode = subtask.commission_mode || 'role';
     if (mode === 'role') {
       const role = assignees[0]?.role;
       if (role) {
-        const entry = rateCardRoles.find(r => r.name === role && (!isMajor || r.sub_category === subtask.work_type));
+        const entry = rateCardRoles.find(r => r.name === role && (!isMajor || r.sub_category?.toLowerCase() === subtask.work_type?.toLowerCase()));
         if (entry) subtaskRate = getRateForTier(entry, projectTierId);
       }
     } else if (mode === 'type' && subtask.work_type) {
