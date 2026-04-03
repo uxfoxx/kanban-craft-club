@@ -963,9 +963,16 @@ const SubtaskDetailPage: React.FC<{
   const totalTime = timeEntries.reduce((acc, entry) => acc + (entry.duration_seconds || 0), 0) + (activeTimer ? timerElapsed : 0);
   const availableMembers = organizationMembers?.filter(m => !assignees.some(a => a.user_id === m.user_id)) || [];
 
-  // Major type roles for the subtask's type
-  const majorTypes = ['Films', 'Photography', 'Design'];
-  const rolesForType = (type: string) => roles.filter(r => r.sub_category === type);
+  // Major type roles for the subtask's type (case-insensitive matching)
+  const majorTypes = [
+    { value: 'films', label: 'Films' },
+    { value: 'photography', label: 'Photography' },
+    { value: 'design', label: 'Design' },
+  ];
+  const rolesForType = (type: string) => {
+    const normalized = type.toLowerCase();
+    return roles.filter(r => r.sub_category?.toLowerCase() === normalized);
+  };
 
   return (
     <div className="space-y-6">
