@@ -178,6 +178,10 @@ export const FinancialsTab: React.FC = () => {
     resetCommission({ commissionId: c.id, projectId: c.project_id });
   };
 
+  if (showTeamFinances) {
+    return <OrgFinancesPage onBack={() => setShowTeamFinances(false)} />;
+  }
+
   if (comLoading) {
     return <div className="space-y-4"><Skeleton className="h-32" /><Skeleton className="h-48" /><Skeleton className="h-64" /></div>;
   }
@@ -185,6 +189,13 @@ export const FinancialsTab: React.FC = () => {
   return (
     <div className="space-y-6">
       <UserWallet />
+
+      {/* Team Finances Button - Admin Only */}
+      {isAdmin && (
+        <Button variant="outline" className="w-full" onClick={() => setShowTeamFinances(true)}>
+          <Users className="h-4 w-4 mr-2" /> View Team Finances
+        </Button>
+      )}
 
       {/* Organization Overview - Admin Only */}
       {isAdmin && (
