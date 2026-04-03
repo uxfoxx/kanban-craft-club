@@ -123,7 +123,7 @@ const CommissionRow: React.FC<{
   );
 };
 
-export const FinancialsTab: React.FC = () => { // cleaned
+export const FinancialsTab: React.FC = () => {
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
   const { data: isAdmin = false } = useIsOrgAdmin();
@@ -134,6 +134,7 @@ export const FinancialsTab: React.FC = () => { // cleaned
   const [projectFilter, setProjectFilter] = useState<string>('all');
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<EditingState | null>(null);
+  const [showTeamFinances, setShowTeamFinances] = useState(false);
 
   // Filter commissions: members only see their own
   const commissions = isAdmin ? allCommissions : allCommissions.filter(c => c.user_id === user?.id);
