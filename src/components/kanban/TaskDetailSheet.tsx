@@ -666,7 +666,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                           <Select value={newSubtaskType} onValueChange={(v) => { setNewSubtaskType(v); setNewSubtaskRole(''); }}>
                             <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Type..." /></SelectTrigger>
                             <SelectContent>
-                              {majorTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                              {majorTypes.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                             </SelectContent>
                           </Select>
                           {newSubtaskType && (
