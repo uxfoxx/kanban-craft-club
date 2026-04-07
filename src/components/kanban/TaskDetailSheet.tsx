@@ -952,7 +952,9 @@ const SubtaskDetailPage: React.FC<{
   };
 
   const autoRate = getSubtaskRate();
-  const perPersonRate = assignees.length > 0 ? autoRate / assignees.length : autoRate;
+  const subtaskQty = subtask.quantity || 1;
+  const totalRate = autoRate * subtaskQty;
+  const perPersonRate = assignees.length > 0 ? totalRate / assignees.length : totalRate;
 
   const activeTimer = globalActiveTimer?.subtask_id === subtask.id ? globalActiveTimer : null;
 
