@@ -997,6 +997,21 @@ const SubtaskDetailPage: React.FC<{
         {totalTime > 0 && <span className="text-sm text-muted-foreground">Total: {formatDuration(totalTime)}</span>}
       </div>
 
+      {/* Quantity */}
+      <div className="flex items-center gap-3">
+        <label className="text-sm font-medium">Quantity</label>
+        <Input
+          type="number" min="1"
+          value={subtaskQty}
+          onChange={async (e) => {
+            const val = parseInt(e.target.value) || 1;
+            if (val < 1) return;
+            try { await updateSubtask.mutateAsync({ subtaskId: subtask.id, taskId: subtask.task_id, quantity: val } as any); } catch { toast.error('Failed'); }
+          }}
+          className="h-8 w-20 text-sm"
+        />
+      </div>
+
       <Separator />
 
       {/* Tier-based commission info */}
