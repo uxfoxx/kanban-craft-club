@@ -729,10 +729,15 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                         </div>
                       )}
 
-                      <Button type="submit" size="sm" disabled={!newSubtask.trim()} className="w-full">
-                        <Plus className="h-4 w-4 mr-1" /> Add Subtask
-                      </Button>
-                    </form>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <label className="text-xs text-muted-foreground">Qty:</label>
+                          <Input type="number" min="1" value={newSubtaskQty} onChange={(e) => setNewSubtaskQty(parseInt(e.target.value) || 1)} className="h-8 w-16 text-xs" />
+                        </div>
+                        <Button type="submit" size="sm" disabled={!newSubtask.trim()} className="flex-1">
+                          <Plus className="h-4 w-4 mr-1" /> Add Subtask
+                        </Button>
+                      </div>
 
                     <div className="space-y-2">
                       {subtasks?.map((subtask) => (
