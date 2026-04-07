@@ -738,7 +738,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                           <Plus className="h-4 w-4 mr-1" /> Add Subtask
                         </Button>
                       </div>
-
+                    </form>
                     <div className="space-y-2">
                       {subtasks?.map((subtask) => (
                         <SubtaskRow
