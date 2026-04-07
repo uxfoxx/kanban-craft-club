@@ -323,3 +323,52 @@ export const useUpdateSubtask = () => {
     },
   });
 };
+
+export const useDuplicateSubtask = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ subtaskId, taskId }: { subtaskId: string; taskId: string }) => {
+      // Read original subtask
+      const { data: original, error: readErr } = await supabase
+        .from('subtasks')
+        .select('*')
+        .eq('id', subtaskId)
+        .single();
+      if (readErr || !original) throw readErr || new Error('Subtask not found');
+
+      // Insert copy
+      const { data: copy, error: insertErr } = await supabase
+        .from('subtasks')
+        .insert({
+          task_id: original.task_id,
+          title: original.title + ' (copy)',
+          work_type: original.work_type,
+          complexity: original.complexity,
+          commission_mode: original.commission_mode,
+          commission_type: original.commission_type,
+          commission_value: original.commission_value,
+          quantity: (original as any).quantity || 1,
+        } as any)
+        .select()
+        .single();
+      if (insertErr || !copy) throw insertErr || new Error('Failed to create copy');
+
+      // Copy assignees
+      const { data: assignees } = await supabase
+        .from('subtask_assignees')
+        .select('user_id, role')
+        .eq('subtask_id', subtaskId);
+      if (assignees && assignees.length > 0) {
+        await supabase.from('subtask_assignees').insert(
+          assignees.map(a => ({ subtask_id: copy.id, user_id: a.user_id, role: a.role }))
+        );
+      }
+
+      return copy;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['subtasks', variables.taskId] });
+    },
+  });
+};

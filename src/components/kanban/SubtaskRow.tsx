@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Subtask } from '@/types/database';
-import { useToggleSubtask, useDeleteSubtask, useUpdateSubtask } from '@/hooks/useTasks';
+import { useToggleSubtask, useDeleteSubtask, useUpdateSubtask, useDuplicateSubtask } from '@/hooks/useTasks';
 import { useSubtaskTimeEntries } from '@/hooks/useSubtaskTimeTracking';
 import { formatDuration } from '@/hooks/useTimeTracking';
 import { formatLKR } from '@/lib/currency';
@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Check, XCircle, Pencil, Trash2, Clock, MoreHorizontal, ChevronRight, TrendingUp } from 'lucide-react';
+import { Check, XCircle, Pencil, Trash2, Clock, MoreHorizontal, ChevronRight, TrendingUp, Copy } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +38,7 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
   const toggleSubtask = useToggleSubtask();
   const deleteSubtask = useDeleteSubtask();
   const updateSubtask = useUpdateSubtask();
+  const duplicateSubtask = useDuplicateSubtask();
 
   const { data: timeEntries = [] } = useSubtaskTimeEntries(subtask.id);
   const { data: assignees = [] } = useSubtaskAssignees(subtask.id);
@@ -45,6 +46,7 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
   const rateCardDeliverables = useRateCardDeliverables(orgId);
 
   const isMajor = tierSlug === 'major';
+  const qty = subtask.quantity || 1;
 
   // Compute rate from rate card (case-insensitive sub_category matching)
   let subtaskRate = 0;
@@ -62,19 +64,22 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
     }
   }
 
-  const perPersonRate = assignees.length > 0 ? subtaskRate / assignees.length : subtaskRate;
+  const totalRate = subtaskRate * qty;
+  const perPersonRate = assignees.length > 0 ? totalRate / assignees.length : totalRate;
 
   // Current user's earning
   let myEarning = 0;
   if (currentUserId && projectTierId && expensesEnabled) {
     const isAssigned = assignees.some(a => a.user_id === currentUserId);
-    if (isAssigned && subtaskRate > 0) {
+    if (isAssigned && totalRate > 0) {
       myEarning = perPersonRate;
     }
   }
 
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(subtask.title);
+  const [editingQty, setEditingQty] = useState(false);
+  const [localQty, setLocalQty] = useState(String(qty));
 
   const handleToggle = async () => {
     try {
@@ -95,6 +100,22 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
       await deleteSubtask.mutateAsync({ subtaskId: subtask.id, taskId: subtask.task_id });
       toast.success('Subtask deleted');
     } catch { toast.error('Failed to delete subtask'); }
+  };
+
+  const handleDuplicate = async () => {
+    try {
+      await duplicateSubtask.mutateAsync({ subtaskId: subtask.id, taskId: subtask.task_id });
+      toast.success('Subtask duplicated');
+    } catch { toast.error('Failed to duplicate subtask'); }
+  };
+
+  const handleSaveQty = async () => {
+    const val = parseInt(localQty) || 1;
+    if (val < 1) { setLocalQty('1'); return; }
+    try {
+      await updateSubtask.mutateAsync({ subtaskId: subtask.id, taskId: subtask.task_id, quantity: val } as any);
+      setEditingQty(false);
+    } catch { toast.error('Failed to update quantity'); }
   };
 
   const totalTime = timeEntries.reduce((acc, entry) => acc + (entry.duration_seconds || 0), 0);
@@ -121,6 +142,11 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
             </span>
             {/* Summary badges */}
             <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              {qty > 1 && (
+                <Badge variant="secondary" className="text-[10px] h-4 px-1 cursor-pointer" onClick={(e) => { e.stopPropagation(); setLocalQty(String(qty)); setEditingQty(true); }}>
+                  ×{qty}
+                </Badge>
+              )}
               {expensesEnabled && subtask.work_type && (
                 <Badge variant="outline" className="text-[10px] h-4 px-1">{subtask.work_type}</Badge>
               )}
@@ -138,9 +164,9 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
                   <Clock className="h-2.5 w-2.5" /> {formatDuration(totalTime)}
                 </span>
               )}
-              {subtaskRate > 0 && (
+              {totalRate > 0 && (
                 <Badge variant="outline" className="text-[10px] h-4 px-1 gap-0.5 border-chart-2/30 bg-chart-2/10 text-chart-2 font-semibold">
-                  {formatLKR(subtaskRate)}
+                  {formatLKR(totalRate)}
                   {assignees.length > 1 && ` ÷${assignees.length}`}
                 </Badge>
               )}
@@ -151,6 +177,18 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
                 </Badge>
               )}
             </div>
+            {/* Inline quantity editor */}
+            {editingQty && (
+              <div className="flex items-center gap-1 mt-1" onClick={(e) => e.stopPropagation()}>
+                <Input
+                  type="number" min="1" value={localQty} onChange={(e) => setLocalQty(e.target.value)}
+                  className="h-6 w-16 text-xs" autoFocus
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveQty(); if (e.key === 'Escape') setEditingQty(false); }}
+                />
+                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleSaveQty}><Check className="h-3 w-3" /></Button>
+                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditingQty(false)}><XCircle className="h-3 w-3" /></Button>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-1">
@@ -165,6 +203,8 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => setIsEditing(true)}><Pencil className="h-3 w-3 mr-2" /> Edit</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setLocalQty(String(qty)); setEditingQty(true); }}>×  Quantity</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDuplicate}><Copy className="h-3 w-3 mr-2" /> Duplicate</DropdownMenuItem>
                 <DropdownMenuItem className="text-destructive" onClick={handleDelete}><Trash2 className="h-3 w-3 mr-2" /> Delete</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
