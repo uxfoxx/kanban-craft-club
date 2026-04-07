@@ -217,8 +217,8 @@ export const useCreateSubtask = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ taskId, title, work_type, complexity, commission_mode }: { 
-      taskId: string; title: string; work_type?: string; complexity?: string; commission_mode?: string;
+    mutationFn: async ({ taskId, title, work_type, complexity, commission_mode, quantity }: { 
+      taskId: string; title: string; work_type?: string; complexity?: string; commission_mode?: string; quantity?: number;
     }) => {
       const { data, error } = await supabase
         .from('subtasks')
@@ -228,6 +228,7 @@ export const useCreateSubtask = () => {
           work_type: work_type || null,
           complexity: complexity || null,
           commission_mode: commission_mode || 'role',
+          quantity: quantity || 1,
         } as any)
         .select()
         .single();
@@ -305,7 +306,7 @@ export const useUpdateSubtask = () => {
     mutationFn: async ({ subtaskId, taskId, ...updates }: { 
       subtaskId: string; taskId: string; 
       title?: string; work_type?: string | null; complexity?: string | null; commission_mode?: string;
-      commission_type?: string | null; commission_value?: number;
+      commission_type?: string | null; commission_value?: number; quantity?: number;
     }) => {
       const { data, error } = await supabase
         .from('subtasks')
@@ -316,6 +317,55 @@ export const useUpdateSubtask = () => {
       
       if (error) throw error;
       return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['subtasks', variables.taskId] });
+    },
+  });
+};
+
+export const useDuplicateSubtask = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ subtaskId, taskId }: { subtaskId: string; taskId: string }) => {
+      // Read original subtask
+      const { data: original, error: readErr } = await supabase
+        .from('subtasks')
+        .select('*')
+        .eq('id', subtaskId)
+        .single();
+      if (readErr || !original) throw readErr || new Error('Subtask not found');
+
+      // Insert copy
+      const { data: copy, error: insertErr } = await supabase
+        .from('subtasks')
+        .insert({
+          task_id: original.task_id,
+          title: original.title + ' (copy)',
+          work_type: original.work_type,
+          complexity: original.complexity,
+          commission_mode: original.commission_mode,
+          commission_type: original.commission_type,
+          commission_value: original.commission_value,
+          quantity: (original as any).quantity || 1,
+        } as any)
+        .select()
+        .single();
+      if (insertErr || !copy) throw insertErr || new Error('Failed to create copy');
+
+      // Copy assignees
+      const { data: assignees } = await supabase
+        .from('subtask_assignees')
+        .select('user_id, role')
+        .eq('subtask_id', subtaskId);
+      if (assignees && assignees.length > 0) {
+        await supabase.from('subtask_assignees').insert(
+          assignees.map(a => ({ subtask_id: copy.id, user_id: a.user_id, role: a.role }))
+        );
+      }
+
+      return copy;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['subtasks', variables.taskId] });

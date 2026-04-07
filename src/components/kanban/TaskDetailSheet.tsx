@@ -116,6 +116,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const [newSubtaskMode, setNewSubtaskMode] = useState<'role' | 'type'>('role');
   const [newSubtaskDeliverable, setNewSubtaskDeliverable] = useState<string>('');
   const [newSubtaskComplexity, setNewSubtaskComplexity] = useState<string>('');
+  const [newSubtaskQty, setNewSubtaskQty] = useState(1);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
   const [isEditingDescription, setIsEditingDescription] = useState(false);
@@ -188,8 +189,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
     }
 
     try {
-      const subtaskData: any = { taskId: task.id, title: newSubtask.trim() };
-      
+      const subtaskData: any = { taskId: task.id, title: newSubtask.trim(), quantity: newSubtaskQty > 0 ? newSubtaskQty : 1 };
       if (isMajor && newSubtaskType) {
         subtaskData.work_type = newSubtaskType;
         subtaskData.commission_mode = 'role';
@@ -223,6 +223,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
       setNewSubtaskMode('role');
       setNewSubtaskDeliverable('');
       setNewSubtaskComplexity('');
+      setNewSubtaskQty(1);
       toast.success('Subtask added');
     } catch { toast.error('Failed to add subtask'); }
   };
@@ -728,11 +729,16 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                         </div>
                       )}
 
-                      <Button type="submit" size="sm" disabled={!newSubtask.trim()} className="w-full">
-                        <Plus className="h-4 w-4 mr-1" /> Add Subtask
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <label className="text-xs text-muted-foreground">Qty:</label>
+                          <Input type="number" min="1" value={newSubtaskQty} onChange={(e) => setNewSubtaskQty(parseInt(e.target.value) || 1)} className="h-8 w-16 text-xs" />
+                        </div>
+                        <Button type="submit" size="sm" disabled={!newSubtask.trim()} className="flex-1">
+                          <Plus className="h-4 w-4 mr-1" /> Add Subtask
+                        </Button>
+                      </div>
                     </form>
-
                     <div className="space-y-2">
                       {subtasks?.map((subtask) => (
                         <SubtaskRow
@@ -946,7 +952,9 @@ const SubtaskDetailPage: React.FC<{
   };
 
   const autoRate = getSubtaskRate();
-  const perPersonRate = assignees.length > 0 ? autoRate / assignees.length : autoRate;
+  const subtaskQty = subtask.quantity || 1;
+  const totalRate = autoRate * subtaskQty;
+  const perPersonRate = assignees.length > 0 ? totalRate / assignees.length : totalRate;
 
   const activeTimer = globalActiveTimer?.subtask_id === subtask.id ? globalActiveTimer : null;
 
@@ -989,6 +997,21 @@ const SubtaskDetailPage: React.FC<{
         {totalTime > 0 && <span className="text-sm text-muted-foreground">Total: {formatDuration(totalTime)}</span>}
       </div>
 
+      {/* Quantity */}
+      <div className="flex items-center gap-3">
+        <label className="text-sm font-medium">Quantity</label>
+        <Input
+          type="number" min="1"
+          value={subtaskQty}
+          onChange={async (e) => {
+            const val = parseInt(e.target.value) || 1;
+            if (val < 1) return;
+            try { await updateSubtask.mutateAsync({ subtaskId: subtask.id, taskId: subtask.task_id, quantity: val } as any); } catch { toast.error('Failed'); }
+          }}
+          className="h-8 w-20 text-sm"
+        />
+      </div>
+
       <Separator />
 
       {/* Tier-based commission info */}
@@ -1003,11 +1026,15 @@ const SubtaskDetailPage: React.FC<{
                 {subtask.commission_mode === 'type' && <Badge variant="outline" className="text-xs">Deliverable</Badge>}
                 {subtask.work_type && <Badge variant="outline" className="text-xs">{subtask.work_type}</Badge>}
                 {subtask.complexity && <Badge variant="outline" className="text-xs">{subtask.complexity}</Badge>}
+                {subtaskQty > 1 && <Badge variant="secondary" className="text-xs">×{subtaskQty}</Badge>}
               </div>
               {autoRate > 0 && (
                 <div className="text-sm">
                   <span className="text-muted-foreground">Rate: </span>
                   <span className="font-semibold text-chart-2">{formatLKR(autoRate)}</span>
+                  {subtaskQty > 1 && (
+                    <span className="text-muted-foreground"> × {subtaskQty} = {formatLKR(totalRate)}</span>
+                  )}
                   {assignees.length > 1 && (
                     <span className="text-muted-foreground"> ÷ {assignees.length} = {formatLKR(perPersonRate)} each</span>
                   )}

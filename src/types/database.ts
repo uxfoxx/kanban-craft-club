@@ -148,6 +148,7 @@ export interface Subtask {
   work_type: string | null;
   complexity: string | null;
   commission_mode: SubtaskCommissionMode;
+  quantity: number;
   created_at: string;
 }
 
