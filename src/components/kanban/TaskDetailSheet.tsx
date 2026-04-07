@@ -1011,11 +1011,15 @@ const SubtaskDetailPage: React.FC<{
                 {subtask.commission_mode === 'type' && <Badge variant="outline" className="text-xs">Deliverable</Badge>}
                 {subtask.work_type && <Badge variant="outline" className="text-xs">{subtask.work_type}</Badge>}
                 {subtask.complexity && <Badge variant="outline" className="text-xs">{subtask.complexity}</Badge>}
+                {subtaskQty > 1 && <Badge variant="secondary" className="text-xs">×{subtaskQty}</Badge>}
               </div>
               {autoRate > 0 && (
                 <div className="text-sm">
                   <span className="text-muted-foreground">Rate: </span>
                   <span className="font-semibold text-chart-2">{formatLKR(autoRate)}</span>
+                  {subtaskQty > 1 && (
+                    <span className="text-muted-foreground"> × {subtaskQty} = {formatLKR(totalRate)}</span>
+                  )}
                   {assignees.length > 1 && (
                     <span className="text-muted-foreground"> ÷ {assignees.length} = {formatLKR(perPersonRate)} each</span>
                   )}
