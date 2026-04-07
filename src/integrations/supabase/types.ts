@@ -752,6 +752,7 @@ export type Database = {
           created_at: string
           estimated_hours: number | null
           id: string
+          quantity: number
           task_id: string
           title: string
           work_type: string | null
@@ -765,6 +766,7 @@ export type Database = {
           created_at?: string
           estimated_hours?: number | null
           id?: string
+          quantity?: number
           task_id: string
           title: string
           work_type?: string | null
@@ -778,6 +780,7 @@ export type Database = {
           created_at?: string
           estimated_hours?: number | null
           id?: string
+          quantity?: number
           task_id?: string
           title?: string
           work_type?: string | null
