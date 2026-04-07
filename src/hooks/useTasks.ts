@@ -217,8 +217,8 @@ export const useCreateSubtask = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ taskId, title, work_type, complexity, commission_mode }: { 
-      taskId: string; title: string; work_type?: string; complexity?: string; commission_mode?: string;
+    mutationFn: async ({ taskId, title, work_type, complexity, commission_mode, quantity }: { 
+      taskId: string; title: string; work_type?: string; complexity?: string; commission_mode?: string; quantity?: number;
     }) => {
       const { data, error } = await supabase
         .from('subtasks')
@@ -228,6 +228,7 @@ export const useCreateSubtask = () => {
           work_type: work_type || null,
           complexity: complexity || null,
           commission_mode: commission_mode || 'role',
+          quantity: quantity || 1,
         } as any)
         .select()
         .single();
@@ -305,7 +306,7 @@ export const useUpdateSubtask = () => {
     mutationFn: async ({ subtaskId, taskId, ...updates }: { 
       subtaskId: string; taskId: string; 
       title?: string; work_type?: string | null; complexity?: string | null; commission_mode?: string;
-      commission_type?: string | null; commission_value?: number;
+      commission_type?: string | null; commission_value?: number; quantity?: number;
     }) => {
       const { data, error } = await supabase
         .from('subtasks')

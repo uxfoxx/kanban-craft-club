@@ -30,7 +30,7 @@ export const useProjectSubtaskEarnings = (projectId?: string, userId?: string, o
       // Fetch subtasks for these tasks
       const { data: subtasks } = await supabase
         .from('subtasks')
-        .select('id, task_id, commission_mode, work_type, complexity')
+        .select('id, task_id, commission_mode, work_type, complexity, quantity')
         .in('task_id', taskIds);
       if (!subtasks || subtasks.length === 0) return {};
 
@@ -80,7 +80,8 @@ export const useProjectSubtaskEarnings = (projectId?: string, userId?: string, o
         }
 
         if (rate > 0) {
-          const perPerson = rate / (assignments.length || 1);
+          const qty = (subtask as any).quantity || 1;
+          const perPerson = (rate * qty) / (assignments.length || 1);
           earningsPerTask[parentTask.id] = (earningsPerTask[parentTask.id] || 0) + perPerson;
         }
       }
