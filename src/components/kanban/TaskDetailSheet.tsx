@@ -116,6 +116,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const [newSubtaskMode, setNewSubtaskMode] = useState<'role' | 'type'>('role');
   const [newSubtaskDeliverable, setNewSubtaskDeliverable] = useState<string>('');
   const [newSubtaskComplexity, setNewSubtaskComplexity] = useState<string>('');
+  const [newSubtaskQty, setNewSubtaskQty] = useState(1);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
   const [isEditingDescription, setIsEditingDescription] = useState(false);
@@ -188,8 +189,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
     }
 
     try {
-      const subtaskData: any = { taskId: task.id, title: newSubtask.trim() };
-      
+      const subtaskData: any = { taskId: task.id, title: newSubtask.trim(), quantity: newSubtaskQty > 0 ? newSubtaskQty : 1 };
       if (isMajor && newSubtaskType) {
         subtaskData.work_type = newSubtaskType;
         subtaskData.commission_mode = 'role';
@@ -223,6 +223,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
       setNewSubtaskMode('role');
       setNewSubtaskDeliverable('');
       setNewSubtaskComplexity('');
+      setNewSubtaskQty(1);
       toast.success('Subtask added');
     } catch { toast.error('Failed to add subtask'); }
   };
