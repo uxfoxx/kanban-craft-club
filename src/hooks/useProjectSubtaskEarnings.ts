@@ -75,7 +75,9 @@ export const useProjectSubtaskEarnings = (projectId?: string, userId?: string, o
           const entry = rateCardRoles.find(r => r.name === myAssignment.role && (!isMajor || r.sub_category?.toLowerCase() === subtask.work_type?.toLowerCase()));
           if (entry) rate = getRateForTier(entry, taskTier.id);
         } else if (mode === 'type' && subtask.work_type) {
-          const entry = rateCardDeliverables.find(d => d.name === subtask.work_type && d.complexity === subtask.complexity);
+          const wt = subtask.work_type.toLowerCase();
+          const cx = (subtask.complexity || '').toLowerCase();
+          const entry = rateCardDeliverables.find(d => d.name?.toLowerCase() === wt && (d.complexity || '').toLowerCase() === cx);
           if (entry) rate = getRateForTier(entry, taskTier.id);
         }
 

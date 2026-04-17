@@ -59,7 +59,9 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
         if (entry) subtaskRate = getRateForTier(entry, projectTierId);
       }
     } else if (mode === 'type' && subtask.work_type) {
-      const entry = rateCardDeliverables.find(d => d.name === subtask.work_type && d.complexity === subtask.complexity);
+      const wt = subtask.work_type.toLowerCase();
+      const cx = (subtask.complexity || '').toLowerCase();
+      const entry = rateCardDeliverables.find(d => d.name?.toLowerCase() === wt && (d.complexity || '').toLowerCase() === cx);
       if (entry) subtaskRate = getRateForTier(entry, projectTierId);
     }
   }
