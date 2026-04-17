@@ -46,7 +46,7 @@ const CommissionRow: React.FC<{
   return (
     <TableRow key={c.id}>
       {showProject && <TableCell className="text-sm">{projectName || '—'}</TableCell>}
-      <TableCell className="text-sm font-mono">{c.task_id.slice(0, 8)}…</TableCell>
+      <TableCell className="text-sm">{(c as any).subtask_title || (c as any).task_title || '—'}</TableCell>
       <TableCell className="text-sm font-medium">
         {isEditing ? (
           <Input

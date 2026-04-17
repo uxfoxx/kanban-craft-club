@@ -945,7 +945,9 @@ const SubtaskDetailPage: React.FC<{
       const entry = roles.find(r => r.name === role && (!isMajor || r.sub_category?.toLowerCase() === subtask.work_type?.toLowerCase()));
       return entry ? getRate(entry, taskTier.id) : 0;
     } else if (mode === 'type' && subtask.work_type) {
-      const entry = deliverables.find(d => d.name === subtask.work_type && d.complexity === subtask.complexity);
+      const wt = subtask.work_type.toLowerCase();
+      const cx = (subtask.complexity || '').toLowerCase();
+      const entry = deliverables.find(d => d.name?.toLowerCase() === wt && (d.complexity || '').toLowerCase() === cx);
       return entry ? getRate(entry, taskTier.id) : 0;
     }
     return 0;
