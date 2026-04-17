@@ -46,7 +46,21 @@ const CommissionRow: React.FC<{
   return (
     <TableRow key={c.id}>
       {showProject && <TableCell className="text-sm">{projectName || '—'}</TableCell>}
-      <TableCell className="text-sm">{(c as any).subtask_title || (c as any).task_title || '—'}</TableCell>
+      <TableCell className="text-sm">
+        {(() => {
+          const taskTitle = (c as any).task_title;
+          const subtaskTitle = (c as any).subtask_title;
+          if (subtaskTitle && taskTitle) {
+            return (
+              <div className="flex flex-col">
+                <span className="font-medium">{taskTitle}</span>
+                <span className="text-xs text-muted-foreground">↳ {subtaskTitle}</span>
+              </div>
+            );
+          }
+          return <span>{taskTitle || subtaskTitle || '—'}</span>;
+        })()}
+      </TableCell>
       <TableCell className="text-sm font-medium">
         {isEditing ? (
           <Input
