@@ -176,6 +176,13 @@ export const RateCardSettings: React.FC<RateCardSettingsProps> = ({ onBack }) =>
         </div>
       </div>
 
+      <Card className="border-primary/30 bg-primary/5">
+        <CardContent className="py-3 px-4 text-sm">
+          <span className="font-semibold text-primary">Editing rate card for: {currentOrganization.name}</span>
+          <span className="text-muted-foreground"> — All members of this organization see these rates. Make sure this is the correct organization before editing.</span>
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="roles">
         <TabsList>
           <TabsTrigger value="roles">Roles</TabsTrigger>
