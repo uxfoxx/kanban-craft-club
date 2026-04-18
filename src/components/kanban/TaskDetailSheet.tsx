@@ -1226,6 +1226,11 @@ const SubtaskDetailPage: React.FC<{
 
       <Separator />
 
+      {/* Files */}
+      <AttachmentsSection projectId={projectId} subtaskId={subtask.id} />
+
+      <Separator />
+
       {/* Comments */}
       <CommentSection
         subtaskId={subtask.id}
