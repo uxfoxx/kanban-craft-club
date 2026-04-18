@@ -15,10 +15,11 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Save, Volume2, VolumeX, Play } from 'lucide-react';
+import { Loader2, Save, Volume2, VolumeX, Play, RefreshCw, Trash2, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNotificationSoundSettings } from '@/hooks/useNotificationSoundSettings';
 import { NOTIFICATION_SOUND_TYPES, playTestSound } from '@/lib/notificationSounds';
+import { APP_VERSION } from '@/lib/releaseNotes';
 
 interface ProfileSettingsProps {
   open: boolean;
@@ -174,6 +175,47 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ open, onOpenCh
                 </div>
               </>
             )}
+          </div>
+
+          <Separator />
+
+          {/* App & Cache */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold flex items-center gap-1.5">
+              <Smartphone className="h-4 w-4" /> App & Cache
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Force the app to fetch the latest version or clear local cache if you see stale data.
+            </p>
+            <div className="grid gap-2">
+              <Button type="button" variant="outline" className="rounded-xl justify-start" onClick={async () => {
+                try {
+                  const reg = await navigator.serviceWorker?.getRegistration();
+                  if (reg) { await reg.update(); toast.success('Checked for updates'); }
+                  else toast.info('No service worker registered');
+                } catch { toast.error('Update check failed'); }
+              }}>
+                <RefreshCw className="h-4 w-4 mr-2" /> Check for updates
+              </Button>
+              <Button type="button" variant="outline" className="rounded-xl justify-start" onClick={async () => {
+                try {
+                  if ('caches' in window) {
+                    const keys = await caches.keys();
+                    await Promise.all(keys.map(k => caches.delete(k)));
+                  }
+                  const regs = await navigator.serviceWorker?.getRegistrations() || [];
+                  await Promise.all(regs.map(r => r.unregister()));
+                  toast.success('Cache cleared, reloading...');
+                  setTimeout(() => window.location.reload(), 600);
+                } catch { toast.error('Failed to clear cache'); }
+              }}>
+                <Trash2 className="h-4 w-4 mr-2" /> Clear cache & reload
+              </Button>
+              <Button type="button" variant="outline" className="rounded-xl justify-start" onClick={() => window.location.reload()}>
+                <RefreshCw className="h-4 w-4 mr-2" /> Hard reload
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground text-center pt-1">App version: {APP_VERSION}</p>
           </div>
 
           <Separator />

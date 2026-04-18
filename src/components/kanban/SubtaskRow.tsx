@@ -10,7 +10,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Check, XCircle, Pencil, Trash2, Clock, MoreHorizontal, ChevronRight, TrendingUp, Copy } from 'lucide-react';
+import { Check, XCircle, Pencil, Trash2, Clock, MoreHorizontal, ChevronRight, TrendingUp, Copy, AlertCircle, Calendar as CalendarIcon } from 'lucide-react';
+import { format, isPast, isToday } from 'date-fns';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -158,6 +159,16 @@ export const SubtaskRow: React.FC<SubtaskRowProps> = ({ subtask, organizationMem
               {expensesEnabled && subtask.commission_mode === 'role' && assignees[0]?.role && (
                 <Badge variant="outline" className="text-[10px] h-4 px-1">{assignees[0].role}</Badge>
               )}
+              {subtask.due_date && (() => {
+                const d = new Date(subtask.due_date);
+                const overdue = isPast(d) && !isToday(d) && !subtask.completed;
+                return (
+                  <Badge variant="outline" className={cn('text-[10px] h-4 px-1 gap-0.5', overdue && 'border-destructive/40 bg-destructive/10 text-destructive')}>
+                    {overdue ? <AlertCircle className="h-2.5 w-2.5" /> : <CalendarIcon className="h-2.5 w-2.5" />}
+                    {format(d, 'MMM d')}
+                  </Badge>
+                );
+              })()}
               {assignees.length > 0 && (
                 <span className="text-xs text-muted-foreground">{assignees.length} assignee{assignees.length > 1 ? 's' : ''}</span>
               )}

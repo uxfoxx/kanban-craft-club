@@ -149,6 +149,19 @@ export interface Subtask {
   complexity: string | null;
   commission_mode: SubtaskCommissionMode;
   quantity: number;
+  due_date: string | null;
+  created_at: string;
+}
+
+export interface TaskAttachment {
+  id: string;
+  task_id: string | null;
+  subtask_id: string | null;
+  file_path: string;
+  file_name: string;
+  mime_type: string | null;
+  size_bytes: number;
+  uploaded_by: string;
   created_at: string;
 }
 

@@ -750,6 +750,7 @@ export type Database = {
           completed: boolean
           complexity: string | null
           created_at: string
+          due_date: string | null
           estimated_hours: number | null
           id: string
           quantity: number
@@ -764,6 +765,7 @@ export type Database = {
           completed?: boolean
           complexity?: string | null
           created_at?: string
+          due_date?: string | null
           estimated_hours?: number | null
           id?: string
           quantity?: number
@@ -778,6 +780,7 @@ export type Database = {
           completed?: boolean
           complexity?: string | null
           created_at?: string
+          due_date?: string | null
           estimated_hours?: number | null
           id?: string
           quantity?: number
@@ -852,6 +855,57 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      task_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          id: string
+          mime_type: string | null
+          size_bytes: number
+          subtask_id: string | null
+          task_id: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number
+          subtask_id?: string | null
+          task_id?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number
+          subtask_id?: string | null
+          task_id?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_attachments_subtask_id_fkey"
+            columns: ["subtask_id"]
+            isOneToOne: false
+            referencedRelation: "subtasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_attachments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
           },
         ]
       }

@@ -56,6 +56,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useComments } from '@/hooks/useComments';
+import { AttachmentsSection } from '@/components/shared/AttachmentsSection';
 
 interface TaskDetailSheetProps {
   task: Task | null;
@@ -461,6 +462,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                   expensesEnabled={expensesEnabled}
                   taskTier={taskTier}
                   orgId={currentOrganization?.id}
+                  projectId={projectId}
                 />
               </div>
             </div>
@@ -587,6 +589,11 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                       </div>
                     )}
                   </div>
+
+                  <Separator />
+
+                  {/* Files */}
+                  <AttachmentsSection projectId={projectId} taskId={task.id} />
 
                   <Separator />
 
@@ -915,7 +922,8 @@ const SubtaskDetailPage: React.FC<{
   expensesEnabled?: boolean;
   taskTier?: OrganizationTier | null;
   orgId?: string;
-}> = ({ subtask, organizationMembers, taskBudget, isOrgAdmin, expensesEnabled, taskTier, orgId }) => {
+  projectId: string;
+}> = ({ subtask, organizationMembers, taskBudget, isOrgAdmin, expensesEnabled, taskTier, orgId, projectId }) => {
   const { data: timeEntries = [] } = useSubtaskTimeEntries(subtask.id);
   const { data: assignees = [] } = useSubtaskAssignees(subtask.id);
   const { data: globalActiveTimer } = useActiveSubtaskTimeEntry();
@@ -1012,6 +1020,39 @@ const SubtaskDetailPage: React.FC<{
           }}
           className="h-8 w-20 text-sm"
         />
+      </div>
+
+      {/* Due Date */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <label className="text-sm font-medium">Due Date</label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 text-xs">
+              <CalendarIcon className="h-3 w-3 mr-1" />
+              {subtask.due_date ? format(new Date(subtask.due_date), 'MMM d, yyyy') : 'Set due date'}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={subtask.due_date ? new Date(subtask.due_date) : undefined}
+              onSelect={async (d) => {
+                try {
+                  await updateSubtask.mutateAsync({ subtaskId: subtask.id, taskId: subtask.task_id, due_date: d ? format(d, 'yyyy-MM-dd') : null } as any);
+                  toast.success('Due date updated');
+                } catch { toast.error('Failed'); }
+              }}
+              initialFocus
+            />
+            {subtask.due_date && (
+              <div className="p-2 border-t">
+                <Button variant="ghost" size="sm" className="w-full text-destructive" onClick={async () => {
+                  try { await updateSubtask.mutateAsync({ subtaskId: subtask.id, taskId: subtask.task_id, due_date: null } as any); } catch { toast.error('Failed'); }
+                }}>Remove due date</Button>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
       </div>
 
       <Separator />
@@ -1182,6 +1223,11 @@ const SubtaskDetailPage: React.FC<{
           </div>
         ) : <p className="text-xs text-muted-foreground">No time entries</p>}
       </div>
+
+      <Separator />
+
+      {/* Files */}
+      <AttachmentsSection projectId={projectId} subtaskId={subtask.id} />
 
       <Separator />
 
